@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const pagesOnly = process.env.PLAYWRIGHT_PAGES_ONLY === '1'
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -20,7 +22,13 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1050 } } },
     { name: 'mobile', use: { ...devices['Pixel 7'], defaultBrowserType: 'chromium' } },
   ],
-  webServer: [
+  webServer: pagesOnly ? [{
+    command: 'npm run preview:site',
+    url: 'http://127.0.0.1:4175',
+    env: { PORT: '4175' },
+    reuseExistingServer: false,
+    timeout: 45_000,
+  }] : [
     {
       command: 'npm run preview --workspace app -- --port 4173 --strictPort',
       url: 'http://127.0.0.1:4173',

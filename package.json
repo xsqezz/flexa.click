@@ -10,6 +10,7 @@
     "dev": "npm run dev --workspace app",
     "build": "npm run build --workspace app",
     "build:site": "node scripts/build-site.mjs",
+    "build:pages": "npm run build:pages --workspace app && node scripts/build-site.mjs --with-demo",
     "lint": "oxlint app shared",
     "typecheck": "npm run typecheck --workspace app",
     "check:edge": "deno check --config supabase/functions/deno.json supabase/functions/food-search/index.ts supabase/functions/account-delete/index.ts",

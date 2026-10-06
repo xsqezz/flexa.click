@@ -10,9 +10,14 @@ const files = new Map([
   ['/setup.html', ['setup.html', 'text/html; charset=utf-8']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
   ['/favicon.svg', ['favicon.svg', 'image/svg+xml']],
+  ['/app/', ['app/index.html', 'text/html; charset=utf-8']],
+  ['/app/index.html', ['app/index.html', 'text/html; charset=utf-8']],
+  ['/app/favicon.svg', ['app/favicon.svg', 'image/svg+xml']],
 ])
 const server = createServer((request, response) => {
-  const file = files.get(new URL(request.url ?? '/', 'http://localhost').pathname)
+  const path = new URL(request.url ?? '/', 'http://localhost').pathname
+  const asset = /^\/app\/assets\/[A-Za-z0-9_-]+\.(js|css)$/.exec(path)
+  const file = files.get(path) ?? (asset ? [path.slice(1), asset[1] === 'css' ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8'] : undefined)
   if (!file || !existsSync(join('dist-site', file[0]))) {
     response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
     response.end('Build the site first: npm run build:site')

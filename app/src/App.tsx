@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/Auth'
 import { JournalProvider } from './lib/Journal'
 import { FeedbackProvider } from './components/Feedback'
@@ -29,7 +29,8 @@ function DemoEntry() {
 }
 
 export default function App() {
-  return <ErrorBoundary><BrowserRouter><AuthProvider><FeedbackProvider>
+  const Router = import.meta.env.VITE_PAGES_DEMO === 'true' ? HashRouter : BrowserRouter
+  return <ErrorBoundary><Router><AuthProvider><FeedbackProvider>
     <Routes>
       <Route path="/login" element={<AuthPage />} />
       <Route path="/signup" element={<AuthPage />} />
@@ -46,7 +47,7 @@ export default function App() {
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>
-      <Route path="*" element={<main className="fatal-error"><Brand /><h1>Tego miejsca nie ma w dzienniku</h1><a className="button button-primary" href="/">Wróć do Flexa</a></main>} />
+      <Route path="*" element={<main className="fatal-error"><Brand /><h1>Tego miejsca nie ma w dzienniku</h1><Link className="button button-primary" to="/">Wróć do Flexa</Link></main>} />
     </Routes>
-  </FeedbackProvider></AuthProvider></BrowserRouter></ErrorBoundary>
+  </FeedbackProvider></AuthProvider></Router></ErrorBoundary>
 }

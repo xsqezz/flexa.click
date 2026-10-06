@@ -4,6 +4,10 @@ Darmowy, polski dziennik jedzenia, treningów i postępów. Niezależny projekt
 inspirowany funkcjonalnie Fitatu i Stravą — bez kopiowania ich kodu czy baz.
 Docelowo: `flexa.click` (landing), `app.flexa.click` (aplikacja).
 
+Publikacja GitHub Pages: [Flexa](https://xsqezz.github.io/flexa.click/),
+[pełne demo aplikacji](https://xsqezz.github.io/flexa.click/app/#/demo).
+Demo zapisuje zmiany lokalnie; nie tworzy kont ani synchronizacji.
+
 **Zaimplementowane:** konta Supabase, cele kalorii/makro i wody, dziennik posiłków,
 produkty własne, wyszukiwanie Open Food Facts + opcjonalnie USDA, kamera
 BarcodeDetector/ZXing, treningi, import własnych GPX/TCX, tempo i minuty × RPE,
@@ -12,7 +16,8 @@ Oddzielne demo zapisuje wyłącznie przykładowe dane na urządzeniu.
 
 **Przygotowane do wdrożenia, nie skonfigurowane automatycznie:** projekty
 Supabase/Cloudflare, SMTP i DNS trzeba podłączyć zgodnie z instrukcją.
-GitHub Pages hostuje publiczny landing, nie aplikację z wrażliwymi danymi.
+GitHub Pages hostuje landing oraz całą aplikację w osobnym, lokalnym trybie demo.
+Konta i synchronizację hostujemy poza Pages; publiczny build nie dopuszcza kluczy backendu.
 Bez zmiennych środowiskowych konta nie udają działania; dostępne jest demo.
 
 ```powershell
@@ -33,7 +38,7 @@ po stronie funkcji Supabase.
 | `docs` | Research, źródła, koszty, instrukcja konfiguracji |
 
 Instrukcje: [wdrożenie](docs/DEPLOYMENT.md), [research i zasoby](docs/RESEARCH.md).
-GitHub Actions publikuje landing i uruchamia kontrole; aplikację buduje integracja
+GitHub Actions publikuje landing i demo (`npm run build:pages`); aplikację z kontami buduje integracja
 Cloudflare Pages z tego samego repozytorium.
 
 ```powershell

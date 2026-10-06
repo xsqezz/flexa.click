@@ -2,7 +2,7 @@
 
 Projekt ma dwa niezależne frontendowe artefakty:
 `app/dist` (aplikacja z kontami, Cloudflare Pages) oraz `dist-site`
-(landing/dokumentacja, GitHub Pages).
+(landing/dokumentacja i lokalne demo, GitHub Pages).
 Nie publikuj całej aplikacji z logowaniem i dziennikami na GitHub Pages.
 
 ## Lokalny start i demo
@@ -113,22 +113,26 @@ Sprawdź bezpośrednie wejścia na `/journal`, `/progress`, `/reset-password`.
 Plik `_headers` obejmuje CSP i uprawnienia kamery. Przy niestandardowej domenie
 API Supabase zmień `connect-src` na jej faktyczny origin; nie rozszerzaj CSP do `*`.
 
-## Landing: GitHub Pages
+## Landing i pełne demo: GitHub Pages
 
 Settings > Pages > Source = GitHub Actions.
-Workflow `.github/workflows/pages.yml` publikuje tylko `dist-site`.
-Uruchamia się przy zmianach landingu na main lub ręcznie.
+Workflow `.github/workflows/pages.yml` publikuje `dist-site`, wraz z aplikacją
+demonstracyjną w `app/`. Build `npm run build:pages` używa względnych assetów
+i HashRouter, więc działa zarówno pod ścieżką repozytorium, jak i po odświeżeniu.
+Uruchamia się po zmianach aplikacji lub landingu na main albo ręcznie.
+Konta, hasła i backend nie są częścią publicznego demo. Build odrzuca konfigurację
+Supabase, aby nie opublikować wariantu z kontami na Pages.
 
 Zmienne repozytorium:
 
 - `FLEXA_APP_URL`: faktyczny origin działającej aplikacji Cloudflare; bez ścieżki.
-  Bez niego CTA wskazuje instrukcję uruchomienia, nie fikcyjne działające konto.
+  Bez niego CTA otwiera dołączone demo, nie fikcyjne działające konto.
 - `FLEXA_SITE_DOMAIN`: opcjonalnie `flexa.click`, **dopiero po potwierdzeniu
   własności i poprawnym DNS**. Bez niego nie generujemy CNAME.
 
 ```powershell
 $env:FLEXA_APP_URL = 'https://app.flexa.click'
-npm run build:site
+npm run build:pages
 ```
 
 Zmiany samych repo variables wymagają ręcznego ponownego workflow.

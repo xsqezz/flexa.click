@@ -247,7 +247,7 @@ test('all main pages, dialog, privacy and landing are accessible without overflo
   await page.goto('http://127.0.0.1:4174')
   await expect(page.getByRole('heading', { name: /Jedzenie.*Ruch.*Twój rytm/ })).toBeVisible()
   await accessible(page)
-  await page.getByRole('link', { name: 'Jak uruchomić Flexa', exact: true }).first().click()
+  await page.getByRole('link', { name: /Zobacz źródła, koszty i granice/ }).click()
   await expect(page.getByRole('heading', { name: /Co jest potrzebne/ })).toBeVisible()
   await accessible(page)
 })

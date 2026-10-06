@@ -1,7 +1,11 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const destination = 'dist-site'
+const withDemo = process.argv.includes('--with-demo')
+if (withDemo && !existsSync(join('app', 'dist-pages', 'index.html'))) {
+  throw new Error('Build the Pages demo first: npm run build:pages --workspace app')
+}
 mkdirSync(destination, { recursive: true })
 let app = null
 if (process.env.FLEXA_APP_URL?.trim()) {
@@ -18,12 +22,15 @@ for (const file of ['index.html', 'setup.html', 'styles.css', 'favicon.svg']) {
   const output = join(destination, file)
   if (file.endsWith('.html')) {
     const html = readFileSync(join('site', file), 'utf8')
-      .replaceAll('{{APP_URL}}', () => escape(app?.origin ?? 'setup.html'))
-      .replaceAll('{{DEMO_URL}}', () => escape(app ? `${app.origin}/demo` : 'setup.html#demo'))
-      .replaceAll('{{APP_CTA}}', app ? 'Otwórz aplikację' : 'Jak uruchomić Flexa')
+      .replaceAll('{{APP_URL}}', () => escape(app?.origin ?? (withDemo ? 'app/#/demo' : 'setup.html')))
+      .replaceAll('{{DEMO_URL}}', () => escape(withDemo ? 'app/#/demo' : app ? `${app.origin}/demo` : 'setup.html#demo'))
+      .replaceAll('{{APP_CTA}}', app ? 'Otwórz aplikację' : withDemo ? 'Otwórz demo Flexa' : 'Jak uruchomić Flexa')
     writeFileSync(output, html)
   } else copyFileSync(join('site', file), output)
 }
+const demoDestination = join(destination, 'app')
+if (existsSync(demoDestination)) rmSync(demoDestination, { recursive: true })
+if (withDemo) cpSync(join('app', 'dist-pages'), demoDestination, { recursive: true })
 writeFileSync(join(destination, '.nojekyll'), '')
 const cname = join(destination, 'CNAME')
 const domain = process.env.FLEXA_SITE_DOMAIN?.trim()
@@ -33,4 +40,4 @@ if (domain) {
   }
   writeFileSync(cname, `${domain}\n`)
 } else if (existsSync(cname)) unlinkSync(cname)
-console.log(`Public site built. Application link: ${app?.origin ?? 'setup instructions (not configured)'}.`)
+console.log(`Public site built. Application link: ${app?.origin ?? (withDemo ? 'included local demo' : 'setup instructions (not configured)')}.`)
