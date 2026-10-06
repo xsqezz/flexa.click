@@ -20,6 +20,9 @@ describe('Open Food Facts normalization', () => {
     expect(normalizeOFF({ code: '1' })).toBeNull()
     expect(normalizeOFF({ code: '4006381333931', product_name: 'Wrong' }, '5901234123457')).toBeNull()
   })
+  it('uses a recorded generic product name if the branded name is missing', () => {
+    expect(normalizeOFF({ code: '4025500132477', generic_name_pl: 'Napój mleczny', nutriments: {} })?.name).toBe('Napój mleczny')
+  })
 })
 
 describe('USDA normalization', () => {

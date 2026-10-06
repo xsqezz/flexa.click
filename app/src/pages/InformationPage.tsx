@@ -23,7 +23,7 @@ export function InformationPage({ kind }: { kind: 'privacy' | 'sources' }) {
       <p>Usunięcie konta usuwa powiązane rekordy z aktywnej bazy. Techniczne logi i ewentualne kopie dostawcy wygasają według jego zasad retencji; administrator musi podać obowiązujący zakres przed publicznym startem. Nie obiecujemy natychmiastowego usunięcia z każdej kopii infrastruktury.</p>
       <p>Dane przechowujemy podczas korzystania z konta do jego usunięcia. Możesz wycofać zgodę, żądać dostępu, sprostowania, ograniczenia przetwarzania lub usunięcia przez kontakt z administratorem oraz złożyć skargę do właściwego organu ochrony danych, w Polsce UODO.</p>
       <h2>Osobny tryb demonstracyjny</h2>
-      <p>Dane demo są przykładowe. Pozostają w lokalnej pamięci urządzenia, nie tworzą konta i nie mają synchronizacji. „Wyzeruj demo” usuwa ten lokalny zapis; wyjście z demo samo go nie kasuje.</p>
+      <p>Początkowe dane demo są przykładowe. Dziennik pozostaje w lokalnej pamięci urządzenia, nie tworzy konta i nie ma synchronizacji. Wyszukiwanie i skanowanie korzystają z rzeczywistego Open Food Facts: dostawca otrzymuje zapytanie lub kod oraz techniczne dane połączenia, w tym adres IP, ale nie cały dziennik. „Wyzeruj demo” usuwa lokalny zapis; wyjście z demo samo go nie kasuje.</p>
       <h2>Przed publicznym uruchomieniem</h2>
       <p>Administrator powinien uzupełnić tożsamość i kontakt, faktyczny region przetwarzania, okresy retencji oraz umowy z dostawcami i ocenić zgodność z RODO. Ten tekst opisuje implementację, nie jest certyfikatem zgodności ani poradą prawną.</p>
     </> : <>

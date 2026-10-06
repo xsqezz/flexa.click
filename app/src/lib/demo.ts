@@ -20,7 +20,7 @@ export const demoFoods: Food[] = [
   id: `demo-${index}`,
   name: String(name),
   brand: 'Produkt demonstracyjny',
-  barcode: index === 0 ? '5901234123457' : null,
+  barcode: null,
   source: 'demo' as const,
   unit: 'g' as const,
   nutrients: {

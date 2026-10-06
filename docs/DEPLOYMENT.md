@@ -122,6 +122,11 @@ i HashRouter, więc działa zarówno pod ścieżką repozytorium, jak i po odśw
 Uruchamia się po zmianach aplikacji lub landingu na main albo ręcznie.
 Konta, hasła i backend nie są częścią publicznego demo. Build odrzuca konfigurację
 Supabase, aby nie opublikować wariantu z kontami na Pages.
+Wyszukiwanie i skanowanie w tym wariancie odczytuje publiczny Open Food Facts
+bez klucza i bez Supabase. Cache działa przez 5 minut; limity po stronie klienta
+wynoszą 14 odczytów produktu i 8 wyszukiwań na minutę. Nie ma wyszukiwania
+z każdym wpisanym znakiem. USDA pozostaje opcjonalne tylko w backendzie kont,
+ponieważ jego klucza nie można publikować w statycznej aplikacji.
 
 Zmienne repozytorium:
 

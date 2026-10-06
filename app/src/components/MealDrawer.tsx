@@ -138,7 +138,8 @@ export function MealDrawer({ date, initialMeal, onClose }: { date: string; initi
         <Field label="Kod kreskowy (opcjonalnie)" hint="EAN-8, UPC-A, EAN-13 lub GTIN-14 z poprawną cyfrą kontrolną."><input name="barcode" inputMode="numeric" pattern="[0-9]{8}|[0-9]{12}|[0-9]{13}|[0-9]{14}" maxLength={14} /></Field>
         <Button type="submit" busy={pending}>Zapisz produkt</Button>
       </form> : <>
-        {tab === 'barcode' && <CameraScanner onDetected={(value) => { setBarcode(value); void search({ barcode: value }) }} />}
+        {tab === 'barcode' && <><CameraScanner onDetected={(value) => { setBarcode(value); void search({ barcode: value }) }} />
+          <p className="source-credit">Kod sprawdzamy w prawdziwym katalogu Open Food Facts, także bez konta. Wymagane jest połączenie z internetem.</p></>}
         <form className="search-form" onSubmit={(event) => {
           event.preventDefault()
           void search(tab === 'barcode' ? { barcode } : { query })
@@ -152,7 +153,7 @@ export function MealDrawer({ date, initialMeal, onClose }: { date: string; initi
           </label><Button type="submit" busy={searching}><Search size={17} aria-hidden="true" />Szukaj</Button>
         </form>
         {searching && <Notice>Wyszukuję produkty…</Notice>}
-        {!result && tab === 'search' && <p className="source-credit">Ostatnio używane i Twoje produkty. Wyszukiwanie w bazach rozpoczyna się dopiero po kliknięciu „Szukaj”.</p>}
+        {!result && tab === 'search' && <p className="source-credit">Ostatnio używane i Twoje produkty. „Szukaj” sprawdza rzeczywisty katalog produktów, także w trybie lokalnym — nie tylko przykłady demo.</p>}
         {result?.warnings.map((warning) => <Notice key={warning}>{warning}</Notice>)}
         <ul className="food-results">{list.map((item) => <li key={item.id}>
           <button className="food-result" disabled={item.nutrients.kcal === null} onClick={() => select(item)}>

@@ -23,3 +23,50 @@ test('GitHub Pages includes the full local demo with relative assets and reload-
   expect(errors).toEqual([])
   expect(failures).toEqual([])
 })
+
+test('public Pages barcode lookup uses actual product records and persists the confirmed portion', async ({ page }) => {
+  const calls: string[] = []
+  await page.route('https://world.openfoodfacts.org/**', async (route) => {
+    calls.push(route.request().url())
+    await route.fulfill({
+      contentType: 'application/json', headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify({ product: {
+        code: '4025500132477', product_name: 'Mullermilch Chocolate', brands: 'Müller',
+        nutriments: { 'energy-kcal_100g': 76, proteins_100g: 3.5, carbohydrates_100g: 11.9, fat_100g: 1.7 },
+      } }),
+    })
+  })
+  await page.goto(`${origin}/app/#/demo`)
+  await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: 'Kod kreskowy', exact: true }).click()
+  await dialog.getByLabel('Kod EAN lub UPC', { exact: true }).fill('4025500132477')
+  expect(calls).toHaveLength(0)
+  await dialog.getByRole('button', { name: 'Szukaj', exact: true }).click()
+  await dialog.getByRole('button', { name: /Mullermilch Chocolate.*76 kcal/ }).click()
+  await dialog.getByLabel('Wartości na etykiecie dotyczą').selectOption('ml')
+  await dialog.getByLabel('Porcja (ml)', { exact: true }).fill('400')
+  await dialog.getByRole('button', { name: 'Dodaj do dziennika' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByText('Mullermilch Chocolate', { exact: true })).toBeVisible()
+  expect(calls).toHaveLength(1)
+  expect(calls[0]).toContain('/api/v3/product/4025500132477.json')
+  const meal = await page.evaluate(() => JSON.parse(localStorage.getItem('flexa:demo:v1') ?? '{}').meals.at(-1))
+  expect(meal).toMatchObject({ portion: 400, food: { source: 'open-food-facts', unit: 'ml', barcode: '4025500132477' } })
+  await page.reload()
+  await expect(page.getByText('Mullermilch Chocolate', { exact: true })).toBeVisible()
+})
+
+test('public catalog failure is not mislabeled as a missing barcode', async ({ page }) => {
+  await page.route('https://world.openfoodfacts.org/**', (route) => route.fulfill({
+    status: 503, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '{}',
+  }))
+  await page.goto(`${origin}/app/#/demo`)
+  await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: 'Kod kreskowy', exact: true }).click()
+  await dialog.getByLabel('Kod EAN lub UPC', { exact: true }).fill('4025500132477')
+  await dialog.getByRole('button', { name: 'Szukaj', exact: true }).click()
+  await expect(dialog.getByRole('alert')).toContainText('niedostępna (503)')
+  await expect(dialog.getByRole('heading', { name: 'Tego produktu jeszcze nie znaleźliśmy' })).toHaveCount(0)
+})

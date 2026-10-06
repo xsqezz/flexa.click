@@ -3,6 +3,21 @@ import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { journalSchema } from '../shared/domain'
 
+test.beforeEach(async ({ page }) => {
+  await page.route('https://world.openfoodfacts.org/**', async (route) => {
+    const barcode = new URL(route.request().url()).pathname.includes('/product/')
+    const product = {
+      code: barcode ? '4025500132477' : '5901234123457',
+      product_name: barcode ? 'Mullermilch Chocolate' : 'Jogurt naturalny',
+      brands: 'Fixture', nutriments: { 'energy-kcal_100g': barcode ? 76 : 61 },
+    }
+    await route.fulfill({
+      contentType: 'application/json', headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify(barcode ? { product } : { products: [product] }),
+    })
+  })
+})
+
 async function openDemo(page: Page) {
   await page.goto('/demo')
   await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
@@ -37,6 +52,7 @@ test('demo, food search, portions, persistent meals and deletion', async ({ page
   await dialog.getByRole('textbox', { name: 'Nazwa produktu', exact: true }).fill('Jogurt')
   await dialog.getByRole('button', { name: 'Szukaj', exact: true }).click()
   await dialog.getByRole('button', { name: /Jogurt naturalny.*61 kcal/ }).click()
+  await dialog.getByLabel('Wartości na etykiecie dotyczą').selectOption('g')
   await dialog.getByLabel('Porcja (g)', { exact: true }).fill('200')
   await dialog.getByLabel('Posiłek', { exact: true }).selectOption('dinner')
   await dialog.getByRole('button', { name: 'Dodaj do dziennika' }).click()
@@ -170,9 +186,9 @@ test('manual barcode remains usable after camera permission denial', async ({ pa
   await dialog.getByRole('button', { name: 'Kod kreskowy', exact: true }).click()
   await dialog.getByRole('button', { name: 'Skanuj aparatem' }).click()
   await expect(dialog.getByRole('alert')).toContainText('Brak zgody')
-  await dialog.getByLabel('Kod EAN lub UPC', { exact: true }).fill('5901234123457')
+  await dialog.getByLabel('Kod EAN lub UPC', { exact: true }).fill('4025500132477')
   await dialog.getByRole('button', { name: 'Szukaj', exact: true }).click()
-  await expect(dialog.getByRole('button', { name: /Płatki owsiane.*370 kcal/ })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: /Mullermilch Chocolate.*76 kcal/ })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog')).toHaveCount(0)
 })
@@ -183,7 +199,7 @@ test('native barcode result stops and releases the camera stream', async ({ page
     Object.defineProperty(window, 'cameraStops', { get: () => stopped })
     Object.defineProperty(window, 'BarcodeDetector', { value: class {
       static async getSupportedFormats() { return ['ean_13'] }
-      async detect() { return [{ rawValue: '5901234123457' }] }
+      async detect() { return [{ rawValue: '4025500132477' }] }
     } })
     Object.defineProperty(navigator.mediaDevices, 'getUserMedia', { value: async () => {
       const canvas = document.createElement('canvas')
@@ -202,7 +218,7 @@ test('native barcode result stops and releases the camera stream', async ({ page
   const dialog = page.getByRole('dialog')
   await dialog.getByRole('button', { name: 'Kod kreskowy', exact: true }).click()
   await dialog.getByRole('button', { name: 'Skanuj aparatem' }).click()
-  await expect(dialog.getByLabel('Kod EAN lub UPC', { exact: true })).toHaveValue('5901234123457')
+  await expect(dialog.getByLabel('Kod EAN lub UPC', { exact: true })).toHaveValue('4025500132477')
   expect(await page.evaluate(() => Reflect.get(window, 'cameraStops'))).toBeGreaterThan(0)
   await expect(dialog.locator('video')).toHaveCount(0)
 })

@@ -7,6 +7,9 @@ Docelowo: `flexa.click` (landing), `app.flexa.click` (aplikacja).
 Publikacja GitHub Pages: [Flexa](https://xsqezz.github.io/flexa.click/),
 [pełne demo aplikacji](https://xsqezz.github.io/flexa.click/app/#/demo).
 Demo zapisuje zmiany lokalnie; nie tworzy kont ani synchronizacji.
+Skaner i wyszukiwanie także w tej wersji korzystają z prawdziwego katalogu
+Open Food Facts przez publiczne API, nie z kilkunastu przykładowych produktów.
+Internet jest potrzebny do pobrania nowych produktów; własne produkty są lokalne.
 
 **Zaimplementowane:** konta Supabase, cele kalorii/makro i wody, dziennik posiłków,
 produkty własne, wyszukiwanie Open Food Facts + opcjonalnie USDA, kamera
