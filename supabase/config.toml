@@ -1,0 +1,27 @@
+project_id = "flexa"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 17
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:5173"
+additional_redirect_urls = ["http://127.0.0.1:5173/reset-password"]
+minimum_password_length = 10
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+
+[functions.food-search]
+verify_jwt = false
+
+[functions.account-delete]
+verify_jwt = false

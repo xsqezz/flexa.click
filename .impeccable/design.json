@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-06T19:45:00+01:00",
+  "title": "Design System: Flexa",
+  "extensions": {
+    "colorMeta": {
+      "pine": { "role": "primary", "displayName": "Pine action ink" },
+      "paper": { "role": "neutral", "displayName": "Cool working paper" },
+      "surface": { "role": "neutral", "displayName": "White task surface" },
+      "protein": { "role": "secondary", "displayName": "Protein blue" },
+      "carbs": { "role": "secondary", "displayName": "Carbohydrate ochre" },
+      "fat": { "role": "secondary", "displayName": "Fat lilac" }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "System sans", "purpose": "Forms, diary records and reading surfaces." },
+      "app-headline": { "displayName": "Working headline", "purpose": "App task and route headings." },
+      "landing-display": { "displayName": "Public offer", "purpose": "Landing headline only, with responsive size overrides." }
+    },
+    "shadows": [
+      { "name": "selected-control", "value": "0 1px 3px #152d2010", "purpose": "Selected segmented controls." },
+      { "name": "illustrative-board", "value": "0 15px 45px #2a4a2710", "purpose": "Public landing demonstration, not default app panels." }
+    ],
+    "motion": [
+      { "name": "control-state", "value": "160ms ease", "purpose": "Background and border state transitions." },
+      { "name": "energy-change", "value": "200ms ease-out", "purpose": "Transform-based energy progress changes." }
+    ],
+    "breakpoints": [
+      { "name": "app-phone", "value": "700px" },
+      { "name": "app-stacked", "value": "980px" },
+      { "name": "app-compact", "value": "1190px" },
+      { "name": "app-wide", "value": "1550px" },
+      { "name": "landing-medium", "value": "950px" },
+      { "name": "landing-wide", "value": "1290px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary action",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "A named save or add action.",
+      "html": "<button class=\"ds-primary\">Dodaj posiłek</button>",
+      "css": ".ds-primary{font:600 .875rem/1.4 'Segoe UI',Arial,sans-serif;min-height:43px;padding:10px 16px;border:1px solid transparent;border-radius:9px;background:var(--pine,#276043);color:white;cursor:pointer;transition:background-color 160ms ease}.ds-primary:hover{background:var(--pine-dark,#1d4933)}.ds-primary:focus-visible{outline:3px solid #326eab;outline-offset:3px}.ds-primary:disabled{opacity:.55;cursor:not-allowed}"
+    },
+    {
+      "name": "Secondary action",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "An alternative or non-primary operation.",
+      "html": "<button class=\"ds-secondary\">Eksportuj dane JSON</button>",
+      "css": ".ds-secondary{font:600 .875rem/1.4 'Segoe UI',Arial,sans-serif;min-height:43px;padding:10px 16px;border:1px solid #cbd7cf;border-radius:9px;background:white;color:var(--text,#20352b);cursor:pointer;transition:background-color 160ms ease,border-color 160ms ease}.ds-secondary:hover{background:#f1f5f2;border-color:#92ad9c}.ds-secondary:focus-visible{outline:3px solid #326eab;outline-offset:3px}.ds-secondary:disabled{opacity:.55;cursor:not-allowed}"
+    },
+    {
+      "name": "Ghost action",
+      "kind": "button",
+      "description": "A quiet repeatable action inside a task group.",
+      "html": "<button class=\"ds-ghost\">Dodaj aktywność</button>",
+      "css": ".ds-ghost{font:600 .875rem/1.4 'Segoe UI',Arial,sans-serif;min-height:43px;padding:10px 16px;border:1px solid transparent;border-radius:9px;background:#edf4ee;color:var(--pine,#276043);cursor:pointer;transition:background-color 160ms ease}.ds-ghost:hover{background:#deebdf}.ds-ghost:focus-visible{outline:3px solid #326eab;outline-offset:3px}"
+    },
+    {
+      "name": "Named field",
+      "kind": "input",
+      "description": "Native input with a visible unit-aware label.",
+      "html": "<label class=\"ds-field\">Porcja (g)<input type=\"number\" min=\"0.1\" step=\"0.1\" value=\"100\"/></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:8px;font:500 .83rem 'Segoe UI',Arial,sans-serif;color:var(--text,#20352b)}.ds-field input{font:400 .875rem 'Segoe UI',Arial,sans-serif;min-height:44px;padding:11px 12px;border:1px solid #c9d4ce;border-radius:9px;background:white;color:var(--text,#20352b)}.ds-field input:hover{border-color:#8fa998}.ds-field input:focus-visible{outline:3px solid #326eab;outline-offset:3px}"
+    },
+    {
+      "name": "Active destination",
+      "kind": "nav",
+      "description": "Readable current-location state with icon and text.",
+      "html": "<nav><a class=\"ds-nav\" href=\"#\" aria-current=\"page\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M16 3v4M8 3v4M3 11h18\"/></svg>Dzisiaj</a></nav>",
+      "css": ".ds-nav{display:flex;align-items:center;gap:12px;font:650 .875rem 'Segoe UI',Arial,sans-serif;padding:13px 14px;border-radius:10px;background:#edf4eb;color:#2d5d3e;text-decoration:none}.ds-nav:hover{background:#e2eddf}.ds-nav:focus-visible{outline:3px solid #326eab;outline-offset:3px}"
+    },
+    {
+      "name": "Task panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Flat grouping surface rather than decorative nested cards.",
+      "html": "<section class=\"ds-panel\"><h2>Nawodnienie</h2><p>Twój zapis i wybrany cel.</p></section>",
+      "css": ".ds-panel{font-family:'Segoe UI',Arial,sans-serif;background:var(--surface,#fff);color:var(--text,#20352b);border:1px solid var(--line,#e2e8e4);border-radius:16px;padding:23px 25px}.ds-panel h2{font-size:1.08rem;font-weight:650;letter-spacing:-.02em;margin:0 0 17px}.ds-panel p{font-size:.85rem;line-height:1.65;color:var(--muted,#617068);margin:0}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The daily sports-club planning board",
+    "overview": "A clear, light working surface for reading a personal diary in daylight or between workouts. Food, movement and measurements share a practical visual language without turning daily values into scores or competitive rankings.\n\nThe application prioritizes familiar controls and readable records. The public landing uses the same identity at a larger scale; its illustrative diary is explicitly labeled as synthetic. Product and deployment truth belongs in PRODUCT.md and the deployment guide, not decorative marketing claims.",
+    "keyCharacteristics": [
+      "Cool light paper, pine ink and functional green actions.",
+      "One system sans family with tabular numeric values.",
+      "Separate blue, ochre and lilac nutrient roles.",
+      "Flat record divisions, native controls and restrained state transitions."
+    ],
+    "rules": [
+      { "name": "The Named Values Rule", "body": "Never make color the only way to distinguish a nutrient, selected state, missing value or error.", "section": "colors" }
+    ],
+    "dos": [
+      "Do preserve named units, visible source attribution and explicit unknowns.",
+      "Do keep saved goals distinct from informational activity energy.",
+      "Do use the same form, focus and action patterns across routes.",
+      "Do preserve readable axes, full-width mobile task groups and reduced motion."
+    ],
+    "donts": [
+      "Don't present synthetic data or unconfigured services as real user activity.",
+      "Don't use guilt, rankings or alarm colors to judge a diary entry.",
+      "Don't add decorative gradients, glowing surfaces or display fonts to forms.",
+      "Don't shrink a desktop chart wholesale or rely on color alone."
+    ]
+  }
+}

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#276043" />
+  <meta name="description" content="Flexa łączy jedzenie, treningi i postępy w jednym darmowym dzienniku. Bez abonamentu, z Twoimi danymi pod kontrolą." />
+  <title>Flexa — jedzenie, ruch, Twój rytm</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- THESIS: Show one daily planning board that connects nutrition and movement, not a list of premium promises.
+       OWN-WORLD: Pine ink, cool light paper, practical green actions, a calm sports-club planning grid.
+       STORY: Understand Flexa, inspect an illustrative daily ledger, then open the app or its honest setup guide.
+       FIRST VIEWPORT: Large plain-language offer left, daily food-and-movement board right, visible app/demo actions.
+       FORM: Daily sports planning board, direction 4, stacked task divisions; companion Persuade surface, seed b9e80aea. -->
+  <a class="skip-link" href="#main">Przejdź do treści</a>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Flexa — strona główna"><img src="favicon.svg" width="36" height="36" alt="" />flexa<span>.</span></a>
+    <nav aria-label="Menu strony"><a href="#how">Jak to działa</a><a href="setup.html">Źródła i wdrożenie</a></nav>
+    <a class="button button-small" href="{{APP_URL}}">{{APP_CTA}}</a>
+  </header>
+  <main id="main">
+    <section class="hero">
+      <div class="hero-copy">
+        <h1>Jedzenie.<br />Ruch.<br /><span>Twój rytm.</span></h1>
+        <p>Nie potrzebujesz trzech aplikacji, żeby zadbać o siebie. Zapisuj jedzenie, treningi i postępy w jednym miejscu — bez abonamentu.</p>
+        <div class="hero-actions"><a class="button" href="{{APP_URL}}">{{APP_CTA}} <span aria-hidden="true">↗</span></a><a class="secondary-link" href="{{DEMO_URL}}">Poznaj demo <span aria-hidden="true">→</span></a></div>
+        <p class="hero-note">Darmowe funkcje. Prywatny dziennik. Możliwość eksportu.</p>
+      </div>
+      <figure class="product-board">
+        <figcaption>Tak może wyglądać Twój dzień <span>Przykładowe dane</span></figcaption>
+        <div class="board-header"><div><strong>Dzisiaj, w Twoim rytmie</strong><span>Jedzenie i ruch w jednym widoku.</span></div><span class="board-date">Wtorek</span></div>
+        <div class="board-nutrition"><div><span>Energia z posiłków</span><strong>1 580 <small>/ 2 200 kcal</small></strong><p>620 kcal do wybranego celu</p></div>
+          <svg width="68" height="77" viewBox="0 0 90 90" aria-hidden="true"><path d="M54 9C28 20 17 35 23 54c6 20 23 22 36 12 12-10 15-34-5-57Z" fill="#b9d9a9"/><path d="M25 80C29 53 37 39 53 25M34 55l-5-17M40 44l19-4" fill="none" stroke="#356d47" stroke-width="3" stroke-linecap="round"/></svg>
+        </div>
+        <div class="board-macros"><div><span>Białko</span><strong>112 <small>/ 140 g</small></strong><i class="protein"></i></div><div><span>Węglowodany</span><strong>187 <small>/ 260 g</small></strong><i class="carbs"></i></div><div><span>Tłuszcze</span><strong>43 <small>/ 65 g</small></strong><i class="fat"></i></div></div>
+        <div class="board-meal"><span class="meal-time">Śniadanie</span><strong>Owsianka z jogurtem i bananem</strong><span>450 kcal</span></div>
+        <div class="board-meal"><span class="meal-time">Obiad</span><strong>Kurczak z ryżem i brokułami</strong><span>650 kcal</span></div>
+        <div class="board-meal"><span class="meal-time">Przekąski</span><strong>Serek, jabłko i orzechy</strong><span>480 kcal</span></div>
+        <div class="board-bottom"><div><span class="board-symbol" aria-hidden="true">↗</span><div><strong>Bieg w parku</strong><span>6,2 km · 38 min</span></div></div><div class="board-water"><strong>1,5 <small>/ 2,5 l</small></strong><span>Twoja woda</span></div></div>
+      </figure>
+    </section>
+    <section class="intro" id="how">
+      <h2>Mniej przełączania.<br />Więcej miejsca na życie.</h2>
+      <p>Rytm dnia nie kończy się na liczbie kalorii ani na ostatnim kilometrze. Flexa łączy te zapisy, żeby łatwiej zobaczyć całość.</p>
+    </section>
+    <section class="feature-ledger" aria-label="Funkcje Flexa">
+      <article><div class="feature-title"><h3>Jedzenie bez zgadywania.</h3><span aria-hidden="true">↗</span></div><p>Wyszukaj produkt, zeskanuj kod albo przepisz etykietę. Wybierz porcję i własne cele kalorii oraz makro. Brakujące dane pozostają jawne.</p><span class="feature-detail">Open Food Facts + opcjonalnie USDA</span></article>
+      <article><div class="feature-title"><h3>Ruch w Twoim tempie.</h3><span aria-hidden="true">↗</span></div><p>Dodaj trening ręcznie lub zaimportuj własne GPX/TCX. Zobacz czas, dystans, tempo i prosty wskaźnik odczuwalnego wysiłku.</p><span class="feature-detail">Bez obowiązkowej integracji i rankingu</span></article>
+      <article><div class="feature-title"><h3>Postęp, nie presja.</h3><span aria-hidden="true">↗</span></div><p>Przeglądaj dziennik, nawodnienie i historię pomiarów. Analizy, korzystanie na komputerze i eksport nie wymagają dopłaty.</p><span class="feature-detail">Twoje dane są prywatne i przenośne</span></article>
+    </section>
+    <section class="free-section">
+      <div><h2>Nie ma tutaj<br />wersji „premium”.</h2><p>Funkcje Flexa są darmowe dla użytkowników. Bez zamkniętych wykresów, reklam i płatnego przycisku eksportu.</p></div>
+      <div class="honest-note"><h3>Darmowe nie znaczy bez ograniczeń.</h3><p>Bazy produktów są niepełne, infrastruktura ma limity, a domena wymaga utrzymania. Nie obiecujemy dostępu do płatnych danych Stravy ani „AI”, którego aplikacja nie ma.</p><a href="setup.html">Zobacz źródła, koszty i granice tej wersji →</a></div>
+    </section>
+    <section class="closing"><h2>Zacznij od swojego dnia.</h2><p>Jedzenie. Trochę ruchu. Jeden mały krok.</p><a class="button" href="{{APP_URL}}">{{APP_CTA}} <span aria-hidden="true">↗</span></a></section>
+  </main>
+  <footer class="site-footer"><a class="brand" href="./"><img src="favicon.svg" width="27" height="27" alt="" />flexa<span>.</span></a><p>Niezależny projekt. Bez afiliacji z Fitatu ani Stravą.</p><a href="https://github.com/xsqezz/flexa.click">Kod i dokumentacja ↗</a></footer>
+</body>
+</html>

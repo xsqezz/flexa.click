@@ -1,0 +1,32 @@
+{
+  "name": "flexa",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "workspaces": [
+    "app"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace app",
+    "build": "npm run build --workspace app",
+    "build:site": "node scripts/build-site.mjs",
+    "lint": "oxlint app shared",
+    "typecheck": "npm run typecheck --workspace app",
+    "check:edge": "deno check --config supabase/functions/deno.json supabase/functions/food-search/index.ts supabase/functions/account-delete/index.ts",
+    "test": "npm run test --workspace app",
+    "test:e2e": "playwright test",
+    "preview": "npm run preview --workspace app",
+    "preview:site": "node scripts/serve-site.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
+    "deno": "^2.9.6"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "allowScripts": {
+    "deno@2.9.6": true
+  }
+}

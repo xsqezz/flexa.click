@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pl">
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="description" content="Źródła produktów, darmowe usługi i instrukcja uruchomienia Flexa."/><title>Flexa — źródła i uruchomienie</title><link rel="icon" href="favicon.svg"/><link rel="stylesheet" href="styles.css"/></head>
+<body>
+  <header class="site-header"><a class="brand" href="./"><img src="favicon.svg" width="36" height="36" alt=""/>flexa<span>.</span></a><a class="secondary-link" href="./">Wróć do Flexa</a></header>
+  <main class="guide">
+    <h1>Co jest potrzebne,<br />żeby Flexa działała.</h1>
+    <p>Landing i dokumentacja są statyczne. Konta, dane i aplikacja wymagają skonfigurowanych usług — nie udajemy, że samo GitHub Pages jest backendem.</p>
+    <h2>Podział hostingu</h2>
+    <p><strong>GitHub Pages:</strong> ta strona i dokumentacja, docelowo flexa.click. <strong>Cloudflare Pages:</strong> aplikacja, docelowo app.flexa.click. <strong>Supabase:</strong> konta, prywatna baza Postgres i funkcje do wyszukiwania produktów oraz usuwania konta.</p>
+    <h2>Źródła produktów i kodów</h2>
+    <div class="table-scroll"><table><thead><tr><th>Źródło</th><th>Po co</th><th>Warunki</th></tr></thead><tbody>
+      <tr><td><a href="https://world.openfoodfacts.org/data">Open Food Facts</a></td><td>Międzynarodowe produkty EAN/UPC; główne źródło.</td><td>Darmowe API i eksporty. ODbL / DbCL, atrybucja i share-alike. Dane społecznościowe, niepełne.</td></tr>
+      <tr><td><a href="https://fdc.nal.usda.gov/api-guide/">USDA FoodData Central</a></td><td>Opcjonalny fallback, zwłaszcza produkty z USA.</td><td>CC0. Darmowy klucz API na serwerze. 1000 żądań/h/IP. GTIN musi pasować dokładnie.</td></tr>
+      <tr><td>Własne produkty</td><td>Brakujące etykiety i Twoje posiłki.</td><td>Prywatne dane użytkownika, bez publikowania połączonej bazy.</td></tr>
+    </tbody></table></div>
+    <p>Nie kopiujemy baz Fitatu ani Stravy. Nie pobieramy całego katalogu do przeglądarki i nie scrapujemy API. Przy większej skali należy użyć nocnych eksportów i odpowiednio licencjonowanego publicznego katalogu.</p>
+    <h2>Pozostałe usługi</h2>
+    <div class="table-scroll"><table><thead><tr><th>Potrzeba</th><th>Gdzie</th><th>Bezpłatny start i ograniczenia</th></tr></thead><tbody>
+      <tr><td>Frontend aplikacji</td><td><a href="https://developers.cloudflare.com/pages/">Cloudflare Pages</a></td><td>Free: 500 buildów/miesiąc, do 20 000 plików. Bez funkcji serwerowych Cloudflare w tym projekcie.</td></tr>
+      <tr><td>Konta i baza</td><td><a href="https://supabase.com/pricing">Supabase</a></td><td>Free: 500 MB bazy, 50 000 MAU, 5 GB egress. Usypianie po tygodniu bezczynności; brak automatycznych backupów Free.</td></tr>
+      <tr><td>E-maile kont</td><td><a href="https://resend.com/pricing">Resend SMTP</a></td><td>Free: 3000/miesiąc, 100/dzień. Wymaga weryfikacji domeny. Wbudowana poczta Supabase nie jest produkcyjnym rozwiązaniem.</td></tr>
+      <tr><td>Skaner</td><td><a href="https://developer.mozilla.org/en-US/docs/Web/API/BarcodeDetector">BarcodeDetector</a> + <a href="https://github.com/zxing-js/browser">ZXing</a></td><td>Lokalny odczyt kamery, HTTPS i zgoda użytkownika. Wpisywanie kodu jest zawsze dostępne.</td></tr>
+      <tr><td>Domena i DNS</td><td>Twój rejestrator + opcjonalnie Cloudflare DNS</td><td>DNS/TLS można mieć bezpłatnie. Zakup i odnowienie flexa.click nie są darmowe.</td></tr>
+      <tr><td>Kopie i kontrola zużycia</td><td>Eksport JSON, pg_dump / Supabase CLI, panele dostawców</td><td>Backup wymaga bezpiecznego miejsca przechowywania. Nie publikuj danych użytkowników w repozytorium ani artefaktach Actions.</td></tr>
+    </tbody></table></div>
+    <h2>Co jest zaimplementowane</h2>
+    <p>Rejestracja i logowanie, profil i cele, dziennik kalorii i makro, woda, produkty własne, skaner, ręczne treningi, import GPX/TCX, analizy 7/30/90 dni, pomiary, eksport i usuwanie konta. Tryb demo jest oddzielny i lokalny.</p>
+    <p>Nie ma zdjęciowego AI, społeczności, segmentów Stravy, nawigacji tras ani natywnego Apple Health/Health Connect. Integracja API Stravy jest wyłączona z uwagi na <a href="https://www.strava.com/legal/api">zakaz aplikacji konkurujących z jej funkcjami</a>.</p>
+    <h2 id="demo">Jak uruchomić</h2>
+    <p>Dokładne kroki są w <a href="https://github.com/xsqezz/flexa.click/blob/main/docs/DEPLOYMENT.md">instrukcji wdrożenia</a>. Lokalnie potrzebujesz Node.js, <code>npm ci</code> i <code>npm run dev</code>. Demo nie wymaga kluczy. Konta wymagają projektu Supabase, migracji SQL, wdrożenia dwóch funkcji, ustawienia SMTP i informacji o administratorze prywatności.</p>
+    <p>Ta strona nie tworzy zewnętrznych kont, nie kupuje domeny i nie ustawia DNS. Link do działającej aplikacji właściciel włącza przez zmienną repozytorium <code>FLEXA_APP_URL</code> po konfiguracji usług.</p>
+    <h2>Nie pomijaj przed publicznym startem</h2>
+    <p>Wybierz region bazy, uzupełnij administratora i kontakt prywatności, skonfiguruj retencję i kopie, zweryfikuj domeny oraz wykonaj próbę dwóch kont. Przejrzyj obowiązki RODO dla danych zdrowotnych. To opis techniczny, nie certyfikat zgodności prawnej.</p>
+    <p class="guide-date">Research zweryfikowany w źródłach oficjalnych 6 października 2026. Limity usług i regulaminy mogą się zmieniać.</p>
+  </main>
+  <footer class="site-footer"><a class="brand" href="./">flexa<span>.</span></a><a href="https://github.com/xsqezz/flexa.click">Repozytorium i dokumentacja ↗</a></footer>
+</body>
+</html>

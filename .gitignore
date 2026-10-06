@@ -1,0 +1,15 @@
+node_modules/
+dist/
+dist-site/
+.env
+.env.*
+!.env.example
+!.env.test.example
+playwright-report/
+test-results/
+coverage/
+.DS_Store
+supabase/.temp/
+supabase/.branches/
+.impeccable/hook.cache.json
+.impeccable/config.local.json

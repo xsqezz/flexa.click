@@ -1,0 +1,24 @@
+import { createReadStream, existsSync } from 'node:fs'
+import { createServer } from 'node:http'
+import { join } from 'node:path'
+
+const port = Number(process.env.PORT ?? 4174)
+if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be a valid TCP port.')
+const files = new Map([
+  ['/', ['index.html', 'text/html; charset=utf-8']],
+  ['/index.html', ['index.html', 'text/html; charset=utf-8']],
+  ['/setup.html', ['setup.html', 'text/html; charset=utf-8']],
+  ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
+  ['/favicon.svg', ['favicon.svg', 'image/svg+xml']],
+])
+const server = createServer((request, response) => {
+  const file = files.get(new URL(request.url ?? '/', 'http://localhost').pathname)
+  if (!file || !existsSync(join('dist-site', file[0]))) {
+    response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
+    response.end('Build the site first: npm run build:site')
+    return
+  }
+  response.writeHead(200, { 'Content-Type': file[1], 'X-Content-Type-Options': 'nosniff' })
+  createReadStream(join('dist-site', file[0])).pipe(response)
+})
+server.listen(port, '127.0.0.1', () => console.log(`Flexa public site: http://127.0.0.1:${port}`))
