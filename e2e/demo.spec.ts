@@ -2,8 +2,10 @@ import { readFile } from 'node:fs/promises'
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { journalSchema } from '../shared/domain'
+import { mockEmptyCatalog } from './catalog-fixture'
 
 test.beforeEach(async ({ page }) => {
+  await mockEmptyCatalog(page)
   await page.route('https://world.openfoodfacts.org/**', async (route) => {
     const barcode = new URL(route.request().url()).pathname.includes('/product/')
     const product = {

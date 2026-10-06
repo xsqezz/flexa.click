@@ -10,6 +10,10 @@ Demo zapisuje zmiany lokalnie; nie tworzy kont ani synchronizacji.
 Skaner i wyszukiwanie także w tej wersji korzystają z prawdziwego katalogu
 Open Food Facts przez publiczne API, nie z kilkunastu przykładowych produktów.
 Internet jest potrzebny do pobrania nowych produktów; własne produkty są lokalne.
+Katalog startowy obejmuje wszystkie 150 wymaganych typów produktów w sześciu
+kategoriach oraz tysiące rzeczywistych wariantów z kodami. Jest dostępny do
+[pobrania na licencji ODbL](app/public/data/polish-products.json);
+[opis źródeł i aktualizacji](docs/CATALOG.md).
 
 **Zaimplementowane:** konta Supabase, cele kalorii/makro i wody, dziennik posiłków,
 produkty własne, wyszukiwanie Open Food Facts + opcjonalnie USDA, kamera

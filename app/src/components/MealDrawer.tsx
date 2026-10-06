@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { ArrowLeft, ChevronRight, Search, Utensils } from 'lucide-react'
 import { foodSchema, mealNames, mealSchema, type Food, type MealKind, type SearchResponse } from '../../../shared/domain'
 import { useQueryClient } from '@tanstack/react-query'
@@ -11,6 +11,7 @@ import { useFeedback } from './Feedback'
 import { Button, Drawer, EmptyState, Field, Notice, errorMessage } from './ui'
 import { CameraScanner } from './CameraScanner'
 import { SourceCredit } from './SourceCredit'
+import { catalogGroups, requiredProducts } from '../../../shared/polish-catalog'
 
 const mealKinds: MealKind[] = ['breakfast', 'lunch', 'dinner', 'snack']
 const nutrientFields = [
@@ -35,6 +36,7 @@ export function MealDrawer({ date, initialMeal, onClose }: { date: string; initi
   const [portion, setPortion] = useState('100')
   const [unit, setUnit] = useState<'g' | 'ml' | ''>('')
   const [error, setError] = useState<string | null>(null)
+  const searchVersion = useRef(0)
   if (!data) throw new Error('Journal data is unavailable')
   const customFoods = data.customFoods
   const mode = auth.mode === 'demo' ? 'demo' : 'cloud'
@@ -48,6 +50,7 @@ export function MealDrawer({ date, initialMeal, onClose }: { date: string; initi
   }
 
   async function search(input: { query: string } | { barcode: string }) {
+    const version = ++searchVersion.current
     setError(null); setSearching(true); setResult(null)
     try {
       const response = await client.fetchQuery({
@@ -55,9 +58,9 @@ export function MealDrawer({ date, initialMeal, onClose }: { date: string; initi
         queryFn: () => searchFoods(input, mode, customFoods),
         staleTime: 300_000, retry: false,
       })
-      setResult(response)
-    } catch (cause) { setError(errorMessage(cause)) }
-    finally { setSearching(false) }
+      if (version === searchVersion.current) setResult(response)
+    } catch (cause) { if (version === searchVersion.current) setError(errorMessage(cause)) }
+    finally { if (version === searchVersion.current) setSearching(false) }
   }
 
   async function add(event: FormEvent<HTMLFormElement>) {
@@ -138,6 +141,17 @@ export function MealDrawer({ date, initialMeal, onClose }: { date: string; initi
         <Field label="Kod kreskowy (opcjonalnie)" hint="EAN-8, UPC-A, EAN-13 lub GTIN-14 z poprawną cyfrą kontrolną."><input name="barcode" inputMode="numeric" pattern="[0-9]{8}|[0-9]{12}|[0-9]{13}|[0-9]{14}" maxLength={14} /></Field>
         <Button type="submit" busy={pending}>Zapisz produkt</Button>
       </form> : <>
+        {tab === 'search' && <Field label="Podstawowe produkty — 150 pozycji">
+          <select value="" onChange={(event) => {
+            const entry = requiredProducts.find((item) => item.id === Number(event.target.value))
+            if (entry) { setQuery(entry.name); void search({ query: entry.name }) }
+          }}>
+            <option value="">Wybierz produkt z polskiego katalogu</option>
+            {catalogGroups.map((group) => <optgroup label={group.name} key={group.id}>
+              {requiredProducts.filter((entry) => entry.group === group.id).map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
+            </optgroup>)}
+          </select>
+        </Field>}
         {tab === 'barcode' && <><CameraScanner onDetected={(value) => { setBarcode(value); void search({ barcode: value }) }} />
           <p className="source-credit">Kod sprawdzamy w prawdziwym katalogu Open Food Facts, także bez konta. Wymagane jest połączenie z internetem.</p></>}
         <form className="search-form" onSubmit={(event) => {
@@ -158,7 +172,7 @@ export function MealDrawer({ date, initialMeal, onClose }: { date: string; initi
         <ul className="food-results">{list.map((item) => <li key={item.id}>
           <button className="food-result" disabled={item.nutrients.kcal === null} onClick={() => select(item)}>
             <span className="food-mark"><Utensils size={17} aria-hidden="true" /></span><div><strong>{item.name}</strong>
-              <small>{item.nutrients.kcal === null ? 'Brak kcal — uzupełnij jako własny produkt' : `${numberFormat.format(item.nutrients.kcal)} kcal / 100 ${item.unit ?? 'g lub ml'}`} · {sourceNames[item.source]}</small>
+              <small>{item.nutrients.kcal === null ? 'Brak kcal — uzupełnij jako własny produkt' : `${numberFormat.format(item.nutrients.kcal)} kcal / 100 ${item.unit ?? 'g lub ml'}`} · {sourceNames[item.source]}{item.estimated && ' · wartości szacunkowe'}</small>
             </div><ChevronRight size={16} aria-hidden="true" />
           </button>
         </li>)}</ul>

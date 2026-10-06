@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Food } from '../../../shared/domain'
 
 vi.mock('./functions', () => ({ callFunction: vi.fn() }))
+vi.mock('./catalog', () => ({ findCatalogFoods: vi.fn().mockResolvedValue([]) }))
 const barcode = '4025500132477'
 const product = {
   code: barcode, product_name: 'Mullermilch Chocolate', brands: 'Müller',

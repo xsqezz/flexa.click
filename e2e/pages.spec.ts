@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { mockEmptyCatalog } from './catalog-fixture'
 
 const origin = `http://127.0.0.1:${process.env.PLAYWRIGHT_PAGES_ONLY === '1' ? 4175 : 4174}`
 
@@ -25,6 +26,7 @@ test('GitHub Pages includes the full local demo with relative assets and reload-
 })
 
 test('public Pages barcode lookup uses actual product records and persists the confirmed portion', async ({ page }) => {
+  await mockEmptyCatalog(page)
   const calls: string[] = []
   await page.route('https://world.openfoodfacts.org/**', async (route) => {
     calls.push(route.request().url())
@@ -58,6 +60,7 @@ test('public Pages barcode lookup uses actual product records and persists the c
 })
 
 test('public catalog failure is not mislabeled as a missing barcode', async ({ page }) => {
+  await mockEmptyCatalog(page)
   await page.route('https://world.openfoodfacts.org/**', (route) => route.fulfill({
     status: 503, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '{}',
   }))
@@ -69,4 +72,25 @@ test('public catalog failure is not mislabeled as a missing barcode', async ({ p
   await dialog.getByRole('button', { name: 'Szukaj', exact: true }).click()
   await expect(dialog.getByRole('alert')).toContainText('niedostępna (503)')
   await expect(dialog.getByRole('heading', { name: 'Tego produktu jeszcze nie znaleźliśmy' })).toHaveCount(0)
+})
+
+test('all 150 required product positions are available from the built-in licensed catalog', async ({ page }) => {
+  let external = 0
+  await page.route('https://world.openfoodfacts.org/**', (route) => { external++; return route.abort() })
+  await page.goto(`${origin}/app/#/demo`)
+  await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  const picker = dialog.getByRole('combobox', { name: 'Podstawowe produkty — 150 pozycji', exact: true })
+  expect(await picker.locator('option').count()).toBe(151)
+  expect(await picker.locator('optgroup').count()).toBe(6)
+  for (const id of [1, 26, 56, 84, 101, 126, 150]) {
+    await picker.selectOption(String(id))
+    await expect(dialog.locator('.food-results li').first()).toBeVisible()
+  }
+  expect(external).toBe(0)
+  await dialog.getByRole('button', { name: 'Kod kreskowy', exact: true }).click()
+  await dialog.getByLabel('Kod EAN lub UPC', { exact: true }).fill('5449000054227')
+  await dialog.getByRole('button', { name: 'Szukaj', exact: true }).click()
+  await expect(dialog.locator('.food-result strong').first()).toContainText(/Coca/i)
+  expect(external).toBe(0)
 })

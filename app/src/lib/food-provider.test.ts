@@ -23,6 +23,28 @@ describe('Open Food Facts normalization', () => {
   it('uses a recorded generic product name if the branded name is missing', () => {
     expect(normalizeOFF({ code: '4025500132477', generic_name_pl: 'Napój mleczny', nutriments: {} })?.name).toBe('Napój mleczny')
   })
+  it('reads canonical nutrition without mixing serving values or prepared-food bases', () => {
+    const raw = { code: '4025500132477', product_name: 'Test',
+      nutrition: { aggregated_set: { per: '100ml', preparation: 'as_sold', nutrients: {
+        'energy-kcal': { value: 76, unit: 'kcal', source: 'packaging' },
+        proteins: { value: 3.5, unit: 'g', source: 'packaging' },
+      } } },
+    }
+    const food = normalizeOFF(raw)
+    expect(food?.unit).toBe('ml')
+    expect(food?.nutrients.kcal).toBe(76)
+    expect(food?.nutrients.protein).toBe(3.5)
+    expect(food?.nutrients.fat).toBeNull()
+    expect(food?.estimated).toBe(false)
+    expect(normalizeOFF({ ...raw, nutrition: { aggregated_set: { ...raw.nutrition.aggregated_set, per: 'serving' } } })?.nutrients.kcal).toBeNull()
+    expect(normalizeOFF({ ...raw, nutrition: { aggregated_set: { ...raw.nutrition.aggregated_set, preparation: 'prepared' } } })?.nutrients.kcal).toBeNull()
+  })
+  it('marks source estimates instead of presenting them as a verified label', () => {
+    const food = normalizeOFF({ code: '4025500132477', product_name: 'Test',
+      nutrition: { aggregated_set: { per: '100g', preparation: 'as_sold',
+        nutrients: { 'energy-kcal': { value: 22, unit: 'kcal', source: 'estimate' } } } } })
+    expect(food?.estimated).toBe(true)
+  })
 })
 
 describe('USDA normalization', () => {

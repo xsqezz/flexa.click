@@ -13,6 +13,7 @@ const files = new Map([
   ['/app/', ['app/index.html', 'text/html; charset=utf-8']],
   ['/app/index.html', ['app/index.html', 'text/html; charset=utf-8']],
   ['/app/favicon.svg', ['app/favicon.svg', 'image/svg+xml']],
+  ['/app/data/polish-products.json', ['app/data/polish-products.json', 'application/json; charset=utf-8']],
 ])
 const server = createServer((request, response) => {
   const path = new URL(request.url ?? '/', 'http://localhost').pathname

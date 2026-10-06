@@ -16,6 +16,7 @@ export const foodSchema = z.object({
   barcode: barcodeSchema.nullable(),
   unit: z.enum(['g', 'ml']).nullable(),
   source: z.enum(['open-food-facts', 'usda', 'custom', 'demo']),
+  estimated: z.boolean().optional(),
   nutrients: z.object({
     kcal: optionalNutrient,
     protein: optionalNutrient,

@@ -1,6 +1,7 @@
 import { searchRequestSchema, searchResponseSchema, sameBarcode, type Food, type SearchRequest, type SearchResponse } from '../../../shared/domain'
 import { callFunction } from './functions'
 import { searchPublicFoods } from './public-food'
+import { findCatalogFoods } from './catalog'
 
 function searchable(value: string) {
   return value.toLocaleLowerCase('pl-PL').normalize('NFKD').replace(/\p{Diacritic}/gu, '').replace(/ł/g, 'l')
@@ -15,6 +16,15 @@ export async function searchFoods(
     : searchable(`${food.name} ${food.brand}`).includes(searchable(request.query ?? ''))
   const local = customFoods.filter(matches)
   if (request.barcode && local.length) return { foods: local, warnings: [] }
+  const warnings: string[] = []
+  try {
+    const indexed = await findCatalogFoods(request)
+    if (indexed.length) return { foods: [...local, ...indexed], warnings: [
+      'Katalog preferuje produkty z Polski; zawiera też wybrane warianty z innych rynków. Sprawdź dokładną markę, wariant i podstawę wartości na etykiecie.',
+    ] }
+  } catch (cause) {
+    warnings.push(cause instanceof Error ? cause.message : 'Nie udało się odczytać polskiego katalogu.')
+  }
   let remote: SearchResponse
   try {
     remote = mode === 'demo' ? await searchPublicFoods(request)
@@ -22,9 +32,9 @@ export async function searchFoods(
   } catch (cause) {
     if (!local.length) throw cause
     return { foods: local, warnings: [
-      cause instanceof Error ? cause.message : 'Nie udało się przeszukać zewnętrznej bazy.',
+      ...warnings, cause instanceof Error ? cause.message : 'Nie udało się przeszukać zewnętrznej bazy.',
       'Pokazujemy wyłącznie pasujące produkty zapisane przez Ciebie, nie pełne wyniki katalogu.',
     ] }
   }
-  return { foods: [...local, ...remote.foods], warnings: remote.warnings }
+  return { foods: [...local, ...remote.foods], warnings: [...warnings, ...remote.warnings] }
 }

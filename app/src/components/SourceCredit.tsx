@@ -9,5 +9,6 @@ export function SourceCredit({ food }: { food: Food }) {
     {food.source === 'usda' && ' Dane w domenie publicznej (CC0), bazowo na 100 g.'}
     {food.source === 'custom' && ' Prywatny wpis. Wartości przepisane przez Ciebie z etykiety.'}
     {food.source === 'demo' && ' Przykładowe wartości, nie zweryfikowana baza produktów.'}
+    {food.estimated && ' Źródło oznacza część wartości jako szacunkowe — nie są potwierdzoną tabelą producenta.'}
   </div>
 }

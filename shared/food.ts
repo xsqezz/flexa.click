@@ -9,6 +9,19 @@ const offProductSchema = z.object({
   generic_name_pl: z.string().optional(),
   brands: z.string().optional(),
   nutriments: z.record(z.string(), z.unknown()).optional(),
+  nutrition: z.unknown().optional(),
+})
+
+const canonicalNutrition = z.object({
+  aggregated_set: z.object({
+    per: z.enum(['100g', '100ml']),
+    preparation: z.literal('as_sold'),
+    nutrients: z.record(z.string(), z.object({
+      value: z.number().optional(),
+      unit: z.string().optional(),
+      source: z.string().optional(),
+    })),
+  }),
 })
 
 function nutrient(value: unknown): number | null {
@@ -25,6 +38,13 @@ export function normalizeOFF(raw: unknown, barcode?: string): Food | null {
     || product.generic_name_pl?.trim() || product.generic_name?.trim()
   if (!name) return null
   const values = product.nutriments ?? {}
+  const canonical = canonicalNutrition.safeParse(product.nutrition)
+  const set = canonical.success ? canonical.data.aggregated_set : null
+  const modern = (key: string, unit: string, max = 2000): number | null => {
+    const entry = set?.nutrients[key]
+    return entry?.unit === unit && typeof entry.value === 'number'
+      && Number.isFinite(entry.value) && entry.value >= 0 && entry.value <= max ? entry.value : null
+  }
   const rawEnergy = values['energy_100g']
   const kj = typeof rawEnergy === 'number' && Number.isFinite(rawEnergy) && rawEnergy >= 0 && rawEnergy <= 8368 ? rawEnergy : null
   return foodSchema.parse({
@@ -33,13 +53,18 @@ export function normalizeOFF(raw: unknown, barcode?: string): Food | null {
     brand: (product.brands ?? '').slice(0, 100),
     barcode: isValidBarcode(product.code) ? product.code : null,
     source: 'open-food-facts',
-    unit: null,
+    estimated: set ? ['energy-kcal', 'energy-kj', 'energy', 'proteins', 'carbohydrates', 'fat', 'fiber']
+      .some((key) => set.nutrients[key]?.source === 'estimate') : undefined,
+    unit: set ? set.per === '100ml' ? 'ml' : 'g' : null,
     nutrients: {
-      kcal: nutrient(values['energy-kcal_100g']) ?? (kj === null ? null : kj / 4.184),
-      protein: nutrient(values['proteins_100g']),
-      carbs: nutrient(values['carbohydrates_100g']),
-      fat: nutrient(values['fat_100g']),
-      fiber: nutrient(values['fiber_100g']),
+      kcal: set ? modern('energy-kcal', 'kcal') ?? (() => {
+        const energy = modern('energy-kj', 'kJ', 8368) ?? modern('energy', 'kJ', 8368)
+        return energy === null ? null : energy / 4.184
+      })() : nutrient(values['energy-kcal_100g']) ?? (kj === null ? null : kj / 4.184),
+      protein: set ? modern('proteins', 'g') : nutrient(values['proteins_100g']),
+      carbs: set ? modern('carbohydrates', 'g') : nutrient(values['carbohydrates_100g']),
+      fat: set ? modern('fat', 'g') : nutrient(values['fat_100g']),
+      fiber: set ? modern('fiber', 'g') : nutrient(values['fiber_100g']),
     },
   })
 }

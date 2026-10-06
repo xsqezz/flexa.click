@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { test, expect, type Page } from '@playwright/test'
+import { mockEmptyCatalog } from './catalog-fixture'
+
+test.beforeEach(async ({ page }) => { await mockEmptyCatalog(page) })
 
 const userId = '33333333-3333-4333-8333-333333333333'
 const user = {

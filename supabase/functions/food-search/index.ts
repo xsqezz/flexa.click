@@ -43,7 +43,7 @@ Deno.serve(endpoint(async (request) => {
   const url = barcode
     ? new URL(`/api/v3/product/${barcode}.json`, base)
     : new URL('/cgi/search.pl', base)
-  url.searchParams.set('fields', 'code,product_name,product_name_pl,generic_name,generic_name_pl,brands,nutriments')
+  url.searchParams.set('fields', 'code,product_name,product_name_pl,generic_name,generic_name_pl,brands,nutriments,nutrition')
   if (!barcode) {
     url.searchParams.set('search_terms', query ?? '')
     url.searchParams.set('search_simple', '1')

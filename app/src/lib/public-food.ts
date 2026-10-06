@@ -5,7 +5,7 @@ import { normalizeOFF } from '../../../shared/food'
 const cache = new Map<string, { until: number; response: SearchResponse }>()
 const requests = new Map<string, Promise<SearchResponse>>()
 const attempts: Record<'barcode' | 'query', number[]> = { barcode: [], query: [] }
-const fields = 'code,product_name,product_name_pl,generic_name,generic_name_pl,brands,nutriments'
+const fields = 'code,product_name,product_name_pl,generic_name,generic_name_pl,brands,nutriments,nutrition'
 const agent = 'Flexa/0.1 (+https://github.com/xsqezz/flexa.click)'
 const productResponse = z.object({ product: z.record(z.string(), z.unknown()) })
 const searchResponse = z.object({ products: z.array(z.unknown()) })
