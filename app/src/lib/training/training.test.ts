@@ -51,6 +51,7 @@ function* matrix(): Generator<TrainingAnswers> {
 
 describe('exercise library', () => {
   it('links instructional videos only to known exercises with valid YouTube ids', () => {
+    for (const exercise of exercises) expect(exerciseVideos[exercise.id], exercise.id).toBeDefined()
     for (const [id, item] of Object.entries(exerciseVideos)) {
       expect(findExercise(id), id).toBeDefined()
       expect(item.id, id).toMatch(/^[\w-]{11}$/)
