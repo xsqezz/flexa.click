@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEMO_KEY, createDemo, readDemo, writeDemo } from './demo'
-import { DemoRepository, readPages } from './repository'
+import { DEMO_KEY, createDemo, demoAnswers, readDemo, writeDemo } from './demo'
+import { DemoRepository, readPages, trainingFromRow } from './repository'
 import { today } from './dates'
+import { generatePlan } from './training/generator'
 
 describe('persistent demo repository', () => {
   beforeEach(() => localStorage.clear())
@@ -36,6 +37,39 @@ describe('persistent demo repository', () => {
     const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('full', 'QuotaExceededError') })
     expect(() => writeDemo(createDemo())).toThrow('Nie udało się zapisać')
     spy.mockRestore()
+  })
+})
+
+describe('training plan persistence', () => {
+  beforeEach(() => localStorage.clear())
+  it('saves, skips and deletes the demo plan without touching the diary', async () => {
+    const repository = new DemoRepository()
+    const original = await repository.load()
+    expect(original.training.plan?.answers.goal).toBe(demoAnswers.goal)
+    const plan = generatePlan({ ...demoAnswers, goal: 'strength', weekdays: [1, 3] })
+    await repository.execute({ type: 'plan.save', value: plan })
+    expect(readDemo().training).toEqual({ onboardingDone: true, plan, unreadable: false })
+    await repository.execute({ type: 'plan.delete' })
+    await repository.execute({ type: 'onboarding.skip' })
+    expect(readDemo().training).toEqual({ onboardingDone: true, plan: null, unreadable: false })
+    expect(readDemo().meals).toEqual(original.meals)
+  })
+  it('adds a sample plan to a demo saved before training plans existed', () => {
+    const legacy: Record<string, unknown> = { ...createDemo() }
+    delete legacy.training
+    localStorage.setItem(DEMO_KEY, JSON.stringify(legacy))
+    expect(readDemo().training.plan?.sessions).toHaveLength(demoAnswers.weekdays.length)
+    expect(JSON.parse(localStorage.getItem(DEMO_KEY) ?? '{}')).toHaveProperty('training')
+  })
+  it('reads stored cloud plans defensively', () => {
+    const plan = generatePlan(demoAnswers)
+    const { answers, ...stored } = plan
+    expect(trainingFromRow(null, null)).toEqual({ onboardingDone: false, plan: null, unreadable: false })
+    expect(trainingFromRow(null, '2026-10-07T10:00:00Z').onboardingDone).toBe(true)
+    expect(trainingFromRow({ answers, plan: stored }, null)).toEqual({ onboardingDone: true, plan, unreadable: false })
+    const sessions = stored.sessions.map((session, index) => index ? session : { ...session, warmup: [{ ...session.warmup[0], exercise: 'removed-drill' }, ...session.warmup.slice(1)] })
+    expect(trainingFromRow({ answers, plan: { ...stored, sessions } }, null)).toEqual({ onboardingDone: true, plan: null, unreadable: true })
+    expect(trainingFromRow({ answers, plan: 'broken' }, null).unreadable).toBe(true)
   })
 })
 

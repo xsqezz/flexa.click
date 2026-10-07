@@ -12,7 +12,7 @@ const user = {
 const origin = 'http://127.0.0.1:5174'
 type Row = Record<string, unknown>
 
-async function fixture(page: Page, failJournal = false) {
+async function fixture(page: Page, failJournal = false, onboarded = true) {
   const now = Math.floor(Date.now() / 1000)
   const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url')
   const token = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ sub: userId, role: 'authenticated', exp: now + 3600 })}.dGVzdC1vbmx5`
@@ -23,8 +23,9 @@ async function fixture(page: Page, failJournal = false) {
       user_id: userId, display_name: 'Cloud test', calorie_goal: 2200, protein_goal: 140, carbs_goal: 260,
       fat_goal: 65, water_goal: 2500, weekly_minutes_goal: 180, target_weight: null,
       consent_version: '2026-10-06', consented_at: '2026-10-06T10:00:00Z',
+      onboarding_completed_at: onboarded ? '2026-10-06T10:00:00Z' : null,
     }],
-    meal_entries: [], workouts: [], water_entries: [], measurements: [], custom_foods: [],
+    meal_entries: [], workouts: [], water_entries: [], measurements: [], custom_foods: [], training_plans: [],
   }
   await page.routeWebSocket('ws://127.0.0.1:54321/**', (socket) => socket.close())
   await page.route('http://127.0.0.1:54321/**', async (route) => {
@@ -67,15 +68,17 @@ async function fixture(page: Page, failJournal = false) {
         expect(body.user_id).toBe(userId)
         const row = { ...body, id: randomUUID(), created_at: new Date().toISOString() }
         if (table === 'measurements') rows[table] = rows[table].filter((existing) => existing.date !== body.date)
+        if (table === 'training_plans') rows[table] = rows[table].filter((existing) => existing.user_id !== body.user_id)
         rows[table].push(row)
-        await respond({ id: row.id })
+        await respond(table === 'training_plans' ? { user_id: userId } : { id: row.id })
       } else if (method === 'PATCH') {
         Object.assign(rows[table][0], body)
         await respond({ user_id: userId })
       } else if (method === 'DELETE') {
         const id = url.searchParams.get('id')?.replace(/^eq\./, '')
-        rows[table] = rows[table].filter((row) => row.id !== id)
-        await respond({ id })
+        const owner = url.searchParams.get('user_id')?.replace(/^eq\./, '')
+        rows[table] = rows[table].filter((row) => id ? row.id !== id : row.user_id !== owner)
+        await respond(id ? { id } : [{ user_id: owner }])
       } else throw new Error(`Unhandled fixture operation ${method} ${table}`)
       return
     }
@@ -169,4 +172,69 @@ test('failed cloud reads never substitute demo records', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('Nie udało się odczytać dziennika')
   await expect(page.getByText('Płatki owsiane', { exact: true })).toHaveCount(0)
   await expect(page.getByText(/Przykładowe dane/)).toHaveCount(0)
+})
+
+test('a new account answers the questionnaire step by step and gets a saved plan', async ({ page }) => {
+  const mocked = await fixture(page, false, false)
+  await login(page)
+  await expect(page.getByRole('heading', { name: 'Zanim zaczniesz', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Zaczynamy' }).click()
+  const next = page.getByRole('button', { name: 'Dalej', exact: true })
+  await page.getByRole('textbox', { name: 'Ile masz lat?' }).fill('17')
+  await page.getByText('Kobieta', { exact: true }).click()
+  await next.click()
+  await expect(page.getByRole('alert')).toContainText('od 18 do 99 lat')
+  await page.getByRole('textbox', { name: 'Ile masz lat?' }).fill('54')
+  await next.click()
+  await page.getByRole('radio', { name: /^Zdrowy kręgosłup i postawa/ }).check()
+  await next.click()
+  await page.getByRole('radio', { name: /^Dom lub plener/ }).check()
+  await next.click()
+  await page.getByRole('checkbox', { name: 'Gumy oporowe z uchwytami lub długie taśmy' }).check()
+  await page.getByRole('checkbox', { name: 'Mata' }).check()
+  await next.click()
+  await page.getByRole('radio', { name: /^Początkujący/ }).check()
+  await next.click()
+  await page.getByRole('button', { name: 'środa', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'środa', exact: true })).toHaveAttribute('aria-pressed', 'false')
+  await page.getByText('30 min', { exact: true }).click()
+  await next.click()
+  await page.getByText('Nie', { exact: true }).click()
+  await page.getByRole('checkbox', { name: 'Ból dolnego odcinka pleców' }).check()
+  await next.click()
+  await expect(page.getByRole('alert')).toContainText('zaznacz zgodę')
+  await page.getByRole('checkbox', { name: /Zgadzam się na zapisanie tych informacji o zdrowiu/ }).check()
+  await next.click()
+  await expect(page.getByRole('heading', { name: 'Sprawdź odpowiedzi', exact: true })).toBeVisible()
+  await expect(page.getByText('poniedziałek, piątek · 30 min')).toBeVisible()
+  await page.getByRole('button', { name: 'Utwórz mój plan' }).click()
+  await expect(page.getByRole('heading', { name: 'Twój plan treningowy', exact: true })).toBeVisible()
+  const saved = mocked.rows.training_plans[0]
+  expect(saved.answers).toMatchObject({ age: 54, goal: 'posture', weekdays: [0, 4], minutes: 30, limitations: ['lower-back'], healthConsent: true })
+  expect(saved.plan).not.toHaveProperty('answers')
+  expect(saved.plan).toMatchObject({ version: 1, sessions: [{ weekday: 0 }, { weekday: 4 }] })
+  expect(mocked.calls.some((call) => call.path.endsWith('/profiles') && typeof call.body.onboarding_completed_at === 'string')).toBe(true)
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Twój plan treningowy', exact: true })).toBeVisible()
+  await expect(page.locator('details.plan-session')).toHaveCount(2)
+  await page.getByRole('button', { name: 'Usuń plan' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Usuń plan', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Ułóż swój plan treningowy' })).toBeVisible()
+  expect(mocked.rows.training_plans).toHaveLength(0)
+})
+
+test('the questionnaire can be skipped and opened later from the Plan tab', async ({ page }) => {
+  const mocked = await fixture(page, false, false)
+  await login(page)
+  await page.getByRole('button', { name: 'Pomiń na razie' }).click()
+  await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
+  expect(mocked.rows.profiles[0].onboarding_completed_at).toEqual(expect.any(String))
+  await expect(page.getByText(/Nie masz jeszcze planu treningowego/)).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
+  await page.locator('nav:visible a[href="/plan"]').click()
+  await page.getByRole('link', { name: 'Stwórz plan' }).click()
+  await expect(page.getByRole('heading', { name: 'Kilka słów o Tobie', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Anuluj' }).first().click()
+  await expect(page.getByRole('heading', { name: 'Plan treningowy', exact: true })).toBeVisible()
 })

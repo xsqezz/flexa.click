@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { trainingStateSchema } from './training.ts'
 
 export const CONSENT_VERSION = '2026-10-06'
 export const dateSchema = z.iso.date().refine((value) => value >= '1900-01-01' && value <= '2100-12-31', {
@@ -96,6 +97,7 @@ export const journalSchema = z.object({
   water: z.array(waterSchema),
   measurements: z.array(measurementSchema),
   customFoods: z.array(foodSchema),
+  training: trainingStateSchema.default({ onboardingDone: true, plan: null, unreadable: false }),
 })
 
 export const searchRequestSchema = z.object({

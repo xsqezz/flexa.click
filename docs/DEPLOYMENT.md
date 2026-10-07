@@ -11,8 +11,9 @@ Konfiguracja z 7 października 2026:
 
 - Aplikacja: `https://flexa-click.pages.dev`, Cloudflare Pages z gałęzi `main`,
   Node 24, `npm run build`, katalog wynikowy `app/dist`.
-- Osobny projekt Supabase `Flexa`: Frankfurt (`eu-central-1`), migracja
-  `202610060001_flexa.sql`, RLS i funkcje `food-search` oraz `account-delete`.
+- Osobny projekt Supabase `Flexa`: Frankfurt (`eu-central-1`), migracje
+  `202610060001_flexa.sql` i `202610070001_training_plans.sql`, RLS i funkcje
+  `food-search` oraz `account-delete`.
 - Rejestracja e-mail z potwierdzeniem adresu, minimum hasła 10 znaków,
   redirecty tylko do działającej aplikacji i jej `/reset-password`.
 - SMTP Brevo z osobnym kluczem Flexa oraz polskimi szablonami potwierdzenia
@@ -51,8 +52,11 @@ Po zmianach `.env` uruchom ponownie Vite. Nie dodawaj `.env` do Git.
 ## Supabase: baza i konta
 
 1. Utwórz projekt Free w wybranym regionie; dla użytkowników z Polski rozważ UE.
-2. W SQL Editor wykonaj `supabase\migrations\202610060001_flexa.sql`
+2. W SQL Editor wykonaj po kolei wszystkie pliki z `supabase\migrations`
+   (`202610060001_flexa.sql`, potem `202610070001_training_plans.sql`)
    albo przez CLI `supabase db push` po połączeniu z projektem.
+   Migrację wdrażaj przed nową wersją aplikacji: aplikacja odczytuje tabelę
+   `training_plans` i kolumnę `profiles.onboarding_completed_at`.
 3. Zostaw email confirmations włączone. Ustaw minimum hasła na 10 znaków.
 4. Auth > URL Configuration: Site URL = faktyczny URL aplikacji; do allowlisty
    dodaj ten URL i `/reset-password` (oraz tylko potrzebne lokalne adresy).
@@ -68,6 +72,8 @@ Po zmianach `.env` uruchom ponownie Vite. Nie dodawaj `.env` do Git.
 Tabele mają RLS i filtrowanie `auth.uid()`. Użytkownik nie może przepisać pól
 audytu zgody. Usunięcie auth.users usuwa wszystkie powiązane dane przez CASCADE.
 Publiczne API nie ma dostępu do prywatnego budżetu zapytań dostawców.
+`training_plans` przyjmuje dolegliwości i łagodny start tylko z `healthConsent`;
+trigger zapisuje `health_consent_at`, a ograniczenie bazy odrzuca dane zdrowotne bez zgody.
 
 ## Supabase: funkcje
 

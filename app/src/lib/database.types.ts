@@ -5,6 +5,11 @@ export type ProfileRow = {
   user_id: string; display_name: string; calorie_goal: number; protein_goal: number
   carbs_goal: number; fat_goal: number; water_goal: number; weekly_minutes_goal: number
   target_weight: number | null; consent_version: string; consented_at: string
+  onboarding_completed_at: string | null
+}
+export type TrainingPlanRow = {
+  user_id: string; answers: Json; plan: Json; health_consent_at: string | null
+  created_at: string; updated_at: string
 }
 type BaseRow = { id: string; user_id: string; created_at: string }
 export type MealRow = BaseRow & { date: string; meal: string; food: Json; portion: number }
@@ -20,7 +25,8 @@ type NewRow<T extends BaseRow> = Omit<T, 'created_at' | 'id'> & { id?: string }
 export type Database = {
   public: {
     Tables: {
-      profiles: Table<ProfileRow, Omit<ProfileRow, 'consented_at'> & { consented_at?: string }>
+      profiles: Table<ProfileRow, Omit<ProfileRow, 'consented_at' | 'onboarding_completed_at'> & { consented_at?: string; onboarding_completed_at?: string | null }>
+      training_plans: Table<TrainingPlanRow, Pick<TrainingPlanRow, 'user_id' | 'answers' | 'plan'>>
       meal_entries: Table<MealRow, NewRow<MealRow>>
       workouts: Table<WorkoutRow, NewRow<WorkoutRow>>
       water_entries: Table<WaterRow, NewRow<WaterRow>>

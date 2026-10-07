@@ -25,6 +25,15 @@ BarcodeDetector/ZXing, treningi, import własnych GPX/TCX, tempo i minuty × RPE
 analizy 7/30/90 dni, pomiary, eksport JSON, usunięcie konta i synchronizacja.
 Oddzielne demo zapisuje wyłącznie przykładowe dane na urządzeniu.
 
+**Plan treningowy:** po założeniu konta ankieta „Zanim zaczniesz” pyta krok po
+kroku o wiek, płeć, cel, siłownię lub dom ze sprzętem, doświadczenie, dni
+i długość treningu oraz zdrowie. Zakładka Plan pokazuje tydzień z rozgrzewką,
+seriami, powtórzeniami, przerwami, tempem, wskazówkami techniki i oddechu,
+zamiennikami i rozciąganiem; odpowiedzi można zmienić w każdej chwili.
+Plan układa w przeglądarce deterministyczny generator reguł z biblioteką ok. 150
+ćwiczeń (`app/src/lib/training`) — bez AI i kluczy API. Ćwiczenia omijają zgłoszone
+dolegliwości, a informacje o zdrowiu trafiają do bazy tylko z osobną zgodą.
+
 **Podłączone środowisko:** Cloudflare Pages, Supabase Auth/Postgres/Edge Functions
 i SMTP Brevo. Rejestracja wymaga potwierdzenia adresu, a hasło ma co najmniej
 10 znaków. Plan Brevo Free ma 300 maili dziennie, wspólnie dla aplikacji
@@ -50,8 +59,8 @@ po stronie funkcji Supabase.
 | Katalog | Zawartość |
 | --- | --- |
 | `app` | React / TypeScript / Vite, prywatna aplikacja |
-| `shared` | Walidowane modele żywienia i aktywności |
-| `supabase` | Migracja, RLS, auth profile, limity API, funkcje |
+| `shared` | Walidowane modele żywienia, aktywności i planu treningowego |
+| `supabase` | Migracje, RLS, auth profile, limity API, funkcje |
 | `site` | Statyczny landing i publiczne informacje wdrożeniowe |
 | `docs` | Research, źródła, koszty, instrukcja konfiguracji |
 

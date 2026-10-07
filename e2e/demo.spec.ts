@@ -242,6 +242,58 @@ test('corrupted demo is preserved, downloadable, and recoverable without setting
   await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
 })
 
+test('demo plan shows a detailed week, logs a planned workout and rebuilds from new answers', async ({ page }) => {
+  await openDemo(page)
+  await navigate(page, '/plan')
+  await expect(page.getByRole('heading', { name: 'Twój plan treningowy', exact: true })).toBeVisible()
+  await expect(page.locator('details.plan-session')).toHaveCount(3)
+  await page.getByRole('button', { name: /^piątek.*Dzień 3/ }).click()
+  const friday = page.locator('details.plan-session#s3')
+  await expect(friday).toHaveAttribute('open', '')
+  await expect(friday.getByRole('heading', { name: /^Rozgrzewka/ })).toBeVisible()
+  await expect(friday.getByRole('heading', { name: /^Schłodzenie i rozciąganie/ })).toBeVisible()
+  await expect(friday.locator('.exercise').first()).toContainText('Oddech:')
+  await expect(friday.locator('.exercise-dose').first()).toContainText(/serie|rundy|min/)
+  const before = (await journal(page)).workouts.length
+  await friday.getByRole('button', { name: 'Zapisz jako wykonany' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: 'Zapisz trening z planu' })).toBeVisible()
+  await expect(dialog.getByLabel('Nazwa treningu', { exact: true })).toHaveValue(/^Dzień 3: Całe ciało C/)
+  await dialog.getByRole('button', { name: 'Zapisz trening' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  const workouts = (await journal(page)).workouts
+  expect(workouts).toHaveLength(before + 1)
+  expect(workouts.at(-1)).toMatchObject({ kind: 'strength', name: expect.stringMatching(/^Dzień 3/) })
+
+  await page.getByRole('link', { name: 'Zmień odpowiedzi' }).click()
+  await expect(page.getByRole('heading', { name: 'Kilka słów o Tobie', exact: true })).toBeVisible()
+  const age = page.getByRole('textbox', { name: 'Ile masz lat?' })
+  await expect(age).toHaveValue('32')
+  const next = page.getByRole('button', { name: 'Dalej', exact: true })
+  await age.fill('')
+  await next.click()
+  await expect(page.getByRole('alert')).toContainText('od 16 do 99 lat')
+  await age.fill('16')
+  await next.click()
+  await page.getByRole('radio', { name: /^Siła/ }).check()
+  await next.click()
+  await page.getByRole('radio', { name: /^Siłownia/ }).check()
+  await next.click()
+  await expect(page.getByRole('heading', { name: 'Jakie masz doświadczenie?', exact: true })).toBeVisible()
+  await page.getByRole('radio', { name: /^Średniozaawansowany/ }).check()
+  await next.click()
+  await page.getByRole('button', { name: 'sobota', exact: true }).click()
+  await page.getByText('60 min', { exact: true }).click()
+  await next.click()
+  await page.getByText('Nie', { exact: true }).click()
+  await next.click()
+  await page.getByRole('button', { name: 'Utwórz mój plan' }).click()
+  await expect(page.getByRole('heading', { name: 'Twój plan treningowy', exact: true })).toBeVisible()
+  await expect(page.locator('details.plan-session')).toHaveCount(4)
+  await expect(page.getByText(/Osoby niepełnoletnie/)).toBeVisible()
+  expect((await journal(page)).training.plan?.answers).toMatchObject({ age: 16, goal: 'strength', place: 'gym', equipment: [], weekdays: [0, 2, 4, 5], minutes: 60 })
+})
+
 test('all main pages, dialog, privacy and landing are accessible without overflow', async ({ page }, testInfo) => {
   await page.goto('/login')
   await accessible(page)
@@ -255,10 +307,23 @@ test('all main pages, dialog, privacy and landing are accessible without overflo
   await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
   await accessible(page)
   await page.keyboard.press('Escape')
-  for (const route of ['/journal', '/workouts', '/progress', '/settings']) {
+  for (const route of ['/journal', '/plan', '/workouts', '/progress', '/settings']) {
     await navigate(page, route)
     await expect(page.locator('main h1')).toBeVisible()
     await accessible(page)
+  }
+  await navigate(page, '/plan')
+  await page.getByRole('link', { name: 'Zmień odpowiedzi' }).click()
+  for (const heading of ['Kilka słów o Tobie', 'Jaki jest Twój główny cel?', 'Gdzie będziesz trenować?', 'Jaki sprzęt masz pod ręką?', 'Jakie masz doświadczenie?', 'Kiedy i jak długo chcesz trenować?', 'Zdrowie i ograniczenia', 'Sprawdź odpowiedzi']) {
+    await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
+    if (['Kilka słów o Tobie', 'Jaki sprzęt masz pod ręką?', 'Kiedy i jak długo chcesz trenować?', 'Sprawdź odpowiedzi'].includes(heading)) await accessible(page)
+    if (heading === 'Zdrowie i ograniczenia') {
+      await page.getByText('Tak', { exact: true }).click()
+      await expect(page.getByRole('checkbox', { name: /Lekarz zgodził się/ })).toBeVisible()
+      await accessible(page)
+      await page.getByText('Nie', { exact: true }).click()
+    }
+    if (heading !== 'Sprawdź odpowiedzi') await page.getByRole('button', { name: 'Dalej', exact: true }).click()
   }
   await page.goto('/privacy')
   await accessible(page)

@@ -1,7 +1,18 @@
 import { journalSchema, type Food, type Journal } from '../../../shared/domain'
+import type { TrainingAnswers } from '../../../shared/training'
 import { shiftDate, today } from './dates'
+import { generatePlan } from './training/generator'
 
 export const DEMO_KEY = 'flexa:demo:v1'
+
+export const demoAnswers: TrainingAnswers = {
+  age: 32, sex: 'unspecified', goal: 'fat-loss', place: 'home', equipment: ['bands', 'chair', 'dumbbells', 'mat'],
+  level: 'intermediate', weekdays: [0, 2, 4], minutes: 45, limitations: [], cautiousStart: false, healthConsent: false,
+}
+
+function demoTraining(): Journal['training'] {
+  return { onboardingDone: true, plan: generatePlan(demoAnswers), unreadable: false }
+}
 
 export const demoFoods: Food[] = [
   ['Płatki owsiane', 370, 13, 60, 7, 10],
@@ -69,6 +80,7 @@ export function createDemo(): Journal {
       weightKg: [74.8, 74.6, 74.3, 74.2][index],
     })),
     customFoods: [],
+    training: demoTraining(),
   })
 }
 
@@ -79,12 +91,20 @@ export function readDemo(): Journal {
     writeDemo(journal)
     return journal
   }
+  let journal: Journal
+  let upgraded = false
   try {
     const envelope: unknown = JSON.parse(saved)
-    return journalSchema.parse(envelope)
+    upgraded = typeof envelope === 'object' && envelope !== null && !('training' in envelope)
+    journal = journalSchema.parse(envelope)
   } catch (cause) {
     throw new Error('Zapis demonstracyjny jest uszkodzony. Wyzeruj demo w ustawieniach lub wyeksportuj dane przeglądarki.', { cause })
   }
+  if (upgraded) {
+    journal.training = demoTraining()
+    writeDemo(journal)
+  }
+  return journal
 }
 
 export function writeDemo(journal: Journal): void {

@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { PGlite } from '@electric-sql/pglite'
 
@@ -10,7 +10,13 @@ const food = JSON.stringify({
   id: 'test', name: 'Produkt', brand: '', barcode: null, unit: 'g', source: 'custom',
   nutrients: { kcal: 100, protein: null, carbs: null, fat: null, fiber: null },
 })
-const tables = ['profiles', 'meal_entries', 'workouts', 'water_entries', 'measurements', 'custom_foods']
+const answers = (patch: Record<string, unknown> = {}) => JSON.stringify({
+  age: 30, sex: 'female', goal: 'health', place: 'home', equipment: [], level: 'beginner', weekdays: [0, 2, 4],
+  minutes: 30, limitations: [], cautiousStart: false, healthConsent: false, ...patch,
+})
+const plan = JSON.stringify({ version: 1, createdAt: '2026-10-07T10:00:00.000Z', sessions: [] })
+const tables = ['profiles', 'meal_entries', 'workouts', 'water_entries', 'measurements', 'custom_foods', 'training_plans']
+const migrations = new URL('../../../supabase/migrations/', import.meta.url)
 let database: PGlite
 
 async function asUser(id: string) {
@@ -28,13 +34,16 @@ beforeAll(async () => {
     grant usage on schema public, auth to anon, authenticated, service_role;
     grant execute on function auth.uid() to anon, authenticated, service_role;
   `)
-  await database.exec(await readFile(new URL('../../../supabase/migrations/202610060001_flexa.sql', import.meta.url), 'utf8'))
+  for (const file of (await readdir(migrations)).filter((name) => name.endsWith('.sql')).sort()) {
+    await database.exec(await readFile(new URL(file, migrations), 'utf8'))
+  }
   await database.query('insert into auth.users(id, raw_user_meta_data) values ($1, $3), ($2, $3)', [alice, bob, consent])
   await database.query('insert into public.meal_entries(user_id, date, meal, food, portion) values ($1, $2, $3, $4, $5)', [alice, '2026-10-06', 'lunch', food, 100])
   await database.query('insert into public.custom_foods(user_id, food) values ($1, $2)', [alice, food])
   await database.query("insert into public.workouts(user_id, date, name, kind, minutes) values ($1, '2026-10-06', 'Bieg', 'run', 30)", [alice])
   await database.query("insert into public.water_entries(user_id, date, amount_ml) values ($1, '2026-10-06', 250)", [alice])
   await database.query("insert into public.measurements(user_id, date, weight_kg) values ($1, '2026-10-06', 75)", [alice])
+  await database.query('insert into public.training_plans(user_id, answers, plan) values ($1, $2, $3)', [alice, answers(), plan])
 })
 beforeEach(async () => { await database.exec('begin') })
 afterEach(async () => { await database.exec('rollback; reset role;') })
@@ -88,6 +97,44 @@ describe('Postgres ownership and privacy', () => {
     const hash = 'a'.repeat(64)
     await database.query("insert into public.workouts(user_id,date,name,kind,minutes,import_hash) values ($1,'2026-10-06','Import','run',10,$2)", [alice, hash])
     await expect(database.query("insert into public.workouts(user_id,date,name,kind,minutes,import_hash) values ($1,'2026-10-06','Import','run',10,$2)", [alice, hash])).rejects.toThrow('unique constraint')
+  })
+})
+
+describe('training plans', () => {
+  type ConsentRow = { health_consent_at: string | null }
+  async function rejects(sql: string, params: unknown[], message: string) {
+    await database.exec('savepoint attempt')
+    await expect(database.query(sql, params)).rejects.toThrow(message)
+    await database.exec('rollback to savepoint attempt')
+  }
+  it('stores health information only together with explicit consent', async () => {
+    await asUser(alice)
+    await rejects('update public.training_plans set answers = $1', [answers({ limitations: ['knees'] })], 'check constraint')
+    await rejects('update public.training_plans set answers = $1', [answers({ cautiousStart: true })], 'check constraint')
+    await database.query("update public.training_plans set answers = $1, health_consent_at = '2000-01-01'", [answers({ limitations: ['knees'], healthConsent: true })])
+    const consented = (await database.query<ConsentRow>('select health_consent_at from public.training_plans')).rows[0].health_consent_at
+    expect(consented).not.toBeNull()
+    expect(new Date(consented ?? 0).getFullYear()).toBeGreaterThan(2000)
+    await database.query('update public.training_plans set answers = $1', [answers()])
+    expect((await database.query<ConsentRow>('select health_consent_at from public.training_plans')).rows[0].health_consent_at).toBeNull()
+  })
+  it('lets the owner replace a plan by upsert but not take over another account', async () => {
+    await asUser(alice)
+    await database.query('insert into public.training_plans(user_id, answers, plan) values ($1, $2, $3) on conflict (user_id) do update set answers = excluded.answers, plan = excluded.plan', [alice, answers({ minutes: 45 }), plan])
+    expect((await database.query<{ minutes: string }>("select answers->>'minutes' as minutes from public.training_plans")).rows[0].minutes).toBe('45')
+    await asUser(bob)
+    await expect(database.query('insert into public.training_plans(user_id, answers, plan) values ($1, $2, $3)', [alice, answers(), plan])).rejects.toThrow('row-level security')
+  })
+  it('rejects malformed or oversized documents', async () => {
+    await asUser(bob)
+    await rejects('insert into public.training_plans(user_id, answers, plan) values ($1, $2, $3)', [bob, answers(), '{"sessions":{}}'], 'check constraint')
+    await rejects('insert into public.training_plans(user_id, answers, plan) values ($1, $2, $3)', [bob, answers({ note: 'x'.repeat(5000) }), plan], 'check constraint')
+    await rejects('insert into public.training_plans(user_id, answers, plan) values ($1, $2, $3)', [bob, '[]', plan], 'check constraint')
+  })
+  it('lets the owner mark onboarding as finished without touching consent fields', async () => {
+    await asUser(alice)
+    await database.query('update public.profiles set onboarding_completed_at = now() where onboarding_completed_at is null')
+    expect((await database.query<{ onboarding_completed_at: string | null }>('select onboarding_completed_at from public.profiles')).rows[0].onboarding_completed_at).not.toBeNull()
   })
 })
 

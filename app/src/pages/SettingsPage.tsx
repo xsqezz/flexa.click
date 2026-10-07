@@ -81,11 +81,11 @@ export function SettingsPage() {
             try { downloadJournal(data, auth.mode === 'demo' ? 'demo' : 'cloud') }
             catch (cause) { setError(errorMessage(cause)) }
           }}><Download size={17} aria-hidden="true" />Eksportuj dane JSON</Button></div>
-          <p className="source-credit">Eksport zawiera pełne załadowane wpisy, produkty, pomiary i cele. Trzymaj ten plik w bezpiecznym miejscu.</p>
+          <p className="source-credit">Eksport zawiera pełne załadowane wpisy, produkty, pomiary, cele oraz plan treningowy z odpowiedziami z ankiety. Trzymaj ten plik w bezpiecznym miejscu.</p>
           <div className="button-row"><Button variant="ghost" onClick={() => { void auth.signOut().catch((cause: unknown) => setError(errorMessage(cause))) }}><LogOut size={16} aria-hidden="true" />{auth.mode === 'demo' ? 'Wyjdź z demo' : 'Wyloguj się'}</Button></div>
           <div className="danger-zone">
             <h3>{auth.mode === 'demo' ? 'Zacznij demo od nowa' : 'Usunięcie konta'}</h3>
-            <p>{auth.mode === 'demo' ? 'Usuniesz wyłącznie przykładowe dane w tej przeglądarce. Dane konta nie zostaną naruszone.' : 'Nieodwracalnie usuniesz konto, posiłki, własne produkty, aktywności, wodę i pomiary. Najpierw możesz zrobić eksport.'}</p>
+            <p>{auth.mode === 'demo' ? 'Usuniesz wyłącznie przykładowe dane w tej przeglądarce. Dane konta nie zostaną naruszone.' : 'Nieodwracalnie usuniesz konto, posiłki, własne produkty, aktywności, wodę, pomiary i plan treningowy. Najpierw możesz zrobić eksport.'}</p>
             <div className="button-row"><Button variant="secondary" onClick={() => {
               setDeletionError(null)
               if (auth.mode === 'demo') setResetting(true)

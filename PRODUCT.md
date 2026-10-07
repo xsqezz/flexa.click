@@ -35,6 +35,13 @@ account; it is never presented as synchronized cloud data.
 
 - Responsive application, authentication, profiles, calorie and macro goals,
   meal journal, water, measurements, manual workouts, and progress charts.
+- A first-run "Zanim zaczniesz" questionnaire and a Plan tab create a weekly
+  training plan for gym or home equipment, ages 16+ in the demo and 18+ with
+  an account. A deterministic in-browser rule engine and exercise library
+  produce warm-ups, sets, reps, rest, technique cues, alternatives, and
+  cool-downs; no AI service receives the answers. Health limitations are only
+  stored with separate explicit consent, and the plan is general guidance,
+  not medical advice.
 - Open Food Facts is the primary packaged-food source; USDA FoodData Central
   is an optional fallback. Missing nutrient values are not invented.
 - GitHub Pages hosts the public landing and setup documentation. Cloudflare

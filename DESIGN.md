@@ -158,8 +158,22 @@ Hints use `aria-describedby`. Inputs have a white fill, thin neutral border and
 at least 44px height. Preserve units, required-state validation and error messages.
 
 **Navigation.** Named line-icon links use muted ink at rest and pale green with
-pine text when active. On phones keep all five primary destinations available
-in the bottom bar.
+pine text when active. On phones keep all six primary destinations (Dzisiaj,
+Dziennik, Plan, Treningi, Postępy, Konto) available in the bottom bar; items share
+the width equally and use short labels.
+
+**Questionnaire.** The first-run "Zanim zaczniesz" flow and plan editing use a
+standalone centered card (740px max) with the brand, a thin progress track and
+"Krok N z M" in the header. One question group per step; the step heading
+receives focus. Choices are flat bordered lists with thin separators and native
+radios or checkboxes; the selected row turns pale green. Short options are 44px
+chips whose selected state adds a pine double border, never color alone.
+Back and next actions sit under a separator and stay sticky on phones.
+
+**Training plan.** A seven-day strip shows numbered training days in pale green
+and dashed rest days; today is outlined and underlined. Each session is a native
+disclosure panel with a day badge, warm-up and cool-down ledgers, lettered
+exercise blocks (A, B1, B2) with dose, cues, breathing, safety and alternatives.
 
 **Panels and ledgers.** White, thin-bordered surfaces group related tasks;
 horizontal rows carry the actual records. Do not substitute an ornamental metric

@@ -3,8 +3,10 @@ import {
   foodSchema, journalSchema, profileSchema,
   type Food, type Journal, type Meal, type Measurement, type Profile, type Water, type Workout,
 } from '../../../shared/domain'
-import type { Database, ProfileRow } from './database.types'
+import { needsHealthConsent, trainingPlanSchema, type TrainingPlan, type TrainingState } from '../../../shared/training'
+import type { Database, Json, ProfileRow } from './database.types'
 import { readDemo, writeDemo } from './demo'
+import { isPlanUsable } from './training/generator'
 
 export type Command =
   | { type: 'profile.save'; value: Profile }
@@ -17,6 +19,9 @@ export type Command =
   | { type: 'measurement.add'; value: Omit<Measurement, 'id'> }
   | { type: 'measurement.delete'; id: string }
   | { type: 'food.save'; value: Food }
+  | { type: 'plan.save'; value: TrainingPlan }
+  | { type: 'plan.delete' }
+  | { type: 'onboarding.skip' }
 
 export interface JournalRepository {
   load(signal: AbortSignal): Promise<Journal>
@@ -52,6 +57,12 @@ export class DemoRepository implements JournalRepository {
         journal.measurements = journal.measurements.filter((item) => item.id !== command.id); break
       case 'food.save':
         journal.customFoods = [...journal.customFoods.filter((food) => food.id !== command.value.id), command.value]; break
+      case 'plan.save':
+        journal.training = { onboardingDone: true, plan: trainingPlanSchema.parse(command.value), unreadable: false }; break
+      case 'plan.delete':
+        journal.training = { ...journal.training, plan: null, unreadable: false }; break
+      case 'onboarding.skip':
+        journal.training = { ...journal.training, onboardingDone: true }; break
     }
     writeDemo(journal)
   }
@@ -86,6 +97,15 @@ function profileFromRow(row: ProfileRow): Profile {
   })
 }
 
+export function trainingFromRow(row: { answers: Json; plan: Json } | null, onboardingCompletedAt: string | null | undefined): TrainingState {
+  const onboardingDone = Boolean(onboardingCompletedAt) || row !== null
+  if (!row) return { onboardingDone, plan: null, unreadable: false }
+  const stored = typeof row.plan === 'object' && row.plan !== null && !Array.isArray(row.plan) ? row.plan : {}
+  const parsed = trainingPlanSchema.safeParse({ ...stored, answers: row.answers })
+  if (!parsed.success || !isPlanUsable(parsed.data)) return { onboardingDone, plan: null, unreadable: true }
+  return { onboardingDone, plan: parsed.data, unreadable: false }
+}
+
 export class SupabaseRepository implements JournalRepository {
   private readonly client: SupabaseClient<Database>
   private readonly userId: string
@@ -98,16 +118,19 @@ export class SupabaseRepository implements JournalRepository {
   async load(signal: AbortSignal): Promise<Journal> {
     const client = this.client
     const user = this.userId
-    const [profile, meals, workouts, water, measurements, foods] = await Promise.all([
+    const [profile, meals, workouts, water, measurements, foods, training] = await Promise.all([
       client.from('profiles').select('*').eq('user_id', user).abortSignal(signal).single(),
       readPages((start, end) => client.from('meal_entries').select('*').eq('user_id', user).order('created_at').order('id').range(start, end).abortSignal(signal)),
       readPages((start, end) => client.from('workouts').select('*').eq('user_id', user).order('created_at').order('id').range(start, end).abortSignal(signal)),
       readPages((start, end) => client.from('water_entries').select('*').eq('user_id', user).order('created_at').order('id').range(start, end).abortSignal(signal)),
       readPages((start, end) => client.from('measurements').select('*').eq('user_id', user).order('created_at').order('id').range(start, end).abortSignal(signal)),
       readPages((start, end) => client.from('custom_foods').select('*').eq('user_id', user).order('created_at').order('id').range(start, end).abortSignal(signal)),
+      client.from('training_plans').select('answers, plan').eq('user_id', user).abortSignal(signal).maybeSingle(),
     ])
+    if (training.error) result(training)
+    const profileRow = result(profile)
     return journalSchema.parse({
-      profile: profileFromRow(result(profile)),
+      profile: profileFromRow(profileRow),
       meals: meals.map((row) => ({
         id: row.id, date: row.date, meal: row.meal, food: foodSchema.parse(row.food), portion: row.portion,
       })),
@@ -119,7 +142,13 @@ export class SupabaseRepository implements JournalRepository {
       water: water.map((row) => ({ id: row.id, date: row.date, amountMl: row.amount_ml })),
       measurements: measurements.map((row) => ({ id: row.id, date: row.date, weightKg: row.weight_kg })),
       customFoods: foods.map((row) => foodSchema.parse(row.food)),
+      training: trainingFromRow(training.data, profileRow.onboarding_completed_at),
     })
+  }
+
+  private async completeOnboarding(): Promise<void> {
+    result(await this.client.from('profiles').update({ onboarding_completed_at: new Date().toISOString() })
+      .eq('user_id', this.userId).is('onboarding_completed_at', null).select('user_id'))
   }
 
   async execute(command: Command): Promise<void> {
@@ -169,6 +198,19 @@ export class SupabaseRepository implements JournalRepository {
         result(await client.from('custom_foods').upsert({
           user_id, id: command.value.id, food: foodSchema.parse(command.value),
         }).select('id').single()); break
+      case 'plan.save': {
+        const { answers, ...stored } = trainingPlanSchema.parse(command.value)
+        if (needsHealthConsent(answers) && !answers.healthConsent) {
+          throw new Error('Zaznacz zgodę na zapis informacji o zdrowiu albo usuń ograniczenia z odpowiedzi.')
+        }
+        result(await client.from('training_plans').upsert({ user_id, answers, plan: stored }, { onConflict: 'user_id' }).select('user_id').single())
+        await this.completeOnboarding()
+        break
+      }
+      case 'plan.delete':
+        result(await client.from('training_plans').delete().eq('user_id', user_id).select('user_id')); break
+      case 'onboarding.skip':
+        await this.completeOnboarding(); break
     }
   }
 }

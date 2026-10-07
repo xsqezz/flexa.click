@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { Activity, CalendarDays, ChartNoAxesCombined, ChevronLeft, ChevronRight, CircleHelp, Cloud, CloudOff, LogOut, Plus, Settings2, Utensils } from 'lucide-react'
+import { Activity, CalendarDays, ChartNoAxesCombined, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, Cloud, CloudOff, LogOut, Plus, Settings2, Utensils } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import type { MealKind } from '../../../shared/domain'
 import { useAuth } from '../lib/Auth'
@@ -7,20 +7,22 @@ import { useJournal } from '../lib/Journal'
 import { dateLabel, shiftDate, today } from '../lib/dates'
 import { Brand, Button, Notice, Skeleton, errorMessage } from './ui'
 import { MealDrawer } from './MealDrawer'
-import { WorkoutDrawer } from './WorkoutDrawer'
+import { WorkoutDrawer, type WorkoutPreset } from './WorkoutDrawer'
 import { MeasurementDrawer } from './MeasurementDrawer'
 import { DemoRecovery } from './DemoRecovery'
 
 type WorkspaceValue = {
   date: string; setDate: (date: string) => void
   openMeal: (kind?: MealKind) => void; openWorkout: () => void; openMeasurement: () => void
+  openPlannedWorkout: (preset: WorkoutPreset) => void
 }
 const WorkspaceContext = createContext<WorkspaceValue | null>(null)
 const navigation = [
-  { to: '/', label: 'Dzisiaj', Icon: CalendarDays },
-  { to: '/journal', label: 'Dziennik', Icon: Utensils },
-  { to: '/workouts', label: 'Treningi', Icon: Activity },
-  { to: '/progress', label: 'Postępy', Icon: ChartNoAxesCombined },
+  { to: '/', label: 'Dzisiaj', short: 'Dzisiaj', Icon: CalendarDays },
+  { to: '/journal', label: 'Dziennik', short: 'Dziennik', Icon: Utensils },
+  { to: '/plan', label: 'Plan treningowy', short: 'Plan', Icon: ClipboardList },
+  { to: '/workouts', label: 'Treningi', short: 'Treningi', Icon: Activity },
+  { to: '/progress', label: 'Postępy', short: 'Postępy', Icon: ChartNoAxesCombined },
 ]
 
 export function Workspace() {
@@ -28,7 +30,7 @@ export function Workspace() {
   const journal = useJournal()
   const [date, setDate] = useState(today)
   const [meal, setMeal] = useState<MealKind | null>(null)
-  const [workout, setWorkout] = useState(false)
+  const [workout, setWorkout] = useState<{ preset?: WorkoutPreset } | null>(null)
   const [measurement, setMeasurement] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [online, setOnline] = useState(navigator.onLine)
@@ -40,7 +42,8 @@ export function Workspace() {
   }, [])
   return <WorkspaceContext.Provider value={{
     date, setDate, openMeal: (kind = 'breakfast') => setMeal(kind),
-    openWorkout: () => setWorkout(true), openMeasurement: () => setMeasurement(true),
+    openWorkout: () => setWorkout({}), openMeasurement: () => setMeasurement(true),
+    openPlannedWorkout: (preset) => setWorkout({ preset }),
   }}>
     <a className="skip-link" href="#main">Przejdź do treści</a>
     <div className="app-shell">
@@ -90,12 +93,12 @@ export function Workspace() {
         </footer>
       </div>
       <nav className="mobile-nav" aria-label="Menu mobilne">
-        {navigation.map(({ to, label, Icon }) => <NavLink key={to} to={to} end><Icon size={21} aria-hidden="true" />{label}</NavLink>)}
+        {navigation.map(({ to, short, Icon }) => <NavLink key={to} to={to} end><Icon size={21} aria-hidden="true" />{short}</NavLink>)}
         <NavLink to="/settings"><Settings2 size={21} aria-hidden="true" />Konto</NavLink>
       </nav>
     </div>
     {meal && <MealDrawer date={date} initialMeal={meal} onClose={() => setMeal(null)} />}
-    {workout && <WorkoutDrawer date={date} onClose={() => setWorkout(false)} />}
+    {workout && <WorkoutDrawer date={workout.preset ? today() : date}     preset={workout.preset} onClose={() => setWorkout(null)} />}
     {measurement && <MeasurementDrawer date={date} onClose={() => setMeasurement(false)} />}
   </WorkspaceContext.Provider>
 }

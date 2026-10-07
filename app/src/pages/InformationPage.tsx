@@ -9,10 +9,13 @@ export function InformationPage({ kind }: { kind: 'privacy' | 'sources' }) {
       <h1>Twój dziennik. Twoja prywatność.</h1>
       {(!privacyOperator || !privacyContact) && <Notice>Informacje o administratorze nie są jeszcze skonfigurowane. Publiczna rejestracja pozostaje wyłączona. Demo nie wysyła dziennika do chmury.</Notice>}
       <p>Administrator: {privacyOperator || 'do uzupełnienia przed uruchomieniem kont'}. Kontakt: {privacyContact ? <a href={`mailto:${privacyContact}`}>{privacyContact}</a> : 'do uzupełnienia'}.
-        Wersja zgody: 6 października 2026. Informację o poczcie uzupełniono 7 października 2026.</p>
+        Wersja zgody: 6 października 2026. Informację o poczcie i planie treningowym uzupełniono 7 października 2026.</p>
       <h2>Co zapisujemy i dlaczego</h2>
-      <p>Adres e-mail i dane uwierzytelnienia obsługuje Supabase Auth. Profil, wybrane cele, posiłki, własne produkty, wodę, aktywności oraz pomiary przechowujemy, aby prowadzić Twój prywatny dziennik i synchronizować go między urządzeniami.
+      <p>Adres e-mail i dane uwierzytelnienia obsługuje Supabase Auth. Profil, wybrane cele, posiłki, własne produkty, wodę, aktywności, pomiary oraz — jeśli go utworzysz — plan treningowy przechowujemy, aby prowadzić Twój prywatny dziennik i synchronizować go między urządzeniami.
         Dane o zdrowiu mogą należeć do szczególnych kategorii danych. Rejestracja wymaga wyraźnej zgody na ich przetwarzanie w tym celu i potwierdzenia pełnoletności.</p>
+      <h2>Plan treningowy</h2>
+      <p>Ankieta „Zanim zaczniesz” i plan są opcjonalne. Plan układa aplikacja w Twojej przeglądarce według stałych reguł treningowych — bez AI i bez wysyłania odpowiedzi do zewnętrznych usług. Na koncie zapisujemy odpowiedzi z ankiety (wiek, płeć, cel, miejsce i sprzęt, doświadczenie, dni i długość treningu) oraz gotowy plan, aby był dostępny na każdym urządzeniu.</p>
+      <p>Informacje o zdrowiu z ankiety, czyli zgłoszone dolegliwości i łagodny start po konsultacji z lekarzem, zapisujemy tylko po zaznaczeniu osobnej zgody w ankiecie. Bez niej baza odrzuca te informacje, a przy zgodzie zapisuje czas jej udzielenia. Zgodę wycofasz, usuwając plan w zakładce Plan albo zapisując odpowiedzi bez informacji o zdrowiu. Usunięcie planu kasuje też odpowiedzi; treningi zapisane w dzienniku zostają. Plan to ogólne wskazówki treningowe, a nie porada medyczna.</p>
       <h2>Usługi zewnętrzne</h2>
       <p>Cloudflare dostarcza aplikację. Supabase przechowuje dane w regionie wybranym przez administratora projektu. Wyszukiwanie wysyła do Open Food Facts i opcjonalnie USDA jedynie tekst zapytania lub kod produktu, nie cały dziennik, wagę czy profil. Dostawcy mają własne polityki prywatności i mogą zapisywać techniczne logi żądań.</p>
       <p>Wiadomości potwierdzające adres e-mail i umożliwiające odzyskanie hasła wysyła Brevo. Supabase przekazuje mu adres odbiorcy i treść wiadomości, w tym link weryfikacyjny. Nie przekazujemy Brevo Twojego hasła ani treści dziennika. Dostawca może zapisywać dane dostarczenia wiadomości i kliknięć w linki; w obecnej konfiguracji SMTP linki są przekierowywane przez jego usługę śledzenia.</p>
@@ -20,7 +23,7 @@ export function InformationPage({ kind }: { kind: 'privacy' | 'sources' }) {
       <h2>Kamera i pliki aktywności</h2>
       <p>Skaner prosi o zgodę na kamerę. Obraz jest odczytywany lokalnie i kamera zostaje zatrzymana po skanie lub zamknięciu panelu. Import GPX/TCX również odbywa się lokalnie. Do bazy trafiają tylko zatwierdzone podsumowania, nie współrzędne ani oryginalny plik.</p>
       <h2>Eksport, poprawianie i usunięcie</h2>
-      <p>W ustawieniach możesz pobrać eksport JSON, zmienić cele oraz usunąć konto. Pomyłkę w zapisie posiłku lub treningu poprawisz przez usunięcie wpisu i dodanie prawidłowego. Pomiar zapisany ponownie w tym samym dniu zastępuje poprzedni.</p>
+      <p>W ustawieniach możesz pobrać eksport JSON (zawiera także plan treningowy z odpowiedziami), zmienić cele oraz usunąć konto. Odpowiedzi z ankiety zmienisz w zakładce Plan. Pomyłkę w zapisie posiłku lub treningu poprawisz przez usunięcie wpisu i dodanie prawidłowego. Pomiar zapisany ponownie w tym samym dniu zastępuje poprzedni.</p>
       <p>Usunięcie konta usuwa powiązane rekordy z aktywnej bazy. Techniczne logi i ewentualne kopie dostawcy wygasają według jego zasad retencji; administrator musi podać obowiązujący zakres przed publicznym startem. Nie obiecujemy natychmiastowego usunięcia z każdej kopii infrastruktury.</p>
       <p>Dane przechowujemy podczas korzystania z konta do jego usunięcia. Możesz wycofać zgodę, żądać dostępu, sprostowania, ograniczenia przetwarzania lub usunięcia przez kontakt z administratorem oraz złożyć skargę do właściwego organu ochrony danych, w Polsce UODO.</p>
       <h2>Osobny tryb demonstracyjny</h2>

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter, HashRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Link, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/Auth'
 import { JournalProvider } from './lib/Journal'
 import { FeedbackProvider } from './components/Feedback'
@@ -12,12 +12,24 @@ import { WorkoutsPage } from './pages/WorkoutsPage'
 import { ProgressPage } from './pages/ProgressPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { InformationPage } from './pages/InformationPage'
+import { PlanPage } from './pages/PlanPage'
+import { PlanWizard } from './pages/PlanWizard'
 import { Brand, Skeleton } from './components/ui'
 
 function SessionGate() {
   const auth = useAuth()
   if (auth.loading) return <main className="fatal-error"><Brand /><Skeleton /></main>
   return auth.mode === 'guest' ? <Navigate to="/login" replace /> : <Outlet />
+}
+
+function JournalShell() {
+  return <JournalProvider><Outlet /></JournalProvider>
+}
+
+function ScrollToTop() {
+  const { pathname, hash } = useLocation()
+  useEffect(() => { if (!hash) window.scrollTo(0, 0) }, [pathname, hash])
+  return null
 }
 
 function DemoEntry() {
@@ -31,6 +43,7 @@ function DemoEntry() {
 export default function App() {
   const Router = import.meta.env.VITE_PAGES_DEMO === 'true' ? HashRouter : BrowserRouter
   return <ErrorBoundary><Router><AuthProvider><FeedbackProvider>
+    <ScrollToTop />
     <Routes>
       <Route path="/login" element={<AuthPage />} />
       <Route path="/signup" element={<AuthPage />} />
@@ -39,12 +52,17 @@ export default function App() {
       <Route path="/privacy" element={<InformationPage kind="privacy" />} />
       <Route path="/sources" element={<InformationPage kind="sources" />} />
       <Route element={<SessionGate />}>
-        <Route element={<JournalProvider><Workspace /></JournalProvider>}>
-          <Route index element={<Dashboard />} />
-          <Route path="/journal" element={<JournalPage />} />
-          <Route path="/workouts" element={<WorkoutsPage />} />
-          <Route path="/progress" element={<ProgressPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+        <Route element={<JournalShell />}>
+          <Route path="/start" element={<PlanWizard mode="onboarding" />} />
+          <Route path="/plan/new" element={<PlanWizard mode="edit" />} />
+          <Route element={<Workspace />}>
+            <Route index element={<Dashboard />} />
+            <Route path="/journal" element={<JournalPage />} />
+            <Route path="/plan" element={<PlanPage />} />
+            <Route path="/workouts" element={<WorkoutsPage />} />
+            <Route path="/progress" element={<ProgressPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Route>
         </Route>
       </Route>
       <Route path="*" element={<main className="fatal-error"><Brand /><h1>Tego miejsca nie ma w dzienniku</h1><Link className="button button-primary" to="/">Wróć do Flexa</Link></main>} />
