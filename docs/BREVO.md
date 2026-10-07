@@ -3,6 +3,7 @@
 Ta instrukcja i szablon nie oznaczają, że zewnętrzny projekt lub SMTP
 są już uruchomione. Konfiguracja wymaga istniejącego projektu Flexa.
 Nie używaj backendu innej aplikacji bez decyzji jego właściciela.
+Stan podłączonego środowiska jest opisany w DEPLOYMENT.md.
 
 ## Projekt Supabase
 
@@ -67,6 +68,12 @@ wiadomość powinna pojawić się w logach transakcyjnych Brevo, dotrzeć do
 odbiorcy, a po kliknięciu potwierdzenia konto powinno móc się zalogować.
 Sprawdź również folder spam i dokładny adres przekierowania.
 Sam zapis ustawień nie jest potwierdzeniem wysłania lub dostarczenia.
+
+Brevo w obecnej konfiguracji SMTP przepisuje linki do swojej domeny śledzenia.
+Sprawdź pełne przekierowanie i potwierdzenie konta, nie tylko wygląd szablonu.
+Informacja prywatności opisuje udział Brevo i rejestrowanie kliknięć.
+Nie zmieniaj globalnych ustawień śledzenia bez decyzji właściciela pozostałych
+aplikacji korzystających z tego samego konta.
 
 Limity poczty w Supabase dopasuj do rzeczywistego planu Brevo i interwału
 ponownego wysyłania. Nie kupuj wyższego planu ani nie zwiększaj limitów bez

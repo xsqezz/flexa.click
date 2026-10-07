@@ -9,13 +9,14 @@ export function InformationPage({ kind }: { kind: 'privacy' | 'sources' }) {
       <h1>Twój dziennik. Twoja prywatność.</h1>
       {(!privacyOperator || !privacyContact) && <Notice>Informacje o administratorze nie są jeszcze skonfigurowane. Publiczna rejestracja pozostaje wyłączona. Demo nie wysyła dziennika do chmury.</Notice>}
       <p>Administrator: {privacyOperator || 'do uzupełnienia przed uruchomieniem kont'}. Kontakt: {privacyContact ? <a href={`mailto:${privacyContact}`}>{privacyContact}</a> : 'do uzupełnienia'}.
-        Wersja informacji i zgody: 6 października 2026.</p>
+        Wersja zgody: 6 października 2026. Informację o poczcie uzupełniono 7 października 2026.</p>
       <h2>Co zapisujemy i dlaczego</h2>
       <p>Adres e-mail i dane uwierzytelnienia obsługuje Supabase Auth. Profil, wybrane cele, posiłki, własne produkty, wodę, aktywności oraz pomiary przechowujemy, aby prowadzić Twój prywatny dziennik i synchronizować go między urządzeniami.
         Dane o zdrowiu mogą należeć do szczególnych kategorii danych. Rejestracja wymaga wyraźnej zgody na ich przetwarzanie w tym celu i potwierdzenia pełnoletności.</p>
       <h2>Usługi zewnętrzne</h2>
       <p>Cloudflare dostarcza aplikację. Supabase przechowuje dane w regionie wybranym przez administratora projektu. Wyszukiwanie wysyła do Open Food Facts i opcjonalnie USDA jedynie tekst zapytania lub kod produktu, nie cały dziennik, wagę czy profil. Dostawcy mają własne polityki prywatności i mogą zapisywać techniczne logi żądań.</p>
-      <p>Do działania kont używamy niezbędnego zapisu sesji w przeglądarce. Nie dodaliśmy reklam, narzędzi analitycznych ani śledzących plików cookie. Hosting i backend mogą prowadzić techniczne logi, a ich zakres administrator musi ocenić przed publicznym uruchomieniem.</p>
+      <p>Wiadomości potwierdzające adres e-mail i umożliwiające odzyskanie hasła wysyła Brevo. Supabase przekazuje mu adres odbiorcy i treść wiadomości, w tym link weryfikacyjny. Nie przekazujemy Brevo Twojego hasła ani treści dziennika. Dostawca może zapisywać dane dostarczenia wiadomości i kliknięć w linki; w obecnej konfiguracji SMTP linki są przekierowywane przez jego usługę śledzenia.</p>
+      <p>Do działania kont używamy niezbędnego zapisu sesji w przeglądarce. W samej aplikacji nie dodaliśmy reklam, narzędzi analitycznych ani śledzących plików cookie. Hosting i backend mogą prowadzić techniczne logi, a ich zakres administrator musi ocenić przed publicznym uruchomieniem.</p>
       <h2>Kamera i pliki aktywności</h2>
       <p>Skaner prosi o zgodę na kamerę. Obraz jest odczytywany lokalnie i kamera zostaje zatrzymana po skanie lub zamknięciu panelu. Import GPX/TCX również odbywa się lokalnie. Do bazy trafiają tylko zatwierdzone podsumowania, nie współrzędne ani oryginalny plik.</p>
       <h2>Eksport, poprawianie i usunięcie</h2>

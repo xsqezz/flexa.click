@@ -4,6 +4,10 @@ Darmowy, polski dziennik jedzenia, treningów i postępów. Niezależny projekt
 inspirowany funkcjonalnie Fitatu i Stravą — bez kopiowania ich kodu czy baz.
 Docelowo: `flexa.click` (landing), `app.flexa.click` (aplikacja).
 
+Aplikacja z kontami: [Flexa](https://flexa-click.pages.dev/),
+[rejestracja](https://flexa-click.pages.dev/signup). Korzysta z osobnego projektu
+Supabase w regionie Frankfurt i z poczty weryfikacyjnej Brevo.
+
 Publikacja GitHub Pages: [Flexa](https://xsqezz.github.io/flexa.click/),
 [pełne demo aplikacji](https://xsqezz.github.io/flexa.click/app/#/demo).
 Demo zapisuje zmiany lokalnie; nie tworzy kont ani synchronizacji.
@@ -21,8 +25,15 @@ BarcodeDetector/ZXing, treningi, import własnych GPX/TCX, tempo i minuty × RPE
 analizy 7/30/90 dni, pomiary, eksport JSON, usunięcie konta i synchronizacja.
 Oddzielne demo zapisuje wyłącznie przykładowe dane na urządzeniu.
 
-**Przygotowane do wdrożenia, nie skonfigurowane automatycznie:** projekty
-Supabase/Cloudflare, SMTP i DNS trzeba podłączyć zgodnie z instrukcją.
+**Podłączone środowisko:** Cloudflare Pages, Supabase Auth/Postgres/Edge Functions
+i SMTP Brevo. Rejestracja wymaga potwierdzenia adresu, a hasło ma co najmniej
+10 znaków. Plan Brevo Free ma 300 maili dziennie, wspólnie dla aplikacji
+korzystających z tego konta; nie ma osobnego limitu 50 maili dla Flexa.
+W Supabase ustawiono 300 maili na godzinę, aby domyślny limit 2/h nie ograniczał
+wysyłki wcześniej niż Brevo. Limity per adres i IP nadal obowiązują.
+
+**Odtworzenie wdrożenia:** własne projekty Supabase/Cloudflare, SMTP i DNS
+trzeba podłączyć zgodnie z instrukcją; sekrety nie są zapisane w repozytorium.
 GitHub Pages hostuje landing oraz całą aplikację w osobnym, lokalnym trybie demo.
 Konta i synchronizację hostujemy poza Pages; publiczny build nie dopuszcza kluczy backendu.
 Bez zmiennych środowiskowych konta nie udają działania; dostępne jest demo.

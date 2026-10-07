@@ -5,6 +5,27 @@ Projekt ma dwa niezależne frontendowe artefakty:
 (landing/dokumentacja i lokalne demo, GitHub Pages).
 Nie publikuj całej aplikacji z logowaniem i dziennikami na GitHub Pages.
 
+## Bieżące środowisko
+
+Konfiguracja z 7 października 2026:
+
+- Aplikacja: `https://flexa-click.pages.dev`, Cloudflare Pages z gałęzi `main`,
+  Node 24, `npm run build`, katalog wynikowy `app/dist`.
+- Osobny projekt Supabase `Flexa`: Frankfurt (`eu-central-1`), migracja
+  `202610060001_flexa.sql`, RLS i funkcje `food-search` oraz `account-delete`.
+- Rejestracja e-mail z potwierdzeniem adresu, minimum hasła 10 znaków,
+  redirecty tylko do działającej aplikacji i jej `/reset-password`.
+- SMTP Brevo z osobnym kluczem Flexa oraz polskimi szablonami potwierdzenia
+  i odzyskiwania hasła. Konfiguracja pozostaje po stronie Supabase.
+- `FLEXA_APP_URL` kieruje landing GitHub Pages do aplikacji z kontami.
+  Osobne demo nadal zapisuje dane lokalnie.
+
+Brevo Free udostępnia 300 wiadomości dziennie na całe konto. Supabase ma
+ustawiony limit 300/h; nie jest to dodatkowa pula maili ani dzienny limit
+gwarantowany samej Flexa. Nie włączono nowego hooka ani limitu 50/dzień.
+Własne domeny `flexa.click` i `app.flexa.click` wymagają osobnego potwierdzenia
+własności i konfiguracji DNS.
+
 ## Lokalny start i demo
 
 Wymagany Node.js >= 24.
