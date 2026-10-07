@@ -31,6 +31,11 @@ nie ogólnego klucza API Brevo:
 Nie zakładaj, że login SMTP to adres, którym logujesz się do panelu.
 Nie umieszczaj hasła SMTP w zmiennych `VITE_*`, GitHub Pages ani plikach Git.
 
+Użyj osobnego klucza SMTP dla Flexa, zamiast klucza używanego przez inną
+aplikację. Sprawdź jego datę wygaśnięcia: Brevo wygasza klucze również po
+90 dniach bez użycia. Przy rotacji najpierw podłącz nowy klucz do Supabase
+i potwierdź wysyłkę, a dopiero potem usuń poprzedni.
+
 Zweryfikowanie nadawcy nie zastępuje uwierzytelnienia domeny. Adres Gmail
 nie daje właścicielowi aplikacji kontroli nad DNS Gmaila i może powodować
 ostrzeżenia lub problemy z dostarczalnością. Do produkcji użyj własnego adresu
@@ -40,10 +45,13 @@ Nie dodawaj rekordów dla domeny, której nie kontrolujesz.
 ## Treść i linki potwierdzenia
 
 Polski szablon: `supabase/templates/confirmation.html`.
-Poczta celowo używa systemowego fontu i rozmiarów w pikselach dla zgodności
+Szablon odzyskiwania hasła: `supabase/templates/recovery.html`.
+Oba szablony celowo używają systemowego fontu i rozmiarów w pikselach dla zgodności
 z klientami pocztowymi, zamiast przenosić webowy układ i jego skalę typografii.
 W Supabase Authentication > Email Templates > Confirm signup ustaw temat:
 `Potwierdź adres e-mail we Flexa`, a zawartość skopiuj z szablonu.
+W Reset password ustaw temat `Ustaw nowe hasło we Flexa` i zawartość
+szablonu odzyskiwania.
 Zachowaj `{{ .ConfirmationURL }}`: Supabase tworzy właściwy link z tokenem.
 Nie wpisuj na sztywno tokenów, adresu `/demo` ani cudzej domeny.
 
