@@ -216,7 +216,7 @@ test('a new account answers the questionnaire step by step and gets a saved plan
   expect(mocked.calls.some((call) => call.path.endsWith('/profiles') && typeof call.body.onboarding_completed_at === 'string')).toBe(true)
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Twój plan treningowy', exact: true })).toBeVisible()
-  await expect(page.locator('details.plan-session')).toHaveCount(2)
+  await expect(page.locator('.plan-day')).toHaveCount(2)
   await page.getByRole('button', { name: 'Usuń plan' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Usuń plan', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Ułóż swój plan treningowy' })).toBeVisible()

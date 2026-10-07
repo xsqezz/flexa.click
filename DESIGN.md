@@ -175,6 +175,17 @@ and dashed rest days; today is outlined and underlined. Each session is a native
 disclosure panel with a day badge, warm-up and cool-down ledgers, lettered
 exercise blocks (A, B1, B2) with dose, cues, breathing, safety and alternatives.
 
+**Workout player.** Entering a training day opens a focused standalone view
+(760px column, no app navigation): exit, session title with elapsed time, sound
+toggle and step list in the header; a thin progress track with the part and
+"krok N z M". Each step shows only the current drill or set: tag and exercise
+name, a large dose, effort notes, an optional countdown for timed work, the video
+area and technique. "Wstecz" and a 56px "Skończone" stay sticky at the bottom.
+Rest replaces the step with a dark pine surface: "Chwila przerwy", a very large
+tabular countdown, a draining bar, the next exercise, "+15 s" and "Pomiń
+przerwę"; it advances on its own with a short signal. Videos are click-to-load
+facades on the same pine surface, never autoplaying third-party content first.
+
 **Panels and ledgers.** White, thin-bordered surfaces group related tasks;
 horizontal rows carry the actual records. Do not substitute an ornamental metric
 for the food entries or the activity details it summarizes.

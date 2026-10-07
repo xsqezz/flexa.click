@@ -9,13 +9,16 @@ export function InformationPage({ kind }: { kind: 'privacy' | 'sources' }) {
       <h1>Twój dziennik. Twoja prywatność.</h1>
       {(!privacyOperator || !privacyContact) && <Notice>Informacje o administratorze nie są jeszcze skonfigurowane. Publiczna rejestracja pozostaje wyłączona. Demo nie wysyła dziennika do chmury.</Notice>}
       <p>Administrator: {privacyOperator || 'do uzupełnienia przed uruchomieniem kont'}. Kontakt: {privacyContact ? <a href={`mailto:${privacyContact}`}>{privacyContact}</a> : 'do uzupełnienia'}.
-        Wersja zgody: 6 października 2026. Informację o poczcie i planie treningowym uzupełniono 7 października 2026.</p>
+        Wersja zgody: 6 października 2026. Informację o poczcie, planie treningowym i filmach instruktażowych uzupełniono 7 października 2026.</p>
       <h2>Co zapisujemy i dlaczego</h2>
       <p>Adres e-mail i dane uwierzytelnienia obsługuje Supabase Auth. Profil, wybrane cele, posiłki, własne produkty, wodę, aktywności, pomiary oraz — jeśli go utworzysz — plan treningowy przechowujemy, aby prowadzić Twój prywatny dziennik i synchronizować go między urządzeniami.
         Dane o zdrowiu mogą należeć do szczególnych kategorii danych. Rejestracja wymaga wyraźnej zgody na ich przetwarzanie w tym celu i potwierdzenia pełnoletności.</p>
       <h2>Plan treningowy</h2>
       <p>Ankieta „Zanim zaczniesz” i plan są opcjonalne. Plan układa aplikacja w Twojej przeglądarce według stałych reguł treningowych — bez AI i bez wysyłania odpowiedzi do zewnętrznych usług. Na koncie zapisujemy odpowiedzi z ankiety (wiek, płeć, cel, miejsce i sprzęt, doświadczenie, dni i długość treningu) oraz gotowy plan, aby był dostępny na każdym urządzeniu.</p>
       <p>Informacje o zdrowiu z ankiety, czyli zgłoszone dolegliwości i łagodny start po konsultacji z lekarzem, zapisujemy tylko po zaznaczeniu osobnej zgody w ankiecie. Bez niej baza odrzuca te informacje, a przy zgodzie zapisuje czas jej udzielenia. Zgodę wycofasz, usuwając plan w zakładce Plan albo zapisując odpowiedzi bez informacji o zdrowiu. Usunięcie planu kasuje też odpowiedzi; treningi zapisane w dzienniku zostają. Plan to ogólne wskazówki treningowe, a nie porada medyczna.</p>
+      <h2>Prowadzony trening i filmy instruktażowe</h2>
+      <p>Postęp rozpoczętego treningu (numer kroku, wykonane i pominięte ćwiczenia, czas przerwy) zapisujemy tylko w pamięci tego urządzenia, aby można było go wznowić; po 12 godzinach przestaje być używany. Do bazy trafia jedynie trening, który sam zapiszesz w dzienniku.</p>
+      <p>Przy ćwiczeniach możesz obejrzeć film z YouTube. Odtwarzacz ładuje się dopiero po kliknięciu „Odtwórz film” i działa w trybie rozszerzonej prywatności (youtube-nocookie.com). Od tej chwili Google otrzymuje adres IP i dane techniczne przeglądarki, a po odtworzeniu może zapisywać dane w przeglądarce według własnej polityki prywatności. Wybór zapamiętujemy lokalnie, aby kolejne filmy ładowały się bez pytania; cofniesz go przyciskiem „Nie ładuj filmów automatycznie”.</p>
       <h2>Usługi zewnętrzne</h2>
       <p>Cloudflare dostarcza aplikację. Supabase przechowuje dane w regionie wybranym przez administratora projektu. Wyszukiwanie wysyła do Open Food Facts i opcjonalnie USDA jedynie tekst zapytania lub kod produktu, nie cały dziennik, wagę czy profil. Dostawcy mają własne polityki prywatności i mogą zapisywać techniczne logi żądań.</p>
       <p>Wiadomości potwierdzające adres e-mail i umożliwiające odzyskanie hasła wysyła Brevo. Supabase przekazuje mu adres odbiorcy i treść wiadomości, w tym link weryfikacyjny. Nie przekazujemy Brevo Twojego hasła ani treści dziennika. Dostawca może zapisywać dane dostarczenia wiadomości i kliknięć w linki; w obecnej konfiguracji SMTP linki są przekierowywane przez jego usługę śledzenia.</p>
@@ -44,6 +47,8 @@ export function InformationPage({ kind }: { kind: 'privacy' | 'sources' }) {
       <h2>Twoje produkty i aktywności</h2>
       <p>Własne produkty są prywatne. Brakującego makro nie zamieniamy w zero. Podstawę 100 g lub 100 ml potwierdzasz z etykiety.
         Ręczne treningi i własne GPX/TCX nie wymagają integracji z producentem urządzenia. Dystans GPX jest wyliczany z geometrii punktów i może zależeć od jakości GPS; czas sumuje czas segmentów, nie jest automatycznym „czasem ruchu”.</p>
+      <h2>Filmy instruktażowe</h2>
+      <p>Do ćwiczeń w planie dołączamy publicznie dostępne filmy z YouTube, osadzane oficjalnym odtwarzaczem dopiero po kliknięciu. Prawa do nagrań mają ich autorzy; przy filmie pokazujemy tytuł i kanał. Nie kopiujemy ani nie hostujemy nagrań, a dostępność każdego filmu sprawdzamy przez oficjalny interfejs oEmbed. Gdy filmu brakuje, aplikacja proponuje wyszukanie ćwiczenia na YouTube.</p>
       <h2>Czego obecnie nie obiecujemy</h2>
       <p>API Stravy zabrania aplikacji konkurujących z jej funkcjami; integracja jest wyłączona do uzyskania akceptacji.
         Nie ma dostępu do jej segmentów czy rankingów. Apple Health i Health Connect nie są dostępne bez natywnej integracji. Zdjęciowe szacowanie posiłków, społeczność i mapy tras nie są częścią tej wersji.</p>

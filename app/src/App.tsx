@@ -14,6 +14,7 @@ import { SettingsPage } from './pages/SettingsPage'
 import { InformationPage } from './pages/InformationPage'
 import { PlanPage } from './pages/PlanPage'
 import { PlanWizard } from './pages/PlanWizard'
+import { WorkoutPlayer } from './pages/WorkoutPlayer'
 import { Brand, Skeleton } from './components/ui'
 
 function SessionGate() {
@@ -55,6 +56,7 @@ export default function App() {
         <Route element={<JournalShell />}>
           <Route path="/start" element={<PlanWizard mode="onboarding" />} />
           <Route path="/plan/new" element={<PlanWizard mode="edit" />} />
+          <Route path="/plan/:sessionKey" element={<WorkoutPlayer />} />
           <Route element={<Workspace />}>
             <Route index element={<Dashboard />} />
             <Route path="/journal" element={<JournalPage />} />

@@ -30,9 +30,15 @@ kroku o wiek, płeć, cel, siłownię lub dom ze sprzętem, doświadczenie, dni
 i długość treningu oraz zdrowie. Zakładka Plan pokazuje tydzień z rozgrzewką,
 seriami, powtórzeniami, przerwami, tempem, wskazówkami techniki i oddechu,
 zamiennikami i rozciąganiem; odpowiedzi można zmienić w każdej chwili.
-Plan układa w przeglądarce deterministyczny generator reguł z biblioteką ok. 150
+Plan układa w przeglądarce deterministyczny generator reguł z biblioteką ok. 190
 ćwiczeń (`app/src/lib/training`) — bez AI i kluczy API. Ćwiczenia omijają zgłoszone
 dolegliwości, a informacje o zdrowiu trafiają do bazy tylko z osobną zgodą.
+Po wejściu w dzień treningowy aplikacja prowadzi krok po kroku: jedno ćwiczenie lub
+seria naraz z przyciskiem „Skończone”, stoper przerwy („Chwila przerwy”, +15 s,
+pominięcie, sygnał dźwiękowy), odliczanie ćwiczeń na czas, lista kroków, wznawianie
+po odświeżeniu i zapis do dziennika. Filmy instruktażowe z YouTube ładują się dopiero
+po kliknięciu (youtube-nocookie.com); ID filmów sprawdzamy przez oEmbed, a dla ćwiczeń
+bez sprawdzonego filmu jest link do wyszukiwania.
 
 **Podłączone środowisko:** Cloudflare Pages, Supabase Auth/Postgres/Edge Functions
 i SMTP Brevo. Rejestracja wymaga potwierdzenia adresu, a hasło ma co najmniej

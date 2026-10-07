@@ -59,6 +59,25 @@ export function setsLabel(count: number): string {
   return `${count} ${plural(count, 'seria', 'serie', 'serii')}`
 }
 
+export function exercisesLabel(count: number): string {
+  return `${count} ${plural(count, 'ćwiczenie', 'ćwiczenia', 'ćwiczeń')}`
+}
+
+export function stopwatch(seconds: number): string {
+  const safe = Math.max(0, Math.round(seconds))
+  const hours = Math.floor(safe / 3600)
+  const minutes = Math.floor((safe % 3600) / 60)
+  const rest = String(safe % 60).padStart(2, '0')
+  return hours ? `${hours}:${String(minutes).padStart(2, '0')}:${rest}` : `${minutes}:${rest}`
+}
+
+export function effortNotes(item: PlanItem): string[] {
+  const notes: string[] = []
+  if (item.rir !== null) notes.push(`zostaw ${item.rir} ${plural(item.rir, 'powtórzenie', 'powtórzenia', 'powtórzeń')} w zapasie`)
+  if (item.tempo) notes.push(item.tempo.startsWith('pauza') ? item.tempo : `tempo ${item.tempo}`)
+  return notes
+}
+
 export function roundsLabel(count: number): string {
   return `${count} ${plural(count, 'runda', 'rundy', 'rund')}`
 }
@@ -70,9 +89,7 @@ export function itemDetails(item: PlanItem, block: PlanBlock): string[] {
   if (item.target.type === 'intervals' || item.target.type === 'steady') details.push(target)
   else if (block.kind === 'straight') details.push(`${setsLabel(item.sets)} × ${target}`, `przerwa ${duration(item.rest)}`)
   else details.push(target)
-  if (item.rir !== null) details.push(`zostaw ${item.rir} ${plural(item.rir, 'powtórzenie', 'powtórzenia', 'powtórzeń')} w zapasie`)
-  if (item.tempo) details.push(item.tempo.startsWith('pauza') ? item.tempo : `tempo ${item.tempo}`)
-  return details
+  return [...details, ...effortNotes(item)]
 }
 
 export function blockHeading(block: PlanBlock, letter: string): string {

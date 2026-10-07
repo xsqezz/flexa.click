@@ -42,6 +42,10 @@ account; it is never presented as synchronized cloud data.
   cool-downs; no AI service receives the answers. Health limitations are only
   stored with separate explicit consent, and the plan is general guidance,
   not medical advice.
+- A guided workout mode shows one drill or set at a time with a "Skończone"
+  action, automatic rest countdowns, timers for timed work, resumable local
+  progress, and click-to-load YouTube technique videos (privacy-enhanced embed,
+  IDs verified through oEmbed) with a search link where no video is curated yet.
 - Open Food Facts is the primary packaged-food source; USDA FoodData Central
   is an optional fallback. Missing nutrient values are not invented.
 - GitHub Pages hosts the public landing and setup documentation. Cloudflare

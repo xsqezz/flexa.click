@@ -21,12 +21,12 @@ function PlanNote({ date }: { date: string }) {
   if (index >= 0) {
     const session = plan.sessions[index]
     return <p className="plan-note"><ClipboardList size={17} aria-hidden="true" />
-      <span>W planie na ten dzień: <Link to={{ pathname: '/plan', hash: session.key }}>{sessionTitle(session, index, plan.answers.goal)}</Link> · ok. {session.minutes} min</span></p>
+      <span>W planie na ten dzień: {sessionTitle(session, index, plan.answers.goal)} · ok. {session.minutes} min. <Link to={`/plan/${session.key}`}>Rozpocznij trening</Link></span></p>
   }
   const nextIndex = plan.sessions.findIndex((session) => session.weekday > day)
   const next = plan.sessions[nextIndex >= 0 ? nextIndex : 0]
   return <p className="plan-note"><ClipboardList size={17} aria-hidden="true" />
-    <span>Dziś odpoczynek od planu. Najbliższy trening: {weekdayNames[next.weekday]} — <Link to={{ pathname: '/plan', hash: next.key }}>{sessionShortName(next.kind)}</Link></span></p>
+    <span>Dziś odpoczynek od planu. Najbliższy trening: {weekdayNames[next.weekday]} — <Link to="/plan">{sessionShortName(next.kind)}</Link></span></p>
 }
 
 export function Dashboard() {

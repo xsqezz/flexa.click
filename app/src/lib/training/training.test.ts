@@ -6,6 +6,7 @@ import {
 } from '../../../../shared/training'
 import { alternativesFor, createContext, generatePlan, isEligible, isPlanUsable, strengthDayCap, strengthKinds } from './generator'
 import { exercises, findExercise } from './library'
+import { embedUrl, exerciseVideos, youtubeSearchUrl } from './media'
 import {
   formatTarget, itemDetails, limitationSummary, planSummary, plannedWorkout, safetyNotes, sessionTitle, setsLabel, weekdayIndex,
 } from './format'
@@ -49,6 +50,16 @@ function* matrix(): Generator<TrainingAnswers> {
 }
 
 describe('exercise library', () => {
+  it('links instructional videos only to known exercises with valid YouTube ids', () => {
+    for (const [id, item] of Object.entries(exerciseVideos)) {
+      expect(findExercise(id), id).toBeDefined()
+      expect(item.id, id).toMatch(/^[\w-]{11}$/)
+      expect(item.title.trim(), id).not.toBe('')
+      expect(item.channel.trim(), id).not.toBe('')
+    }
+    expect(embedUrl('ESeQVOgVORc', true)).toBe('https://www.youtube-nocookie.com/embed/ESeQVOgVORc?rel=0&playsinline=1&autoplay=1')
+    expect(youtubeSearchUrl('Pozycja dziecka')).toBe('https://www.youtube.com/results?search_query=Pozycja%20dziecka%20jak%20wykona%C4%87')
+  })
   it('has unique, schema-safe identifiers and complete coaching content', () => {
     const ids = exercises.map((exercise) => exercise.id)
     expect(new Set(ids).size).toBe(ids.length)
