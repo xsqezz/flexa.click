@@ -35,7 +35,8 @@ Wymagany jest Android 8.0 lub nowszy (`minSdk 26`). Przy pierwszej aktualizacji 
 4. Instalację wykonuje systemowy `PackageInstaller`. Android zawsze prosi wtedy o potwierdzenie
    („Czy zaktualizować tę aplikację?”): aplikacja spoza sklepu nie może zainstalować się po cichu.
    Po potwierdzeniu Android zamyka starą wersję (nie da się zastąpić działającej aplikacji), więc Flexa trzeba
-   otworzyć ponownie z ekranu głównego; jest już w nowej wersji. Okno w aplikacji przypomina o tym podczas potwierdzania.
+   otworzyć ponownie z ekranu głównego; jest już w nowej wersji i potwierdza to krótkim komunikatem
+   („Flexa została zaktualizowana do wersji X”). Okno w aplikacji przypomina o ponownym otwarciu już podczas potwierdzania.
 5. Gdy zainstalowany `versionCode` jest mniejszy od `minSupportedVersionCode`, okno nie ma przycisku „Później”
    (jest „Zamknij aplikację”) i aplikacja nie działa do czasu aktualizacji. Tak działa wydanie z `--force`.
 

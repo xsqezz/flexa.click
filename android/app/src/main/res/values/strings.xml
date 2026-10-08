@@ -29,6 +29,7 @@
     <string name="update_verify_failed">Pobrany plik jest uszkodzony albo nie pochodzi od Flexa, więc go nie zainstaluję. Spróbuj ponownie za chwilę.</string>
     <string name="update_wrong_signature">Pobrana wersja ma inny podpis niż zainstalowana, więc Android nie pozwoli jej zaktualizować. Pobierz aplikację ręcznie i zainstaluj ją ponownie.</string>
     <string name="update_confirm_hint">Potwierdź instalację w oknie Androida. Po aktualizacji Android zamknie Flexa, więc otwórz ją ponownie.</string>
+    <string name="update_installed">Flexa została zaktualizowana do wersji %1$s.</string>
     <string name="update_install_failed">Android nie zainstalował aktualizacji. %1$s</string>
     <string name="update_failed_generic">Spróbuj ponownie za chwilę.</string>
     <string name="update_failed_storage">Na urządzeniu brakuje miejsca.</string>

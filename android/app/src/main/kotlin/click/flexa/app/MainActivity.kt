@@ -37,6 +37,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import click.flexa.app.update.UpdateAnnouncer
 import click.flexa.app.update.UpdateController
 import click.flexa.app.web.FileChooser
 import click.flexa.app.web.FileSaver
@@ -178,6 +179,7 @@ class MainActivity : ComponentActivity(), WebHost {
         contentShown = true
         if (!launchCheckScheduled) {
             launchCheckScheduled = true
+            UpdateAnnouncer.announceIfUpdated(this)
             main.postDelayed({ updates.checkOnLaunch() }, LAUNCH_CHECK_DELAY_MS)
         }
     }
