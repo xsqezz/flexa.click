@@ -53,6 +53,16 @@ wymagają konta, zgody na wysłanie zdjęcia i mają dzienne limity na konto (mi
 `202610080001_kitchen_ai_quota.sql`). Zdjęć nie zapisujemy; AI nigdy nie pisze przepisu ani nie
 liczy makro.
 
+**Nawigacja i wygoda:** pięć sekcji (Dzisiaj, Dziennik, Kuchnia, Trening z widokami Plan i Historia, Postępy), przycisk „Dodaj”
+na każdym ekranie (posiłek, skan kodu, woda, trening, pomiar), wyszukiwarka Ctrl+K (strony, akcje, wpisy), zmiana dnia przesunięciem
+palca, strzałkami lub paskiem tygodnia, „Cofnij” po usunięciu wpisu, lista „Zacznij tu” dla nowych kont, strona „O Flexa” ze
+skrótami klawiszowymi, ciemny motyw według ustawień systemu i instalacja jako aplikacja (PWA) z działaniem offline.
+
+**Dziennik i dane:** kopiowanie posiłków z wczoraj, zestawy posiłków, zapis przepisu jako własnego produktu, kalkulator orientacyjnego
+zapotrzebowania (nie zapisuje wieku, płci ani wzrostu), przywracanie kopii JSON (tylko dodawanie brakujących wpisów), eksport CSV,
+serie i ciężary w treningach z historią ćwiczeń, podsumowanie tygodnia, trend wagi z 7 dni oraz opcjonalne obwody talii i bioder.
+Kolejne migracje: `202610090001_meal_templates.sql` i `202610090002_training_details.sql`.
+
 **Aplikacja na Androida:** `android/` to powłoka Kotlin z `WebView`, która otwiera działającą stronę (zmiany
 w aplikacji są więc widoczne od razu) i sama proponuje aktualizację, gdy w GitHub Releases pojawi się nowszy APK:
 okno „Zaktualizuj”, pobranie, weryfikacja SHA-256 i podpisu, systemowe potwierdzenie instalacji. Pobranie:

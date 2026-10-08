@@ -32,8 +32,11 @@ async function journal(page: Page) {
 
 async function navigate(page: Page, route: string) {
   const link = page.locator(`nav:visible a[href="${route}"]`)
-  if (route === '/settings' && await link.count() === 0) await page.getByRole('link', { name: 'Otwórz ustawienia konta' }).click()
-  else await link.click()
+  if (route === '/settings' && await link.count() === 0) await page.getByRole('link', { name: /^Konto:/ }).click()
+  else if (route === '/workouts' && await link.count() === 0) {
+    await page.locator('nav:visible a[href="/plan"]').first().click()
+    await page.getByRole('navigation', { name: 'Widok treningu' }).getByRole('link', { name: 'Historia' }).click()
+  } else await link.first().click()
 }
 
 async function accessible(page: Page) {
@@ -52,7 +55,7 @@ test('demo, food search, portions, persistent meals and deletion', async ({ page
   const addButton = page.getByRole('button', { name: 'Dodaj posiłek', exact: true })
   await addButton.focus()
   await addButton.click()
-  let dialog = page.getByRole('dialog')
+  const dialog = page.getByRole('dialog')
   await dialog.getByRole('textbox', { name: 'Nazwa produktu', exact: true }).fill('Jogurt')
   await dialog.getByRole('button', { name: 'Szukaj', exact: true }).click()
   await dialog.getByRole('button', { name: /Jogurt naturalny.*61 kcal/ }).click()
@@ -66,14 +69,18 @@ test('demo, food search, portions, persistent meals and deletion', async ({ page
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
   expect((await journal(page)).meals.at(-1)?.portion).toBe(200)
-  await page.getByRole('button', { name: 'Usuń: Jogurt naturalny', exact: true }).last().click()
-  dialog = page.getByRole('dialog')
-  await dialog.getByRole('button', { name: 'Zachowaj wpis' }).click()
+  const deleteButtons = page.getByRole('button', { name: 'Usuń: Jogurt naturalny', exact: true })
+  const visibleBefore = await deleteButtons.count()
+  await deleteButtons.last().click()
+  await expect(deleteButtons).toHaveCount(visibleBefore - 1)
+  await page.getByRole('status').getByRole('button', { name: 'Cofnij', exact: true }).click()
+  await expect(deleteButtons).toHaveCount(visibleBefore)
   expect((await journal(page)).meals).toHaveLength(before + 1)
-  await page.getByRole('button', { name: 'Usuń: Jogurt naturalny', exact: true }).last().click()
-  await page.getByRole('dialog').getByRole('button', { name: 'Usuń wpis', exact: true }).click()
-  await expect(page.getByRole('dialog')).toHaveCount(0)
-  expect((await journal(page)).meals).toHaveLength(before)
+  await deleteButtons.last().click()
+  await expect(deleteButtons).toHaveCount(visibleBefore - 1)
+  expect((await journal(page)).meals).toHaveLength(before + 1)
+  await page.getByRole('button', { name: 'Zamknij komunikat' }).click()
+  await expect.poll(async () => (await journal(page)).meals.length).toBe(before)
   expect(pageErrors).toEqual([])
 })
 
@@ -120,7 +127,8 @@ test('water, goals, measurements, complete JSON export and demo reset', async ({
   await page.getByRole('dialog').getByLabel('Masa ciała (kg)', { exact: true }).fill('75.5')
   await page.getByRole('dialog').getByRole('button', { name: 'Zapisz pomiar' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
-  await expect(page.getByText('75,5 kg', { exact: true })).toHaveCount(2)
+  // Overview strip, the weekly summary ("Twój tydzień") and the measurement table.
+  await expect(page.getByText('75,5 kg', { exact: true })).toHaveCount(3)
   await page.getByRole('button', { name: '90 dni', exact: true }).click()
   await expect(page.getByRole('button', { name: '90 dni', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await navigate(page, '/settings')
@@ -164,13 +172,144 @@ test.describe('inside the Android app', () => {
     await accessible(page)
     await page.getByRole('button', { name: 'Sprawdź aktualizacje' }).click()
     await page.getByRole('button', { name: 'Eksportuj dane JSON' }).click()
-    const messages = await page.evaluate(() => (window as unknown as { nativeMessages: string[] }).nativeMessages.map((message) => JSON.parse(message) as Record<string, string>))
+    const messages = await page.evaluate(() => (window as unknown as { nativeMessages: string[] }).nativeMessages
+      .map((message) => JSON.parse(message) as Record<string, string>).filter((message) => !message.type.startsWith('reminders.')))
     expect(messages).toHaveLength(2)
     expect(messages[0]).toEqual({ type: 'check-update' })
     expect(messages[1]).toMatchObject({ type: 'save-file', mime: 'application/json' })
     expect(messages[1].name).toMatch(/^flexa-demo-\d{4}-\d{2}-\d{2}\.json$/)
     expect((JSON.parse(messages[1].text) as { mode: string }).mode).toBe('demo')
   })
+
+  test.describe('version 1.0.1', () => {
+    test.use({ userAgent: 'Mozilla/5.0 (Linux; Android 16; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36 FlexaAndroid/1.0.1' })
+
+    test('asks to update the app before reminders can be turned on', async ({ page }) => {
+      await page.addInitScript(() => {
+        const messages: string[] = []
+        Object.assign(window, { nativeMessages: messages, flexaNative: { postMessage: (message: string) => messages.push(message) } })
+      })
+      await openDemo(page)
+      await navigate(page, '/settings')
+      await expect(page.getByText('Zaktualizuj aplikację, aby włączyć przypomnienia')).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Sprawdź aktualizacje' })).toBeVisible()
+      await expect(page.getByRole('region', { name: 'Przypomnienia' })).toHaveCount(0)
+      expect(await page.evaluate(() => (window as unknown as { nativeMessages: string[] }).nativeMessages)).toEqual([])
+    })
+  })
+
+  test.describe('version 1.1.0', () => {
+    test.use({ userAgent: 'Mozilla/5.0 (Linux; Android 16; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36 FlexaAndroid/1.1.0' })
+
+    test('sets up training and water reminders through the app', async ({ page }) => {
+      await page.addInitScript(() => {
+        type Message = Record<string, unknown> & { type: string; id?: string }
+        const sent: Message[] = []
+        let state: Record<string, unknown> = {
+          training: { enabled: false, time: '18:00', weekdays: [] }, water: { enabled: false, from: '09:00', to: '21:00', everyHours: 2 },
+        }
+        const native: { postMessage: (raw: string) => void; onmessage: ((event: { data: string }) => void) | null } = {
+          onmessage: null,
+          postMessage: (raw) => {
+            const message = JSON.parse(raw) as Message
+            sent.push(message)
+            if (message.type === 'reminders.set') state = { training: message.training, water: message.water }
+            if (message.type !== 'reminders.get' && message.type !== 'reminders.set') return
+            const permission = (window as unknown as { mockPermission: string }).mockPermission
+            setTimeout(() => native.onmessage?.({ data: JSON.stringify({ type: 'reminders.state', id: message.id, ...state, permission, supported: true }) }), 20)
+          },
+        }
+        Object.assign(window, { nativeMessages: sent, mockPermission: 'default', flexaNative: native })
+      })
+      await openDemo(page)
+      const plan = (await journal(page)).training.plan
+      expect(plan).not.toBeNull()
+      const planDays = (plan?.sessions ?? []).map((session) => session.weekday).sort((a, b) => a - b)
+      await navigate(page, '/settings')
+      const panel = page.getByRole('region', { name: 'Przypomnienia' })
+      await expect(panel.getByRole('checkbox', { name: /Przypomnienie o treningu/ })).not.toBeChecked()
+      await panel.getByRole('checkbox', { name: /Przypomnienie o treningu/ }).check()
+      await expect(panel.getByText('Dni z Twojego planu:')).toBeVisible()
+      await panel.getByLabel('Godzina przypomnienia').fill('07:30')
+      await panel.getByRole('checkbox', { name: /Przypomnienie o wodzie/ }).check()
+      await panel.getByLabel('Jak często').selectOption('3')
+      await page.evaluate(() => Object.assign(window, { mockPermission: 'granted' }))
+      await panel.getByRole('button', { name: 'Zapisz przypomnienia' }).click()
+      await expect(page.getByRole('status').filter({ hasText: 'Przypomnienia zapisane.' })).toBeVisible()
+      await accessible(page)
+
+      const sent = await page.evaluate(() => (window as unknown as { nativeMessages: Record<string, unknown>[] }).nativeMessages)
+      const saved = sent.find((message) => message.type === 'reminders.set') as {
+        training: { enabled: boolean; time: string; weekdays: number[]; sessions: { weekday: number; name: string; minutes: number }[] }
+        water: { enabled: boolean; from: string; to: string; everyHours: number }
+      }
+      expect(saved.training).toMatchObject({ enabled: true, time: '07:30', weekdays: planDays })
+      expect(saved.training.sessions.map((session) => session.weekday).sort((a, b) => a - b)).toEqual(planDays)
+      expect(saved.training.sessions[0].name).toMatch(/^Dzień 1: /)
+      expect(saved.water).toEqual({ enabled: true, from: '09:00', to: '21:00', everyHours: 3 })
+
+      await page.evaluate(() => Object.assign(window, { mockPermission: 'denied' }))
+      await panel.getByRole('button', { name: 'Zapisz przypomnienia' }).click()
+      await expect(panel.getByRole('alert')).toContainText('Android blokuje powiadomienia Flexa')
+      await panel.getByRole('button', { name: 'Otwórz ustawienia powiadomień' }).click()
+      const last = await page.evaluate(() => (window as unknown as { nativeMessages: Record<string, unknown>[] }).nativeMessages.at(-1))
+      expect(last).toEqual({ type: 'reminders.open-settings' })
+    })
+  })
+})
+
+test('quick add, search and day navigation work from any screen', async ({ page }, testInfo) => {
+  await openDemo(page)
+  const water = (await journal(page)).water.length
+  await navigate(page, '/progress')
+  await page.getByRole('button', { name: 'Dodaj', exact: true }).click()
+  const sheet = page.getByRole('dialog', { name: 'Dodaj' })
+  await sheet.getByRole('button', { name: /Woda \+250 ml/ }).click()
+  await expect(sheet).toHaveCount(0)
+  await expect(page.getByRole('status')).toContainText('Dodano 250 ml wody')
+  expect((await journal(page)).water).toHaveLength(water + 1)
+  await page.getByRole('button', { name: 'Dodaj', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Dodaj' }).getByRole('button', { name: /Skanuj kod kreskowy/ }).click()
+  await expect(page.getByRole('dialog', { name: 'Dodaj posiłek' }).getByRole('button', { name: 'Kod kreskowy', pressed: true })).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  await page.keyboard.press('Control+k')
+  const search = page.getByRole('combobox', { name: 'Szukaj stron, akcji i wpisów' })
+  await search.fill('jogurt')
+  await expect(page.getByRole('option', { name: /Jogurt naturalny/ }).first()).toBeVisible()
+  await search.fill('postepy')
+  await expect(page.getByRole('option').first()).toContainText('Postępy')
+  await search.fill('plan treningowy')
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(/\/plan$/)
+  await expect(page.getByRole('navigation', { name: 'Widok treningu' }).getByRole('link', { name: 'Plan' })).toHaveAttribute('aria-current', 'page')
+
+  await navigate(page, '/journal')
+  const day = page.getByLabel('Dzień dziennika', { exact: true })
+  const start = await day.inputValue()
+  await page.locator('main h1').click()
+  await page.keyboard.press('ArrowLeft')
+  await expect(day).not.toHaveValue(start)
+  await page.keyboard.press('t')
+  await expect(day).toHaveValue(start)
+  const strip = page.getByRole('navigation', { name: /^Tydzień od/ })
+  await strip.getByRole('button', { name: 'Poprzedni tydzień' }).click()
+  await expect(day).not.toHaveValue(start)
+  await strip.getByRole('button', { name: 'Następny tydzień' }).click()
+  await expect(day).toHaveValue(start)
+  if (testInfo.project.name === 'mobile') {
+    const box = await page.locator('main h1').boundingBox()
+    if (!box) throw new Error('missing heading')
+    const y = box.y + box.height / 2
+    await page.touchscreen.tap(box.x + 5, y)
+    await page.evaluate(({ y }) => {
+      const main = document.querySelector('main') as HTMLElement
+      const touch = (x: number) => new Touch({ identifier: 1, target: main, clientX: x, clientY: y })
+      main.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [touch(300)], changedTouches: [touch(300)] }))
+      main.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: [touch(120)] }))
+    }, { y })
+    await expect(day).not.toHaveValue(start)
+  }
 })
 
 test('workout and GPX import, duplicate prevention and deleted import recovery', async ({ page }) => {
@@ -205,8 +344,8 @@ test('workout and GPX import, duplicate prevention and deleted import recovery',
   await expect(dialog.getByRole('alert')).toContainText('już zaimportowany')
   await dialog.getByRole('button', { name: 'Zamknij panel' }).click()
   await page.getByRole('button', { name: 'Usuń trening: Import testowy' }).click()
-  await page.getByRole('dialog').getByRole('button', { name: 'Usuń wpis', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Import testowy' })).toHaveCount(0)
+  await expect(page.getByRole('status')).toContainText('Usunięto trening „Import testowy”')
   await importFile()
   await expect(page.getByRole('heading', { name: 'Import testowy' })).toBeVisible()
 })
@@ -382,6 +521,18 @@ test('all main pages, dialog, privacy and landing are accessible without overflo
     await expect(page.locator('main h1')).toBeVisible()
     await accessible(page)
   }
+  await page.getByRole('button', { name: 'Dodaj', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Dodaj' })).toBeVisible()
+  await accessible(page)
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Control+k')
+  await expect(page.getByRole('combobox', { name: 'Szukaj stron, akcji i wpisów' })).toBeFocused()
+  await accessible(page)
+  await page.keyboard.press('Escape')
+  await page.goto('/about')
+  await expect(page.getByRole('heading', { name: 'O Flexa', level: 1 })).toBeVisible()
+  await accessible(page)
+  await page.getByRole('link', { name: 'Wróć do aplikacji' }).click()
   await navigate(page, '/plan')
   await page.getByRole('link', { name: 'Rozpocznij trening' }).first().click()
   await expect(page.getByRole('button', { name: 'Skończone', exact: true })).toBeVisible()
@@ -529,4 +680,242 @@ test('Smart Kuchnia respects what the user does not eat and explains when nothin
   await expect(page.getByText(/nie umiem jeszcze ułożyć pełnego dania/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Zmień produkty' })).toBeVisible()
   await accessible(page)
+})
+
+const browserToday = (page: Page) => page.evaluate(() => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+})
+
+test('guided workout records optional reps and load, keeps them on resume and logs them with the session', async ({ page }) => {
+  await openDemo(page)
+  await navigate(page, '/plan')
+  await page.getByRole('link', { name: /^poniedziałek.*rozpocznij/ }).click()
+  await page.getByRole('button', { name: 'Lista kroków treningu' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: /^A · / }).first().click()
+  const reps = page.getByRole('spinbutton', { name: 'Powtórzenia', exact: true })
+  await expect(reps).toBeVisible()
+  await expect(page.getByText(/Wpisano wartości z ostatniego zapisu/)).toBeVisible()
+  await expect(reps).not.toHaveValue('')
+  await accessible(page)
+  await reps.fill('7')
+  await page.reload()
+  await expect(page.getByText(/^Wznowiono trening/)).toBeVisible()
+  await expect(page.getByRole('spinbutton', { name: 'Powtórzenia', exact: true })).toHaveValue('7')
+  await page.getByRole('button', { name: 'Skończone', exact: true }).click()
+  await page.getByRole('button', { name: 'Lista kroków treningu' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Zakończ trening teraz' }).click()
+  await expect(page.getByText('Serie z wynikiem', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Zapisz w dzienniku' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByLabel('Seria 1: powtórzenia', { exact: true })).toHaveValue('7')
+  await dialog.getByRole('button', { name: 'Zapisz trening' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  const logged = (await journal(page)).workouts.at(-1)
+  expect(logged?.sets).toHaveLength(1)
+  expect(logged?.sets?.[0]).toMatchObject({ reps: 7, seconds: null })
+})
+
+test('a logged workout repeats today, strength sets can be added by hand and exercise history summarises them', async ({ page }) => {
+  await openDemo(page)
+  await navigate(page, '/workouts')
+  const before = (await journal(page)).workouts.length
+  await page.getByRole('button', { name: 'Powtórz dziś: Trening całego ciała' }).first().click()
+  let dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: 'Powtórz trening' })).toBeVisible()
+  await expect(dialog.getByLabel('Nazwa treningu', { exact: true })).toHaveValue('Trening całego ciała')
+  await expect(dialog.getByLabel('Rodzaj', { exact: true })).toHaveValue('strength')
+  await expect(dialog.getByLabel('Seria 1: ćwiczenie', { exact: true })).not.toHaveValue('')
+  await dialog.getByLabel('Seria 1: powtórzenia', { exact: true }).fill('11')
+  await accessible(page)
+  await dialog.getByRole('button', { name: 'Zapisz trening' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  let workouts = (await journal(page)).workouts
+  expect(workouts).toHaveLength(before + 1)
+  expect(workouts.at(-1)).toMatchObject({ kind: 'strength', name: 'Trening całego ciała', date: await browserToday(page) })
+  expect(workouts.at(-1)?.sets?.[0].reps).toBe(11)
+
+  await page.getByRole('button', { name: 'Dodaj trening', exact: true }).click()
+  dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Nazwa treningu', { exact: true }).fill('Siłownia wieczorem')
+  await dialog.getByLabel('Rodzaj', { exact: true }).selectOption('strength')
+  await dialog.getByLabel('Czas (min)', { exact: true }).fill('35')
+  await dialog.getByRole('button', { name: 'Dodaj serię' }).click()
+  await dialog.getByLabel('Seria 1: ćwiczenie', { exact: true }).fill('Wyciskanie na wyciągu')
+  await dialog.getByLabel('Seria 1: powtórzenia', { exact: true }).fill('10')
+  await dialog.getByLabel('Seria 1: ciężar w kg', { exact: true }).fill('30')
+  await dialog.getByRole('button', { name: 'Dodaj serię' }).click()
+  await expect(dialog.getByLabel('Seria 2: ciężar w kg', { exact: true })).toHaveValue('30')
+  await dialog.getByLabel('Seria 2: powtórzenia', { exact: true }).fill('8')
+  await dialog.getByRole('button', { name: 'Zapisz trening' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  workouts = (await journal(page)).workouts
+  expect(workouts.at(-1)?.sets).toEqual([
+    { exercise: 'Wyciskanie na wyciągu', reps: 10, weightKg: 30, seconds: null },
+    { exercise: 'Wyciskanie na wyciągu', reps: 8, weightKg: 30, seconds: null },
+  ])
+
+  await page.getByRole('link', { name: /^Historia ćwiczeń/ }).click()
+  await expect(page.getByRole('heading', { name: 'Historia ćwiczeń', level: 1 })).toBeVisible()
+  await expect(page.getByText(/szacunek/).first()).toBeVisible()
+  await accessible(page)
+  await page.getByRole('link', { name: 'Wyciskanie na wyciągu' }).click()
+  await expect(page.getByRole('heading', { name: 'Wyciskanie na wyciągu', level: 1 })).toBeVisible()
+  await expect(page.getByText('Najcięższa seria', { exact: true }).first()).toBeVisible()
+  await expect(page.getByRole('cell', { name: '10 × 30 kg, 8 × 30 kg' })).toBeVisible()
+  await accessible(page)
+})
+
+test('progress shows the week at a glance, a 7-day weight trend and optional body measurements', async ({ page }) => {
+  await openDemo(page)
+  await navigate(page, '/progress')
+  const week = page.getByRole('region', { name: 'Twój tydzień' })
+  await expect(week).toContainText('Dni z zapisem jedzenia')
+  await expect(week).toContainText('Poprzedni tydzień')
+  await expect(week).toContainText('Ostatni pomiar masy')
+  await expect(page.getByText('Średnia z 7 dni', { exact: true })).toBeVisible()
+  await page.getByText('Dane wykresu — masa ciała').click()
+  await expect(page.getByRole('columnheader', { name: 'Średnia z 7 dni (kg)' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Talia', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Dodaj pomiar', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByLabel('Obwód talii (cm)', { exact: true })).toHaveValue('83')
+  await dialog.getByLabel('Obwód talii (cm)', { exact: true }).fill('81.5')
+  await dialog.getByLabel('Obwód bioder (cm)', { exact: true }).fill('97')
+  await accessible(page)
+  await dialog.getByRole('button', { name: 'Zapisz pomiar' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByRole('cell', { name: '81,5 cm', exact: true })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Biodra', exact: true })).toBeVisible()
+  const today = await browserToday(page)
+  expect((await journal(page)).measurements.find((item) => item.date === today)).toMatchObject({ waistCm: 81.5, hipsCm: 97 })
+  await accessible(page)
+})
+
+test('meals copy from yesterday, reuse the last portion and become one-tap templates', async ({ page }) => {
+  await openDemo(page)
+  const today = await browserToday(page)
+  const dinnerToday = async () => (await journal(page)).meals.filter((meal) => meal.date === today && meal.meal === 'dinner')
+  expect(await dinnerToday()).toHaveLength(0)
+  await page.getByRole('button', { name: 'Kopiuj z wczoraj: Kolacja (3 pozycje)' }).click()
+  await expect.poll(async () => (await dinnerToday()).length).toBe(3)
+  await expect(page.getByRole('button', { name: /^Kopiuj z wczoraj: Kolacja/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^Kopiuj z wczoraj: Śniadanie/ })).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Dodaj do: Kolacja' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: 'Ostatnio dodane i Twoje produkty' })).toBeVisible()
+  const portion = (await dinnerToday()).find((meal) => meal.food.name === 'Awokado')?.portion
+  await dialog.getByRole('button', { name: new RegExp(`^Awokado.*ostatnio ${portion} g`) }).click()
+  await expect(dialog.getByLabel('Porcja (g)', { exact: true })).toHaveValue(String(portion))
+  await dialog.getByRole('button', { name: 'Wybierz inny produkt' }).click()
+
+  await dialog.getByRole('button', { name: 'Zapisz kolację jako zestaw' }).click()
+  await expect(dialog.getByLabel('Nazwa zestawu', { exact: true })).toHaveValue('Moja kolacja')
+  await accessible(page)
+  await dialog.getByRole('button', { name: 'Zapisz zestaw' }).click()
+  await expect(dialog.getByRole('button', { name: /^Moja kolacja/ })).toBeVisible()
+  expect((await journal(page)).mealTemplates).toMatchObject([{ name: 'Moja kolacja', items: [{}, {}, {}] }])
+  await dialog.getByRole('button', { name: 'Zapisz kolację jako zestaw' }).click()
+  await dialog.getByRole('button', { name: 'Zapisz zestaw' }).click()
+  await expect(dialog.getByRole('alert')).toContainText('o tej nazwie')
+  await dialog.getByRole('button', { name: 'Anuluj', exact: true }).click()
+
+  await dialog.getByLabel('Posiłek dla zestawu', { exact: true }).selectOption('snack')
+  const snacks = (await journal(page)).meals.filter((meal) => meal.date === today && meal.meal === 'snack').length
+  await dialog.getByRole('button', { name: /^Moja kolacja.*Przekąski/ }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  expect((await journal(page)).meals.filter((meal) => meal.date === today && meal.meal === 'snack')).toHaveLength(snacks + 3)
+
+  await page.getByRole('button', { name: 'Dodaj do: Kolacja' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Usuń zestaw: Moja kolacja' }).click()
+  await page.getByRole('dialog', { name: 'Usunąć zestaw?' }).getByRole('button', { name: 'Usuń zestaw', exact: true }).click()
+  await expect.poll(async () => (await journal(page)).mealTemplates).toEqual([])
+  expect((await dinnerToday())).toHaveLength(3)
+})
+
+test('a Smart Kuchnia recipe is saved once to the product library', async ({ page }) => {
+  await openDemo(page)
+  await navigate(page, '/kitchen')
+  await chooseProducts(page, [['kurczak', 'Pierś z kurczaka'], ['brokuł', 'Brokuł'], ['ryż', 'Ryż biały']])
+  await page.getByRole('button', { name: 'Dalej: preferencje' }).click()
+  await page.getByRole('button', { name: 'Pokaż przepis' }).click()
+  const title = (await page.getByRole('heading', { level: 3 }).first().innerText()).trim()
+  await page.getByRole('button', { name: 'Zapisz w bibliotece' }).click()
+  await expect(page.getByRole('button', { name: 'Zapisano w bibliotece' })).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: 'w bibliotece' })).toBeVisible()
+  const foods = (await journal(page)).customFoods
+  expect(foods).toHaveLength(1)
+  expect(foods[0]).toMatchObject({ name: title, source: 'custom', estimated: true, unit: 'g', brand: 'Flexa Smart Kuchnia' })
+  expect(foods[0].id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+  await page.getByRole('button', { name: 'Zapisano w bibliotece' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'już w Twojej bibliotece' })).toBeVisible()
+  expect((await journal(page)).customFoods).toHaveLength(1)
+  await navigate(page, '/')
+  await page.getByRole('button', { name: 'Dodaj do: Śniadanie' }).click()
+  await expect(page.getByRole('dialog').getByRole('button', { name: new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*wartości szacunkowe`) })).toBeVisible()
+})
+
+test('settings estimate goals, export CSV and restore a backup without deleting anything', async ({ page }, testInfo) => {
+  await openDemo(page)
+  await navigate(page, '/settings')
+  await page.getByRole('button', { name: 'Oblicz orientacyjne zapotrzebowanie' }).click()
+  let dialog = page.getByRole('dialog', { name: 'Orientacyjne zapotrzebowanie' })
+  await expect(dialog).toContainText('nie są nigdzie zapisywane')
+  await dialog.getByText('Kobieta', { exact: true }).click()
+  await dialog.getByLabel('Wiek (lata)', { exact: true }).fill('17')
+  await dialog.getByLabel('Wzrost (cm)', { exact: true }).fill('165')
+  await dialog.getByLabel('Masa ciała (kg)', { exact: true }).fill('60')
+  await dialog.getByRole('radio', { name: /^Umiarkowana/ }).check()
+  await dialog.getByRole('button', { name: 'Oblicz', exact: true }).click()
+  await expect(dialog.getByRole('alert')).toContainText('dla dorosłych')
+  await dialog.getByLabel('Wiek (lata)', { exact: true }).fill('30')
+  await dialog.getByRole('button', { name: 'Oblicz', exact: true }).click()
+  await expect(dialog.getByRole('definition').first()).toHaveText(/^2050\s*kcal/)
+  await expect(dialog).toContainText('To orientacyjny szacunek, nie porada medyczna')
+  await accessible(page)
+  await dialog.getByRole('button', { name: 'Ustaw jako moje cele' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect.poll(async () => (await journal(page)).profile).toMatchObject({ calorieGoal: 2050, proteinGoal: 96, fatGoal: 57, carbsGoal: 288, waterGoal: 2100 })
+  await expect(page.getByLabel('Energia (kcal / dzień)', { exact: true })).toHaveValue('2050')
+
+  const csvEvent = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Eksportuj CSV: Posiłki' }).click()
+  const csv = await csvEvent
+  expect(csv.suggestedFilename()).toMatch(/^flexa-posilki-\d{4}-\d{2}-\d{2}\.csv$/)
+  const csvPath = testInfo.outputPath(csv.suggestedFilename())
+  await csv.saveAs(csvPath)
+  const csvText = await readFile(csvPath, 'utf8')
+  expect(csvText.startsWith('\uFEFFData;Posiłek;Produkt;')).toBe(true)
+  expect(csvText.trim().split('\r\n')).toHaveLength((await journal(page)).meals.length + 1)
+
+  const jsonEvent = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Eksportuj dane JSON' }).click()
+  const jsonPath = testInfo.outputPath('backup.json')
+  await (await jsonEvent).saveAs(jsonPath)
+  const backup = JSON.parse(await readFile(jsonPath, 'utf8')) as { version: number; data: ReturnType<typeof journalSchema.parse> }
+  expect(backup.version).toBe(2)
+  const before = await journal(page)
+  backup.data.meals.push({ ...backup.data.meals[0], id: crypto.randomUUID(), date: '2001-02-03' })
+  backup.data.measurements.push({ id: crypto.randomUUID(), date: '2001-02-03', weightKg: 80 })
+  backup.data.measurements[0] = { ...backup.data.measurements[0], weightKg: 99 }
+  backup.data.profile = { ...backup.data.profile, calorieGoal: 1999 }
+  await page.locator('input[type="file"][accept*="json"]').setInputFiles({ name: 'kopia.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) })
+  dialog = page.getByRole('dialog', { name: 'Przywróć z kopii' })
+  await expect(dialog.getByRole('row', { name: /^Posiłki/ }).getByRole('cell')).toHaveText([String(before.meals.length + 1), '1', String(before.meals.length)])
+  await expect(dialog).toContainText('Zostawimy Twoje obecne wartości')
+  await accessible(page)
+  await dialog.getByRole('checkbox', { name: /Zastąp cele i profil/ }).check()
+  await dialog.getByRole('button', { name: 'Dodaj brakujące wpisy' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  const after = await journal(page)
+  expect(after.meals).toHaveLength(before.meals.length + 1)
+  expect(after.measurements).toHaveLength(before.measurements.length + 1)
+  expect(after.measurements.find((item) => item.date === before.measurements[0].date)?.weightKg).toBe(before.measurements[0].weightKg)
+  expect(after.profile.calorieGoal).toBe(1999)
+  await page.locator('input[type="file"][accept*="json"]').setInputFiles({ name: 'kopia.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) })
+  await expect(page.getByRole('dialog', { name: 'Przywróć z kopii' })).toContainText('Wszystkie wpisy z tej kopii już są')
+  await page.getByRole('dialog').getByRole('button', { name: 'Zamknij', exact: true }).click()
+  await page.locator('input[type="file"][accept*="json"]').setInputFiles({ name: 'zly.json', mimeType: 'application/json', buffer: Buffer.from('{"hello":1}') })
+  await expect(page.getByRole('alert')).toContainText('To nie jest kopia dziennika Flexa')
 })

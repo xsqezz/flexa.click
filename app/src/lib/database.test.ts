@@ -138,6 +138,34 @@ describe('training plans', () => {
   })
 })
 
+describe('workout sets and extended measurements', () => {
+  async function rejects(sql: string, params: unknown[], message: string) {
+    await database.exec('savepoint attempt')
+    await expect(database.query(sql, params)).rejects.toThrow(message)
+    await database.exec('rollback to savepoint attempt')
+  }
+  it('defaults existing workouts to no sets and lets the owner store a bounded array', async () => {
+    await asUser(alice)
+    expect((await database.query<{ sets: unknown }>('select sets from public.workouts')).rows[0].sets).toEqual([])
+    const sets = JSON.stringify([{ exercise: 'goblet-squat-db', reps: 10, weightKg: 16, seconds: null }])
+    await database.query("insert into public.workouts(user_id, date, name, kind, minutes, sets) values ($1, '2026-10-07', 'Siła', 'strength', 40, $2)", [alice, sets])
+    expect((await database.query<{ sets: unknown[] }>("select sets from public.workouts where name = 'Siła'")).rows[0].sets).toHaveLength(1)
+    await rejects("insert into public.workouts(user_id, date, name, kind, minutes, sets) values ($1, '2026-10-07', 'Siła', 'strength', 40, $2)", [alice, '{"exercise":"x"}'], 'check constraint')
+    await rejects("insert into public.workouts(user_id, date, name, kind, minutes, sets) values ($1, '2026-10-07', 'Siła', 'strength', 40, $2)",
+      [alice, JSON.stringify(Array.from({ length: 201 }, () => ({ exercise: 'x', reps: 1, weightKg: null, seconds: null })))], 'check constraint')
+    await rejects("insert into public.workouts(user_id, date, name, kind, minutes, sets) values ($1, '2026-10-07', 'Siła', 'strength', 40, null)", [alice], 'null value')
+  })
+  it('stores optional body measurements within plausible ranges', async () => {
+    await asUser(alice)
+    await database.query("insert into public.measurements(user_id, date, weight_kg, waist_cm, hips_cm, body_fat_pct) values ($1, '2026-10-06', 75, 82.5, 98, 21) on conflict (user_id, date) do update set weight_kg = excluded.weight_kg, waist_cm = excluded.waist_cm, hips_cm = excluded.hips_cm, body_fat_pct = excluded.body_fat_pct", [alice])
+    expect((await database.query<{ waist_cm: string; body_fat_pct: string }>('select waist_cm, body_fat_pct from public.measurements')).rows[0]).toMatchObject({ waist_cm: '82.5', body_fat_pct: '21' })
+    await rejects("insert into public.measurements(user_id, date, weight_kg, waist_cm) values ($1, '2026-10-07', 75, 20)", [alice], 'check constraint')
+    await rejects("insert into public.measurements(user_id, date, weight_kg, body_fat_pct) values ($1, '2026-10-07', 75, 90)", [alice], 'check constraint')
+    await asUser(bob)
+    expect((await database.query('select waist_cm from public.measurements')).rows).toHaveLength(0)
+  })
+})
+
 describe('provider rate limits', () => {
   it('atomically caps upstream requests and restricts the budget function to the service role', async () => {
     await database.exec('set role service_role')
@@ -195,5 +223,62 @@ describe('kitchen AI daily quota', () => {
     expect((await database.query('select * from private.kitchen_ai_usage where user_id = $1', [alice])).rows).toHaveLength(1)
     await database.query('delete from auth.users where id = $1', [alice])
     expect((await database.query('select * from private.kitchen_ai_usage where user_id = $1', [alice])).rows).toHaveLength(0)
+  })
+})
+
+describe('meal templates', () => {
+  const item = (patch: Record<string, unknown> = {}) => ({ food: JSON.parse(food) as unknown, portion: 120, ...patch })
+  const items = (...values: unknown[]) => JSON.stringify(values)
+  const insert = (name: string, value: string) => database.query<{ id: string; user_id: string }>(
+    'insert into public.meal_templates(name, items) values ($1, $2) returning id, user_id', [name, value])
+  async function rejects(run: () => Promise<unknown>, message: string) {
+    await database.exec('savepoint attempt')
+    await expect(run()).rejects.toThrow(message)
+    await database.exec('rollback to savepoint attempt')
+  }
+
+  it('assigns the owner from the session and keeps templates private', async () => {
+    await asUser(alice)
+    const created = (await insert('Moje śniadanie', items(item(), item({ portion: 30 })))).rows[0]
+    expect(created.user_id).toBe(alice)
+    expect((await database.query('select * from public.meal_templates')).rows).toHaveLength(1)
+    await asUser(bob)
+    expect((await database.query('select * from public.meal_templates')).rows).toHaveLength(0)
+    expect((await database.query('delete from public.meal_templates where id = $1 returning id', [created.id])).rows).toHaveLength(0)
+    await rejects(() => database.query('insert into public.meal_templates(user_id, name, items) values ($1, $2, $3)', [alice, 'Cudzy', items(item())]), 'row-level security')
+    await asUser(alice)
+    await rejects(() => database.query("update public.meal_templates set name = 'Inna'"), 'permission denied')
+    expect((await database.query('delete from public.meal_templates where id = $1 returning id', [created.id])).rows).toHaveLength(1)
+  })
+
+  it('denies anonymous access', async () => {
+    await database.exec('set role anon')
+    await rejects(() => database.query('select * from public.meal_templates'), 'permission denied')
+  })
+
+  it('rejects malformed, empty, oversized and duplicate templates', async () => {
+    await asUser(alice)
+    await rejects(() => insert('Pusty', '[]'), 'check constraint')
+    await rejects(() => insert('Obiekt', '{}'), 'check constraint')
+    await rejects(() => insert('Za dużo', items(...Array.from({ length: 31 }, () => item()))), 'check constraint')
+    await rejects(() => insert('Bez porcji', items({ food: JSON.parse(food) as unknown })), 'check constraint')
+    await rejects(() => insert('Zła porcja', items(item({ portion: 0 }))), 'check constraint')
+    await rejects(() => insert('Bez kcal', items(item({ food: { ...JSON.parse(food) as object, nutrients: { kcal: null } } }))), 'check constraint')
+    await rejects(() => insert('Bez jednostki', items(item({ food: { ...JSON.parse(food) as object, unit: null } }))), 'check constraint')
+    await rejects(() => insert('Liczba', items(5)), 'check constraint')
+    await rejects(() => insert(' ', items(item())), 'check constraint')
+    await rejects(() => insert('x'.repeat(61), items(item())), 'check constraint')
+    await rejects(() => insert('Długi', items(item({ note: 'x'.repeat(61000) }))), 'check constraint')
+    await insert('Kolacja', items(item()))
+    await rejects(() => insert(' kolacja ', items(item())), 'unique')
+    expect((await insert('Przekąska', items(...Array.from({ length: 30 }, () => item())))).rows).toHaveLength(1)
+  })
+
+  it('removes templates together with the account', async () => {
+    await asUser(alice)
+    await insert('Na wynos', items(item()))
+    await database.exec('reset role')
+    await database.query('delete from auth.users where id = $1', [alice])
+    expect((await database.query('select * from public.meal_templates where user_id = $1', [alice])).rows).toHaveLength(0)
   })
 })

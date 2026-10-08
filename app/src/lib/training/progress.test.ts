@@ -26,4 +26,13 @@ describe('workout progress on this device', () => {
     clearProgress()
     expect(localStorage.getItem('flexa:workout:v1')).toBeNull()
   })
+  it('keeps typed reps and load when resuming, and reads progress saved before sets existed', () => {
+    const progress = { ...newProgress(scope, plan, 's1', 1000), index: 6, done: ['b0-i0-s1'], sets: { 'b0-i0-s1': { reps: '10', weight: '22,5' } } }
+    writeProgress(progress)
+    expect(readProgress(scope, plan, 2000)?.sets).toEqual({ 'b0-i0-s1': { reps: '10', weight: '22,5' } })
+    const legacy: Record<string, unknown> = { ...newProgress(scope, plan, 's1', 1000), index: 3 }
+    delete legacy.sets
+    localStorage.setItem('flexa:workout:v1', JSON.stringify(legacy))
+    expect(readProgress(scope, plan, 2000)).toMatchObject({ index: 3, sets: {} })
+  })
 })

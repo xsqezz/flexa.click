@@ -16,10 +16,14 @@ export type MealRow = BaseRow & { date: string; meal: string; food: Json; portio
 export type WorkoutRow = BaseRow & {
   date: string; name: string; kind: string; minutes: number; distance_km: number | null
   calories: number | null; effort: number | null; elevation_m: number | null; import_hash: string | null
+  sets: Json
 }
 export type WaterRow = BaseRow & { date: string; amount_ml: number }
-export type MeasurementRow = BaseRow & { date: string; weight_kg: number }
+export type MeasurementRow = BaseRow & {
+  date: string; weight_kg: number; waist_cm: number | null; hips_cm: number | null; body_fat_pct: number | null
+}
 export type CustomFoodRow = BaseRow & { food: Json }
+export type MealTemplateRow = BaseRow & { name: string; items: Json }
 type NewRow<T extends BaseRow> = Omit<T, 'created_at' | 'id'> & { id?: string }
 
 export type Database = {
@@ -32,6 +36,7 @@ export type Database = {
       water_entries: Table<WaterRow, NewRow<WaterRow>>
       measurements: Table<MeasurementRow, NewRow<MeasurementRow>>
       custom_foods: Table<CustomFoodRow, NewRow<CustomFoodRow>>
+      meal_templates: Table<MealTemplateRow, NewRow<MealTemplateRow>>
     }
     Views: Record<string, never>
     Functions: {

@@ -25,7 +25,7 @@ async function fixture(page: Page, failJournal = false, onboarded = true) {
       consent_version: '2026-10-06', consented_at: '2026-10-06T10:00:00Z',
       onboarding_completed_at: onboarded ? '2026-10-06T10:00:00Z' : null,
     }],
-    meal_entries: [], workouts: [], water_entries: [], measurements: [], custom_foods: [], training_plans: [],
+    meal_entries: [], workouts: [], water_entries: [], measurements: [], custom_foods: [], training_plans: [], meal_templates: [],
   }
   await page.routeWebSocket('ws://127.0.0.1:54321/**', (socket) => socket.close())
   await page.route('http://127.0.0.1:54321/**', async (route) => {
@@ -64,6 +64,13 @@ async function fixture(page: Page, failJournal = false, onboarded = true) {
       if (method === 'GET') {
         if (failJournal) { await respond({ code: 'TEST503', message: 'Fixture database unavailable' }, 503); return }
         await respond(table === 'profiles' ? rows[table][0] : rows[table])
+      } else if (method === 'POST' && Array.isArray(body)) {
+        const created = (body as Row[]).map((item) => {
+          expect(item.user_id).toBe(userId)
+          return { ...item, id: typeof item.id === 'string' ? item.id : randomUUID(), created_at: new Date().toISOString() }
+        })
+        rows[table].push(...created)
+        await respond(created.map((row) => ({ id: row.id })))
       } else if (method === 'POST') {
         expect(body.user_id).toBe(userId)
         const row = { ...body, id: randomUUID(), created_at: new Date().toISOString() }
@@ -97,7 +104,7 @@ async function login(page: Page) {
 async function openSettings(page: Page) {
   const link = page.locator('nav:visible a[href="/settings"]')
   if (await link.count() > 0) await link.click()
-  else await page.getByRole('link', { name: 'Otwórz ustawienia konta' }).click()
+  else await page.getByRole('link', { name: /^Konto:/ }).click()
 }
 
 test('registration sends consent metadata and waits for actual email confirmation', async ({ page }) => {
@@ -349,4 +356,115 @@ test('Smart Kuchnia hides photo recognition when the AI service is not configure
   await expect(page.getByText(/Rozpoznawanie ze zdjęcia jest chwilowo niedostępne/)).toBeVisible()
   await expect(page.locator('input[type=file]')).toHaveCount(0)
   await expect(page.getByRole('searchbox', { name: 'Szukaj produktu' })).toBeVisible()
+})
+
+test('cloud workouts keep their sets and measurements keep optional body values, while older rows still load', async ({ page }) => {
+  const mocked = await fixture(page)
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Warsaw' })
+  mocked.rows.workouts.push({
+    id: randomUUID(), user_id: userId, created_at: '2026-10-01T10:00:00Z', date: '2026-10-01', name: 'Stary trening', kind: 'run',
+    minutes: 30, distance_km: 5, calories: null, effort: null, elevation_m: null, import_hash: null,
+  })
+  mocked.rows.measurements.push({ id: randomUUID(), user_id: userId, created_at: '2026-10-01T10:00:00Z', date: today, weight_kg: 80 })
+  await login(page)
+  await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
+  await page.goto(`${origin}/workouts`)
+  await page.getByRole('button', { name: 'Wszystkie', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Stary trening' })).toBeVisible()
+  await page.getByRole('button', { name: 'Dodaj trening', exact: true }).click()
+  let dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Nazwa treningu', { exact: true }).fill('Siła w chmurze')
+  await dialog.getByLabel('Rodzaj', { exact: true }).selectOption('strength')
+  await dialog.getByLabel('Czas (min)', { exact: true }).fill('40')
+  await dialog.getByRole('button', { name: 'Dodaj serię' }).click()
+  await dialog.getByLabel('Seria 1: ćwiczenie', { exact: true }).fill('Przysiad goblet z hantlem')
+  await dialog.getByLabel('Seria 1: powtórzenia', { exact: true }).fill('10')
+  await dialog.getByLabel('Seria 1: ciężar w kg', { exact: true }).fill('16')
+  await dialog.getByRole('button', { name: 'Zapisz trening' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  expect(mocked.rows.workouts.at(-1)).toMatchObject({ user_id: userId, sets: [{ exercise: 'goblet-squat-db', reps: 10, weightKg: 16, seconds: null }] })
+  await page.reload()
+  await page.getByText('Serie: 1', { exact: true }).click()
+  await expect(page.getByText('10 × 16 kg')).toBeVisible()
+  await page.goto(`${origin}/progress`)
+  await page.getByRole('button', { name: 'Dodaj pomiar', exact: true }).click()
+  dialog = page.getByRole('dialog')
+  await expect(dialog.getByLabel('Masa ciała (kg)', { exact: true })).toHaveValue('80')
+  await dialog.getByText('Więcej pomiarów').click()
+  await dialog.getByLabel('Obwód talii (cm)', { exact: true }).fill('90')
+  await dialog.getByLabel('Tkanka tłuszczowa (%)', { exact: true }).fill('24.5')
+  await dialog.getByRole('button', { name: 'Zapisz pomiar' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  expect(mocked.rows.measurements.at(-1)).toMatchObject({ weight_kg: 80, waist_cm: 90, hips_cm: null, body_fat_pct: 24.5 })
+  await page.reload()
+  await expect(page.getByRole('cell', { name: '24,5 %', exact: true })).toBeVisible()
+})
+
+test('cloud meal copy, templates, backup restore and calculated goals use the account tables', async ({ page }) => {
+  const mocked = await fixture(page)
+  const warsawDay = (offset: number) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Warsaw' }).format(new Date(Date.now() + offset * 86_400_000))
+  const food = {
+    id: 'off:5901234123457', name: 'Owsianka chmurowa', brand: 'Test', barcode: null, source: 'open-food-facts', unit: 'g',
+    nutrients: { kcal: 380, protein: 12, carbs: 60, fat: 7, fiber: null },
+  }
+  mocked.rows.meal_entries.push({ id: randomUUID(), user_id: userId, created_at: '2026-10-01T08:00:00Z', date: warsawDay(-1), meal: 'breakfast', food, portion: 80 })
+  await login(page)
+  await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
+  await page.getByRole('button', { name: 'Kopiuj z wczoraj: Śniadanie (1 pozycja)' }).click()
+  await expect.poll(() => mocked.rows.meal_entries.length).toBe(2)
+  expect(mocked.calls.some((call) => call.path.endsWith('/meal_entries') && Array.isArray(call.body))).toBe(true)
+  expect(mocked.rows.meal_entries[1]).toMatchObject({ user_id: userId, date: warsawDay(0), meal: 'breakfast', portion: 80 })
+
+  await page.getByRole('button', { name: 'Dodaj do: Śniadanie' }).click()
+  let dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: 'Zapisz śniadanie jako zestaw' }).click()
+  await dialog.getByRole('button', { name: 'Zapisz zestaw' }).click()
+  await expect(dialog.getByRole('button', { name: /^Moje śniadanie/ })).toBeVisible()
+  expect(mocked.rows.meal_templates).toMatchObject([{ user_id: userId, name: 'Moje śniadanie', items: [{ portion: 80, food: { name: 'Owsianka chmurowa' } }] }])
+  await dialog.getByLabel('Posiłek dla zestawu', { exact: true }).selectOption('dinner')
+  await dialog.getByRole('button', { name: /^Moje śniadanie.*Kolacja/ }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  expect(mocked.rows.meal_entries.filter((row) => row.meal === 'dinner')).toHaveLength(1)
+
+  await openSettings(page)
+  const backup = {
+    format: 'flexa-journal', version: 1, exportedAt: '2026-10-01T10:00:00.000Z', mode: 'demo',
+    data: {
+      profile: { displayName: 'Z kopii', calorieGoal: 2100, proteinGoal: 120, carbsGoal: 250, fatGoal: 70, waterGoal: 2200, weeklyMinutesGoal: 150, targetWeight: null },
+      meals: [
+        { id: randomUUID(), date: warsawDay(-1), meal: 'breakfast', food, portion: 80 },
+        { id: randomUUID(), date: warsawDay(-1), meal: 'lunch', food, portion: 150 },
+      ],
+      workouts: [{ id: randomUUID(), date: warsawDay(-2), name: 'Bieg z kopii', kind: 'run', minutes: 30, distanceKm: 5, calories: null, effort: 5, elevationM: null, importHash: null }],
+      water: [{ id: randomUUID(), date: warsawDay(-2), amountMl: 250 }],
+      measurements: [{ id: randomUUID(), date: warsawDay(-2), weightKg: 70.5 }],
+      customFoods: [{ ...food, id: 'legacy', source: 'custom', name: 'Własny z kopii' }],
+    },
+  }
+  await page.locator('input[type="file"][accept*="json"]').setInputFiles({ name: 'flexa-demo.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) })
+  dialog = page.getByRole('dialog', { name: 'Przywróć z kopii' })
+  await expect(dialog.getByRole('row', { name: /^Posiłki/ }).getByRole('cell')).toHaveText(['2', '1', '1'])
+  await dialog.getByRole('button', { name: 'Dodaj brakujące wpisy' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  expect(mocked.rows.meal_entries).toHaveLength(4)
+  expect(mocked.rows.workouts).toMatchObject([{ user_id: userId, name: 'Bieg z kopii', distance_km: 5 }])
+  expect(mocked.rows.water_entries).toHaveLength(1)
+  expect(mocked.rows.measurements).toMatchObject([{ weight_kg: 70.5 }])
+  expect(mocked.rows.custom_foods).toHaveLength(1)
+  expect(mocked.rows.custom_foods[0].id).toMatch(/^[0-9a-f-]{36}$/)
+  expect(mocked.rows.profiles[0].display_name).toBe('Cloud test')
+
+  await page.getByRole('button', { name: 'Oblicz orientacyjne zapotrzebowanie' }).click()
+  dialog = page.getByRole('dialog', { name: 'Orientacyjne zapotrzebowanie' })
+  await dialog.getByText('Mężczyzna', { exact: true }).click()
+  await dialog.getByLabel('Wiek (lata)', { exact: true }).fill('40')
+  await dialog.getByLabel('Wzrost (cm)', { exact: true }).fill('180')
+  await dialog.getByLabel('Masa ciała (kg)', { exact: true }).fill('80')
+  await dialog.getByRole('radio', { name: /^Niska/ }).check()
+  await dialog.getByRole('radio', { name: /^Powolna redukcja/ }).check()
+  await dialog.getByRole('button', { name: 'Oblicz', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Ustaw jako moje cele' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  expect(mocked.rows.profiles[0]).toMatchObject({ calorie_goal: 1870, protein_goal: 128, fat_goal: 52, carbs_goal: 223, water_goal: 2800, weekly_minutes_goal: 180 })
+  expect(JSON.stringify(mocked.calls)).not.toMatch(/"age"|height/)
 })

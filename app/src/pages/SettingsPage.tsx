@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react'
-import { Download, LogOut, ShieldCheck } from 'lucide-react'
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { Calculator, Download, FileSpreadsheet, LogOut, ShieldCheck, Upload } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { z } from 'zod'
 import { profileSchema } from '../../../shared/domain'
@@ -7,11 +7,17 @@ import { useAuth } from '../lib/Auth'
 import { useJournal } from '../lib/Journal'
 import { DEMO_KEY } from '../lib/demo'
 import { callFunction } from '../lib/functions'
-import { downloadJournal } from '../lib/export'
+import { downloadCsv, downloadJournal } from '../lib/export'
+import { parseBackup, type Backup } from '../lib/backup'
+import { csvExports, csvFormatHint, type CsvExportKind } from '../lib/csv'
 import { useFeedback } from '../components/Feedback'
 import { AndroidAppPanel } from '../components/AndroidAppPanel'
+import { EnergyDrawer } from '../components/EnergyDrawer'
+import { RestoreDrawer } from '../components/RestoreDrawer'
 import { PageHeader } from '../components/Workspace'
 import { Button, Confirm, Drawer, Field, Notice, errorMessage } from '../components/ui'
+
+const MAX_BACKUP_BYTES = 25 * 1024 * 1024
 
 export function SettingsPage() {
   const { data, execute, pending, refresh } = useJournal()
@@ -22,8 +28,28 @@ export function SettingsPage() {
   const [deletionBusy, setDeletionBusy] = useState(false)
   const [deletionError, setDeletionError] = useState<string | null>(null)
   const [resetting, setResetting] = useState(false)
+  const [estimating, setEstimating] = useState(false)
+  const [restoring, setRestoring] = useState<{ backup: Backup; fileName: string } | null>(null)
+  const [dataError, setDataError] = useState<string | null>(null)
+  const fileInput = useRef<HTMLInputElement>(null)
   if (!data) throw new Error('Journal data is unavailable')
+  const journal = data
   const profile = data.profile
+  async function readBackup(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setDataError(null)
+    try {
+      if (file.size > MAX_BACKUP_BYTES) throw new Error('Ten plik jest za duży (ponad 25 MB). Wybierz eksport JSON z Flexy.')
+      setRestoring({ backup: parseBackup(await file.text()), fileName: file.name })
+    } catch (cause) { setDataError(errorMessage(cause)) }
+  }
+  function exportCsv(kind: CsvExportKind) {
+    setDataError(null)
+    try { downloadCsv(journal, kind) }
+    catch (cause) { setDataError(errorMessage(cause)) }
+  }
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const values = new FormData(event.currentTarget)
@@ -62,7 +88,8 @@ export function SettingsPage() {
     {error && <Notice tone="error">{error}</Notice>}
     <div className="settings-grid">
       <section className="panel"><h2>Twój profil i codzienne cele</h2><p>Domyślne wartości są punktem startowym interfejsu, nie indywidualną poradą. W razie potrzeb zdrowotnych skonsultuj cele ze specjalistą.</p>
-        <form className="form-stack" onSubmit={(event) => { void save(event) }}>
+        <div className="button-row"><Button variant="ghost" onClick={() => setEstimating(true)}><Calculator size={17} aria-hidden="true" />Oblicz orientacyjne zapotrzebowanie</Button></div>
+        <form className="form-stack" key={JSON.stringify(profile)} onSubmit={(event) => { void save(event) }}>
           <Field label="Imię lub pseudonim"><input name="name" required maxLength={60} defaultValue={profile.displayName} /></Field>
           <div className="form-grid">
             <Field label="Energia (kcal / dzień)"><input name="calories" type="number" min="500" max="10000" step="1" required defaultValue={profile.calorieGoal} /></Field>
@@ -81,12 +108,22 @@ export function SettingsPage() {
           <div className="button-row"><Button variant="secondary" onClick={() => {
             try { downloadJournal(data, auth.mode === 'demo' ? 'demo' : 'cloud') }
             catch (cause) { setError(errorMessage(cause)) }
-          }}><Download size={17} aria-hidden="true" />Eksportuj dane JSON</Button></div>
-          <p className="source-credit">Eksport zawiera pełne załadowane wpisy, produkty, pomiary, cele oraz plan treningowy z odpowiedziami z ankiety. Trzymaj ten plik w bezpiecznym miejscu.</p>
+          }}><Download size={17} aria-hidden="true" />Eksportuj dane JSON</Button>
+            <Button variant="secondary" onClick={() => fileInput.current?.click()}><Upload size={17} aria-hidden="true" />Przywróć z kopii</Button>
+            <input ref={fileInput} className="sr-only" type="file" accept=".json,application/json" tabIndex={-1} aria-hidden="true"
+              onChange={(event) => { void readBackup(event) }} /></div>
+          <p className="source-credit">Eksport zawiera pełne załadowane wpisy, produkty, zestawy, pomiary, cele oraz plan treningowy z odpowiedziami z ankiety. Trzymaj ten plik w bezpiecznym miejscu. Przywracanie z kopii tylko dodaje brakujące wpisy — niczego nie usuwa.</p>
+          {dataError && <Notice tone="error">{dataError}</Notice>}
+          <div className="data-csv">
+            <h3><FileSpreadsheet size={17} aria-hidden="true" />Eksport do arkusza (CSV)</h3>
+            <div className="button-row">{(Object.keys(csvExports) as CsvExportKind[]).map((kind) => <Button key={kind} variant="secondary" onClick={() => exportCsv(kind)}
+              aria-label={`Eksportuj CSV: ${csvExports[kind].label}`}>{csvExports[kind].label}</Button>)}</div>
+            <p className="source-credit">{csvFormatHint}</p>
+          </div>
           <div className="button-row"><Button variant="ghost" onClick={() => { void auth.signOut().catch((cause: unknown) => setError(errorMessage(cause))) }}><LogOut size={16} aria-hidden="true" />{auth.mode === 'demo' ? 'Wyjdź z demo' : 'Wyloguj się'}</Button></div>
           <div className="danger-zone">
             <h3>{auth.mode === 'demo' ? 'Zacznij demo od nowa' : 'Usunięcie konta'}</h3>
-            <p>{auth.mode === 'demo' ? 'Usuniesz wyłącznie przykładowe dane w tej przeglądarce. Dane konta nie zostaną naruszone.' : 'Nieodwracalnie usuniesz konto, posiłki, własne produkty, aktywności, wodę, pomiary i plan treningowy. Najpierw możesz zrobić eksport.'}</p>
+            <p>{auth.mode === 'demo' ? 'Usuniesz wyłącznie przykładowe dane w tej przeglądarce. Dane konta nie zostaną naruszone.' : 'Nieodwracalnie usuniesz konto, posiłki, własne produkty, zestawy, aktywności, wodę, pomiary i plan treningowy. Najpierw możesz zrobić eksport.'}</p>
             <div className="button-row"><Button variant="secondary" onClick={() => {
               setDeletionError(null)
               if (auth.mode === 'demo') setResetting(true)
@@ -115,5 +152,7 @@ export function SettingsPage() {
         <Button variant="danger" type="submit" busy={deletionBusy}>Nieodwracalnie usuń konto</Button>
       </form>
     </Drawer>}
+    {estimating && <EnergyDrawer profile={profile} onClose={() => setEstimating(false)} onApplied={() => setEstimating(false)} />}
+    {restoring && <RestoreDrawer backup={restoring.backup} fileName={restoring.fileName} onClose={() => setRestoring(null)} />}
   </>
 }

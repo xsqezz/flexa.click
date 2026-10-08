@@ -1,12 +1,14 @@
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js'
 import {
-  foodSchema, journalSchema, profileSchema,
-  type Food, type Journal, type Meal, type Measurement, type Profile, type Water, type Workout,
+  foodSchema, journalSchema, profileSchema, workoutSetSchema,
+  type Food, type Journal, type Meal, type Measurement, type Profile, type Water, type Workout, type WorkoutSet,
 } from '../../../shared/domain'
 import { needsHealthConsent, trainingPlanSchema, type TrainingPlan, type TrainingState } from '../../../shared/training'
 import type { Database, Json, ProfileRow } from './database.types'
 import { readDemo, writeDemo } from './demo'
 import { isPlanUsable } from './training/generator'
+import { mealSchema, mealTemplateSchema, type MealTemplate } from '../../../shared/domain'
+import { importSize, type ImportPayload } from './backup'
 
 export type Command =
   | { type: 'profile.save'; value: Profile }
@@ -22,6 +24,10 @@ export type Command =
   | { type: 'plan.save'; value: TrainingPlan }
   | { type: 'plan.delete' }
   | { type: 'onboarding.skip' }
+  | { type: 'meal.addMany'; value: Omit<Meal, 'id'>[] }
+  | { type: 'template.save'; value: Omit<MealTemplate, 'id'> }
+  | { type: 'template.delete'; id: string }
+  | { type: 'journal.import'; value: ImportPayload; onProgress?: (saved: number, total: number) => void }
 
 export interface JournalRepository {
   load(signal: AbortSignal): Promise<Journal>
@@ -63,9 +69,47 @@ export class DemoRepository implements JournalRepository {
         journal.training = { ...journal.training, plan: null, unreadable: false }; break
       case 'onboarding.skip':
         journal.training = { ...journal.training, onboardingDone: true }; break
+      case 'meal.addMany':
+        journal.meals.push(...validMeals(command.value).map((meal) => ({ ...meal, id: crypto.randomUUID() }))); break
+      case 'template.save': {
+        const template = mealTemplateSchema.parse({ ...command.value, id: crypto.randomUUID() })
+        if (journal.mealTemplates.some((item) => sameTemplateName(item.name, template.name))) throw new Error(templateExists)
+        journal.mealTemplates.push(template); break
+      }
+      case 'template.delete':
+        journal.mealTemplates = journal.mealTemplates.filter((item) => item.id !== command.id); break
+      case 'journal.import': importIntoDemo(journal, command.value); break
     }
     writeDemo(journal)
+    if (command.type === 'journal.import') command.onProgress?.(importSize(command.value), importSize(command.value))
   }
+}
+
+const IMPORT_CHUNK = 200
+const templateExists = 'Masz już zestaw o tej nazwie. Wybierz inną nazwę albo usuń poprzedni zestaw.'
+const sameTemplateName = (a: string, b: string) => a.trim().toLocaleLowerCase('pl-PL') === b.trim().toLocaleLowerCase('pl-PL')
+
+function validMeals(meals: Omit<Meal, 'id'>[]): Omit<Meal, 'id'>[] {
+  if (meals.length === 0) throw new Error('Nie ma czego dodać.')
+  return meals.map((meal) => mealSchema.omit({ id: true }).parse(meal))
+}
+
+/** One local write; never deletes. Existing measurements win over imported ones from the same day. */
+function importIntoDemo(journal: Journal, value: ImportPayload): void {
+  const withId = <T extends object>(item: T) => ({ ...item, id: crypto.randomUUID() })
+  if (value.meals.length) journal.meals.push(...validMeals(value.meals).map(withId))
+  journal.workouts.push(...value.workouts.filter((workout) => !workout.importHash
+    || !journal.workouts.some((item) => item.importHash === workout.importHash)).map(withId))
+  journal.water.push(...value.water.map(withId))
+  const days = new Set(journal.measurements.map((item) => item.date))
+  journal.measurements.push(...value.measurements.filter((item) => !days.has(item.date)).map(withId))
+  const foods = new Set(journal.customFoods.map((food) => food.id))
+  journal.customFoods.push(...value.customFoods.filter((food) => !foods.has(food.id)).map((food) => foodSchema.parse(food)))
+  journal.mealTemplates.push(...value.mealTemplates
+    .filter((template) => !journal.mealTemplates.some((item) => sameTemplateName(item.name, template.name)))
+    .map((template) => mealTemplateSchema.parse(withId(template))))
+  if (value.profile) journal.profile = profileSchema.parse(value.profile)
+  if (value.plan) journal.training = { onboardingDone: true, plan: trainingPlanSchema.parse(value.plan), unreadable: false }
 }
 
 function result<T>(response: { data: T | null; error: PostgrestError | null }): T {
@@ -106,6 +150,15 @@ export function trainingFromRow(row: { answers: Json; plan: Json } | null, onboa
   return { onboardingDone, plan: parsed.data, unreadable: false }
 }
 
+/** Reads stored sets defensively: one malformed set must not make the whole diary unreadable. */
+export function setsFromRow(value: Json | undefined): WorkoutSet[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((item) => {
+    const parsed = workoutSetSchema.safeParse(item)
+    return parsed.success ? [parsed.data] : []
+  }).slice(0, 200)
+}
+
 export class SupabaseRepository implements JournalRepository {
   private readonly client: SupabaseClient<Database>
   private readonly userId: string
@@ -118,6 +171,8 @@ export class SupabaseRepository implements JournalRepository {
   async load(signal: AbortSignal): Promise<Journal> {
     const client = this.client
     const user = this.userId
+    const templates = this.loadTemplates(signal)
+    templates.catch(() => {})
     const [profile, meals, workouts, water, measurements, foods, training] = await Promise.all([
       client.from('profiles').select('*').eq('user_id', user).abortSignal(signal).single(),
       readPages((start, end) => client.from('meal_entries').select('*').eq('user_id', user).order('created_at').order('id').range(start, end).abortSignal(signal)),
@@ -137,13 +192,73 @@ export class SupabaseRepository implements JournalRepository {
       workouts: workouts.map((row) => ({
         id: row.id, date: row.date, name: row.name, kind: row.kind, minutes: row.minutes,
         distanceKm: row.distance_km, calories: row.calories, effort: row.effort,
-        elevationM: row.elevation_m, importHash: row.import_hash,
+        elevationM: row.elevation_m, importHash: row.import_hash, sets: setsFromRow(row.sets),
       })),
       water: water.map((row) => ({ id: row.id, date: row.date, amountMl: row.amount_ml })),
-      measurements: measurements.map((row) => ({ id: row.id, date: row.date, weightKg: row.weight_kg })),
+      measurements: measurements.map((row) => ({
+        id: row.id, date: row.date, weightKg: row.weight_kg,
+        waistCm: row.waist_cm ?? null, hipsCm: row.hips_cm ?? null, bodyFatPct: row.body_fat_pct ?? null,
+      })),
       customFoods: foods.map((row) => foodSchema.parse(row.food)),
       training: trainingFromRow(training.data, profileRow.onboarding_completed_at),
+      mealTemplates: await templates,
     })
+  }
+
+  /** Templates arrive in their own migration; until it is applied the diary still loads without them. */
+  private async loadTemplates(signal: AbortSignal): Promise<MealTemplate[]> {
+    const client = this.client
+    try {
+      const rows = await readPages((start, end) => client.from('meal_templates').select('*').eq('user_id', this.userId).order('created_at').order('id').range(start, end).abortSignal(signal))
+      return rows.flatMap((row) => {
+        const parsed = mealTemplateSchema.safeParse({ id: row.id, name: row.name, items: row.items })
+        return parsed.success ? [parsed.data] : []
+      })
+    } catch (cause) {
+      const code = cause instanceof Error && typeof cause.cause === 'object' && cause.cause !== null ? (cause.cause as { code?: unknown }).code : undefined
+      if (code === 'PGRST205' || code === '42P01') return []
+      throw cause
+    }
+  }
+
+  private async insertChunks<Row>(rows: Row[], insert: (chunk: Row[]) => PromiseLike<{ data: { id: string }[] | null; error: PostgrestError | null }>, saved: () => void): Promise<void> {
+    for (let start = 0; start < rows.length; start += IMPORT_CHUNK) {
+      const chunk = rows.slice(start, start + IMPORT_CHUNK)
+      const stored = result(await insert(chunk))
+      if (stored.length !== chunk.length) throw new Error('Serwer nie potwierdził wszystkich wpisów.')
+      for (let index = 0; index < chunk.length; index++) saved()
+    }
+  }
+
+  private async importJournal(value: ImportPayload, onProgress?: (saved: number, total: number) => void): Promise<void> {
+    const client = this.client
+    const user_id = this.userId
+    const total = importSize(value)
+    let saved = 0
+    const step = () => { saved++; onProgress?.(saved, total) }
+    try {
+      await this.insertChunks(value.customFoods.map((food) => ({ user_id, id: food.id, food: foodSchema.parse(food) })),
+        (chunk) => client.from('custom_foods').insert(chunk).select('id'), step)
+      await this.insertChunks(value.mealTemplates.map((template) => ({ user_id, name: template.name, items: template.items })),
+        (chunk) => client.from('meal_templates').insert(chunk).select('id'), step)
+      await this.insertChunks(validMeals(value.meals).map((meal) => ({ user_id, date: meal.date, meal: meal.meal, food: meal.food, portion: meal.portion })),
+        (chunk) => client.from('meal_entries').insert(chunk).select('id'), step)
+      await this.insertChunks(value.workouts.map((workout) => ({
+        user_id, date: workout.date, name: workout.name, kind: workout.kind, minutes: workout.minutes,
+        distance_km: workout.distanceKm, calories: workout.calories, effort: workout.effort,
+        elevation_m: workout.elevationM, import_hash: workout.importHash, sets: workout.sets ?? [],
+      })), (chunk) => client.from('workouts').insert(chunk).select('id'), step)
+      await this.insertChunks(value.water.map((item) => ({ user_id, date: item.date, amount_ml: item.amountMl })),
+        (chunk) => client.from('water_entries').insert(chunk).select('id'), step)
+      await this.insertChunks(value.measurements.map((item) => ({
+        user_id, date: item.date, weight_kg: item.weightKg,
+        waist_cm: item.waistCm ?? null, hips_cm: item.hipsCm ?? null, body_fat_pct: item.bodyFatPct ?? null,
+      })), (chunk) => client.from('measurements').insert(chunk).select('id'), step)
+      if (value.profile) { await this.execute({ type: 'profile.save', value: value.profile }); step() }
+      if (value.plan) { await this.execute({ type: 'plan.save', value: value.plan }); step() }
+    } catch (cause) {
+      throw new Error(`Zapisano ${saved} z ${total} pozycji, pozostałe nie zostały dodane. ${cause instanceof Error ? cause.message : ''} Możesz spróbować ponownie — zapisane już wpisy zostaną rozpoznane i pominięte.`.replace(/\s+/g, ' ').trim(), { cause })
+    }
   }
 
   private async completeOnboarding(): Promise<void> {
@@ -177,7 +292,7 @@ export class SupabaseRepository implements JournalRepository {
         result(await client.from('workouts').insert({
           user_id, date: value.date, name: value.name, kind: value.kind, minutes: value.minutes,
           distance_km: value.distanceKm, calories: value.calories, effort: value.effort,
-          elevation_m: value.elevationM, import_hash: value.importHash,
+          elevation_m: value.elevationM, import_hash: value.importHash, sets: value.sets ?? [],
         }).select('id').single()); break
       }
       case 'workout.delete':
@@ -191,6 +306,8 @@ export class SupabaseRepository implements JournalRepository {
       case 'measurement.add':
         result(await client.from('measurements').upsert({
           user_id, date: command.value.date, weight_kg: command.value.weightKg,
+          waist_cm: command.value.waistCm ?? null, hips_cm: command.value.hipsCm ?? null,
+          body_fat_pct: command.value.bodyFatPct ?? null,
         }, { onConflict: 'user_id,date' }).select('id').single()); break
       case 'measurement.delete':
         result(await client.from('measurements').delete().eq('user_id', user_id).eq('id', command.id).select('id').single()); break
@@ -211,6 +328,28 @@ export class SupabaseRepository implements JournalRepository {
         result(await client.from('training_plans').delete().eq('user_id', user_id).select('user_id')); break
       case 'onboarding.skip':
         await this.completeOnboarding(); break
+      case 'meal.addMany': {
+        const meals = validMeals(command.value)
+        const stored = result(await client.from('meal_entries').insert(meals.map((meal) => ({
+          user_id, date: meal.date, meal: meal.meal, food: meal.food, portion: meal.portion,
+        }))).select('id'))
+        if (stored.length !== meals.length) throw new Error('Serwer nie potwierdził wszystkich wpisów. Odśwież dane przed ponowną próbą.')
+        break
+      }
+      case 'template.save': {
+        const template = mealTemplateSchema.omit({ id: true }).parse(command.value)
+        try {
+          result(await client.from('meal_templates').insert({ user_id, name: template.name, items: template.items }).select('id').single())
+        } catch (cause) {
+          if (cause instanceof Error && cause.message.startsWith('Ten wpis już istnieje')) throw new Error(templateExists, { cause })
+          throw cause
+        }
+        break
+      }
+      case 'template.delete':
+        result(await client.from('meal_templates').delete().eq('user_id', user_id).eq('id', command.id).select('id').single()); break
+      case 'journal.import':
+        await this.importJournal(command.value, command.onProgress); break
     }
   }
 }

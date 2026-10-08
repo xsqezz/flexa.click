@@ -12,6 +12,8 @@ import { Button, Drawer, EmptyState, Field, Notice, errorMessage } from './ui'
 import { CameraScanner } from './CameraScanner'
 import { SourceCredit } from './SourceCredit'
 import { catalogGroups, requiredProducts } from '../../../shared/polish-catalog'
+import { recentFoods } from '../lib/templates'
+import { MealTemplates } from './MealTemplates'
 
 const mealKinds: MealKind[] = ['breakfast', 'lunch', 'dinner', 'snack']
 const nutrientFields = [
@@ -22,12 +24,12 @@ const nutrientFields = [
   { name: 'fiber', label: 'Błonnik (g)', max: 100 },
 ] as const
 
-export function MealDrawer({ date, initialMeal, onClose }: { date: string; initialMeal: MealKind; onClose: () => void }) {
+export function MealDrawer({ date, initialMeal, initialTab = 'search', onClose }: { date: string; initialMeal: MealKind; initialTab?: 'search' | 'barcode' | 'custom'; onClose: () => void }) {
   const auth = useAuth()
   const { data, execute, pending } = useJournal()
   const feedback = useFeedback()
   const client = useQueryClient()
-  const [tab, setTab] = useState<'search' | 'barcode' | 'custom'>('search')
+  const [tab, setTab] = useState<'search' | 'barcode' | 'custom'>(initialTab)
   const [query, setQuery] = useState('')
   const [barcode, setBarcode] = useState('')
   const [result, setResult] = useState<SearchResponse | null>(null)
@@ -40,13 +42,11 @@ export function MealDrawer({ date, initialMeal, onClose }: { date: string; initi
   if (!data) throw new Error('Journal data is unavailable')
   const customFoods = data.customFoods
   const mode = auth.mode === 'demo' ? 'demo' : 'cloud'
-  const recent = [...new Map([
-    ...data.meals.slice(-15).reverse().map((meal) => [meal.food.id, meal.food] as const),
-    ...customFoods.map((item) => [item.id, item] as const),
-  ]).values()].slice(0, 8)
+  const recent = recentFoods(data.meals, customFoods)
+  const lastPortion = new Map(recent.map((item) => [item.food.id, item.portion]))
 
-  function select(value: Food) {
-    setError(null); setFood(value); setUnit(value.unit ?? ''); setPortion('100')
+  function select(value: Food, previousPortion?: number | null) {
+    setError(null); setFood(value); setUnit(value.unit ?? ''); setPortion(previousPortion ? String(previousPortion) : '100')
   }
 
   async function search(input: { query: string } | { barcode: string }) {
@@ -98,7 +98,7 @@ export function MealDrawer({ date, initialMeal, onClose }: { date: string; initi
     } catch (cause) { setError(errorMessage(cause)) }
   }
 
-  const list = result ? result.foods : tab === 'search' ? recent : []
+  const list = result ? result.foods : tab === 'search' ? recent.map((item) => item.food) : []
   const amount = Number(portion)
   return <Drawer title={food ? 'Twoja porcja' : 'Dodaj posiłek'} onClose={pending ? () => {} : onClose}>
     {error && <Notice tone="error">{error}</Notice>}
@@ -167,15 +167,22 @@ export function MealDrawer({ date, initialMeal, onClose }: { date: string; initi
           </label><Button type="submit" busy={searching}><Search size={17} aria-hidden="true" />Szukaj</Button>
         </form>
         {searching && <Notice>Wyszukuję produkty…</Notice>}
-        {!result && tab === 'search' && <p className="source-credit">Ostatnio używane i Twoje produkty. „Szukaj” sprawdza rzeczywisty katalog produktów, także w trybie lokalnym — nie tylko przykłady demo.</p>}
+        {!result && !searching && tab === 'search' && <MealTemplates date={date} initialMeal={initialMeal} onAdded={onClose} />}
+        {!result && tab === 'search' && <>
+          <h3 className="recent-foods-heading">Ostatnio dodane i Twoje produkty</h3>
+          <p className="source-credit">Dotknij produktu, a wpiszemy porcję z ostatniego razu. „Szukaj” sprawdza rzeczywisty katalog produktów, także w trybie lokalnym — nie tylko przykłady demo.</p>
+        </>}
         {result?.warnings.map((warning) => <Notice key={warning}>{warning}</Notice>)}
-        <ul className="food-results">{list.map((item) => <li key={item.id}>
-          <button className="food-result" disabled={item.nutrients.kcal === null} onClick={() => select(item)}>
+        <ul className="food-results">{list.map((item) => {
+          const previous = result ? null : lastPortion.get(item.id) ?? null
+          return <li key={item.id}>
+          <button className="food-result" disabled={item.nutrients.kcal === null} onClick={() => select(item, previous)}>
             <span className="food-mark"><Utensils size={17} aria-hidden="true" /></span><div><strong>{item.name}</strong>
-              <small>{item.nutrients.kcal === null ? 'Brak kcal — uzupełnij jako własny produkt' : `${numberFormat.format(item.nutrients.kcal)} kcal / 100 ${item.unit ?? 'g lub ml'}`} · {sourceNames[item.source]}{item.estimated && ' · wartości szacunkowe'}</small>
+              <small>{item.nutrients.kcal === null ? 'Brak kcal — uzupełnij jako własny produkt' : `${numberFormat.format(item.nutrients.kcal)} kcal / 100 ${item.unit ?? 'g lub ml'}`} · {sourceNames[item.source]}{item.estimated && ' · wartości szacunkowe'}{previous !== null && ` · ostatnio ${numberFormat.format(previous)} ${item.unit ?? ''}`}</small>
             </div><ChevronRight size={16} aria-hidden="true" />
           </button>
-        </li>)}</ul>
+        </li>
+        })}</ul>
         {result && !list.length && <EmptyState title="Tego produktu jeszcze nie znaleźliśmy" action={<button className="text-link" onClick={() => setTab('custom')}>Dodaj produkt z etykiety</button>}>
           Sprawdź kod lub nazwę. Darmowe bazy nie obejmują wszystkich produktów.
         </EmptyState>}

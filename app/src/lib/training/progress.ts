@@ -15,6 +15,8 @@ const progressSchema = z.object({
   done: z.array(stepId).max(500),
   skipped: z.array(stepId).max(500),
   rest: z.object({ endsAt: z.number(), total: z.number().int().min(1).max(900), from: z.number().int().min(0).max(500) }).nullable(),
+  /** Optional reps and load typed for strength sets, by step id. Older saved progress has none. */
+  sets: z.record(stepId, z.object({ reps: z.string().max(8), weight: z.string().max(8) })).default({}),
 })
 
 export type WorkoutProgress = z.infer<typeof progressSchema>
@@ -24,7 +26,7 @@ export function progressScope(mode: string, userId: string | undefined): string 
 }
 
 export function newProgress(scope: string, plan: string, session: string, now = Date.now()): WorkoutProgress {
-  return { scope, plan, session, index: 0, startedAt: now, updatedAt: now, finishedAt: null, done: [], skipped: [], rest: null }
+  return { scope, plan, session, index: 0, startedAt: now, updatedAt: now, finishedAt: null, done: [], skipped: [], rest: null, sets: {} }
 }
 
 /** Reads the unfinished workout of this account and plan. Stale or foreign progress is ignored. */

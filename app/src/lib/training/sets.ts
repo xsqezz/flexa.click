@@ -1,0 +1,149 @@
+import type { Workout, WorkoutSet } from '../../../../shared/domain'
+import { numberFormat } from '../nutrition'
+import { exercises, findExercise } from './library'
+
+/** Text typed into the quick set inputs; kept as text so half-typed values survive a reload. */
+export type SetDraft = { reps: string; weight: string }
+
+export function parseReps(text: string): number | null {
+  const value = Number(text.trim().replace(',', '.'))
+  return text.trim() !== '' && Number.isInteger(value) && value >= 1 && value <= 100 ? value : null
+}
+
+export function parseWeight(text: string): number | null {
+  const value = Number(text.trim().replace(',', '.'))
+  return text.trim() !== '' && Number.isFinite(value) && value >= 0 && value <= 500 ? Math.round(value * 100) / 100 : null
+}
+
+export function exerciseName(id: string): string {
+  return findExercise(id)?.name ?? id
+}
+
+const byName = new Map(exercises.map((exercise) => [exercise.name.toLocaleLowerCase('pl-PL'), exercise.id]))
+
+/** Maps a typed name back to the library id when it matches exactly, otherwise keeps the free name. */
+export function exerciseIdFor(name: string): string {
+  const clean = name.trim().replace(/\s+/g, ' ')
+  return byName.get(clean.toLocaleLowerCase('pl-PL')) ?? clean.slice(0, 80)
+}
+
+const loadEquipment = new Set<string>(['dumbbells', 'kettlebell', 'barbell', 'cable', 'machines'])
+
+/** Exercises where an external load (dumbbell, barbell, machine…) can be noted in kilograms. */
+export function takesLoad(id: string): boolean {
+  const exercise = findExercise(id)
+  if (!exercise) return true
+  return !exercise.bodyweight && exercise.equipment.some((set) => set.some((item) => loadEquipment.has(item)))
+}
+
+/** The most recently logged set of every exercise (later dates, then later entries, win). */
+export function lastSets(workouts: Workout[]): Map<string, WorkoutSet> {
+  const sorted = workouts.map((workout, index) => ({ workout, index }))
+    .sort((a, b) => a.workout.date.localeCompare(b.workout.date) || a.index - b.index)
+  const result = new Map<string, WorkoutSet>()
+  for (const { workout } of sorted) for (const set of workout.sets ?? []) result.set(set.exercise, set)
+  return result
+}
+
+export function setDraftFrom(set: WorkoutSet | undefined): SetDraft {
+  return { reps: set?.reps != null ? String(set.reps) : '', weight: set?.weightKg != null ? String(set.weightKg) : '' }
+}
+
+/** Turns the drafts of completed steps into sets for the diary, in the order they were done. */
+export function draftsToSets(steps: { id: string; exercise: string }[], done: string[], drafts: Record<string, SetDraft>): WorkoutSet[] {
+  const finished = new Set(done)
+  return steps.flatMap((step) => {
+    const draft = drafts[step.id]
+    if (!draft || !finished.has(step.id)) return []
+    const reps = parseReps(draft.reps)
+    const weightKg = parseWeight(draft.weight)
+    return reps === null && weightKg === null ? [] : [{ exercise: step.exercise, reps, weightKg, seconds: null }]
+  }).slice(0, 200)
+}
+
+/** Epley estimate of a one-repetition maximum. Only for 1–15 repetitions with a known load. */
+export function estimatedMax(set: WorkoutSet): number | null {
+  if (set.weightKg === null || set.weightKg <= 0 || set.reps === null || set.reps > 15) return null
+  return set.reps === 1 ? set.weightKg : set.weightKg * (1 + set.reps / 30)
+}
+
+/** Heaviest load; equal loads are decided by more repetitions. */
+export function heaviestSet(sets: WorkoutSet[]): WorkoutSet | null {
+  let best: WorkoutSet | null = null
+  for (const set of sets) {
+    if (set.weightKg === null) continue
+    if (!best || set.weightKg > (best.weightKg ?? 0) || (set.weightKg === best.weightKg && (set.reps ?? 0) > (best.reps ?? 0))) best = set
+  }
+  return best
+}
+
+/** Converts the rows of the "Serie" editor into sets, or returns a message for the first row that cannot be saved. */
+export function rowsToSets(rows: { exercise: string; reps: string; weight: string }[]): WorkoutSet[] | string {
+  const sets: WorkoutSet[] = []
+  for (const [index, row] of rows.entries()) {
+    if (!row.exercise.trim() && !row.reps.trim() && !row.weight.trim()) continue
+    if (!row.exercise.trim()) return `Seria ${index + 1}: wpisz nazwę ćwiczenia albo usuń serię.`
+    const reps = parseReps(row.reps)
+    const weightKg = parseWeight(row.weight)
+    if (row.reps.trim() && reps === null) return `Seria ${index + 1}: powtórzenia to liczba całkowita od 1 do 100.`
+    if (row.weight.trim() && weightKg === null) return `Seria ${index + 1}: ciężar podaj w kilogramach (0–500).`
+    sets.push({ exercise: exerciseIdFor(row.exercise), reps, weightKg, seconds: null })
+  }
+  return sets.slice(0, 200)
+}
+
+export function formatSet(set: WorkoutSet): string {
+  const parts: string[] = []
+  if (set.reps !== null) parts.push(set.weightKg !== null ? `${set.reps} ×` : `${set.reps} powt.`)
+  if (set.weightKg !== null) parts.push(`${numberFormat.format(set.weightKg)} kg`)
+  if (set.seconds !== null) parts.push(`${set.seconds} s`)
+  return parts.join(' ') || 'wykonana'
+}
+
+export type ExerciseSession = {
+  workoutId: string
+  date: string
+  sets: WorkoutSet[]
+  /** Sum of repetitions × kilograms over sets with both values. */
+  volume: number
+  reps: number
+  heaviest: WorkoutSet | null
+  estimate: number | null
+}
+
+export type ExerciseHistory = {
+  exercise: string
+  name: string
+  sessions: ExerciseSession[]
+  lastDate: string
+  heaviest: WorkoutSet | null
+  estimate: number | null
+}
+
+export function exerciseHistory(workouts: Workout[]): ExerciseHistory[] {
+  const groups = new Map<string, ExerciseSession[]>()
+  for (const workout of workouts) {
+    const byExercise = new Map<string, WorkoutSet[]>()
+    for (const set of workout.sets ?? []) byExercise.set(set.exercise, [...byExercise.get(set.exercise) ?? [], set])
+    for (const [exercise, sets] of byExercise) {
+      const estimates = sets.map(estimatedMax).filter((value): value is number => value !== null)
+      groups.set(exercise, [...groups.get(exercise) ?? [], {
+        workoutId: workout.id, date: workout.date, sets,
+        volume: sets.reduce((sum, set) => sum + (set.reps ?? 0) * (set.weightKg ?? 0), 0),
+        reps: sets.reduce((sum, set) => sum + (set.reps ?? 0), 0),
+        heaviest: heaviestSet(sets),
+        estimate: estimates.length ? Math.max(...estimates) : null,
+      }])
+    }
+  }
+  return [...groups].map(([exercise, unsorted]) => {
+    const sessions = unsorted.sort((a, b) => a.date.localeCompare(b.date))
+    const estimates = sessions.map((session) => session.estimate).filter((value): value is number => value !== null)
+    return {
+      exercise, name: exerciseName(exercise), sessions,
+      lastDate: sessions[sessions.length - 1].date,
+      heaviest: heaviestSet(sessions.flatMap((session) => session.sets)),
+      estimate: estimates.length ? Math.max(...estimates) : null,
+    }
+  }).sort((a, b) => b.lastDate.localeCompare(a.lastDate) || a.name.localeCompare(b.name, 'pl'))
+}

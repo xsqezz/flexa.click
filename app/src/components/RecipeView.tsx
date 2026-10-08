@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { ArrowLeftRight, CookingPot, Clock3, Plus, RefreshCw, SlidersHorizontal, Users } from 'lucide-react'
-import { mealNames, type MealKind } from '../../../shared/domain'
+import { ArrowLeftRight, BookmarkCheck, BookmarkPlus, CookingPot, Clock3, Plus, RefreshCw, SlidersHorizontal, Users } from 'lucide-react'
+import { foodSchema, mealNames, type Food, type MealKind } from '../../../shared/domain'
 import { getIngredient } from '../../../shared/kitchen/lookup'
 import { equipmentLabels } from '../../../shared/kitchen/types'
 import { useAuth } from '../lib/Auth'
@@ -10,6 +10,7 @@ import { recipeFood, swapOptions } from '../lib/kitchen/engine'
 import { generateDishImage } from '../lib/kitchen/ai-client'
 import type { Preferences, Recipe, RecipeLine } from '../lib/kitchen/context'
 import { cap, joinList, minutesLabel, quantityLabel } from '../lib/kitchen/text'
+import { stableUuid } from '../lib/ids'
 import { useFeedback } from './Feedback'
 import { Button, Drawer, Field, Notice, errorMessage } from './ui'
 
@@ -150,6 +151,33 @@ function SwapDrawer({ recipe, lineId, owned, preferences, onPick, onClose }:
 
 const numbers = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 0 })
 
+/** Stores the recipe as the user's own product (per 100 g, estimated) so it can be found in the meal search later. */
+function libraryFood(recipe: Recipe, owner: string): Food {
+  return foodSchema.parse({ ...recipeFood(recipe), id: stableUuid(`recipe:${owner}:${recipe.key}`) })
+}
+
+function SaveToLibrary({ recipe }: { recipe: Recipe }) {
+  const auth = useAuth()
+  const { data, execute, pending } = useJournal()
+  const feedback = useFeedback()
+  const [busy, setBusy] = useState(false)
+  const food = libraryFood(recipe, auth.session?.user.id ?? 'demo')
+  const saved = Boolean(data?.customFoods.some((item) => item.id === food.id))
+  async function save() {
+    if (saved) { feedback('Ten przepis jest już w Twojej bibliotece produktów.'); return }
+    setBusy(true)
+    try {
+      await execute({ type: 'food.save', value: food })
+      feedback(`Zapisano „${food.name}” w bibliotece. Znajdziesz go w wyszukiwarce przy dodawaniu posiłku.`)
+    } catch (cause) { feedback(errorMessage(cause), { tone: 'error' }) }
+    finally { setBusy(false) }
+  }
+  return <Button variant="secondary" busy={busy} disabled={pending && !busy} onClick={() => { void save() }}>
+    {saved ? <BookmarkCheck size={17} aria-hidden="true" /> : <BookmarkPlus size={17} aria-hidden="true" />}
+    {saved ? 'Zapisano w bibliotece' : 'Zapisz w bibliotece'}
+  </Button>
+}
+
 export function RecipeView({ recipe, index, total, owned, preferences, aiReady, onPick, onNext, onEditPreferences }:
   { recipe: Recipe; index: number; total: number; owned: readonly string[]; preferences: Preferences; aiReady: boolean; onPick: (recipe: Recipe) => void; onNext: () => void; onEditPreferences: () => void }) {
   const [swapping, setSwapping] = useState<string | null>(null)
@@ -188,6 +216,7 @@ export function RecipeView({ recipe, index, total, owned, preferences, aiReady, 
     <p className="kitchen-note kitchen-disclaimer">To inspiracja, nie porada dietetyczna. Mięso, ryby i jajka zawsze dokładnie dogotuj, a przy alergii sprawdź skład produktów na opakowaniach.</p>
     <div className="kitchen-actions">
       <Button onClick={() => setLogging(true)}><Plus size={17} aria-hidden="true" />Dodaj do dziennika</Button>
+      <SaveToLibrary recipe={recipe} />
       <Button variant="secondary" onClick={onNext} disabled={total < 2}><RefreshCw size={17} aria-hidden="true" />Inny przepis{total > 1 ? ` (${index + 1}/${total})` : ''}</Button>
       <Button variant="ghost" onClick={onEditPreferences}><SlidersHorizontal size={17} aria-hidden="true" />Zmień preferencje</Button>
     </div>

@@ -9,9 +9,11 @@ import { AuthPage } from './pages/AuthPage'
 import { Dashboard } from './pages/Dashboard'
 import { JournalPage } from './pages/JournalPage'
 import { WorkoutsPage } from './pages/WorkoutsPage'
+import { ExerciseHistoryPage } from './pages/ExerciseHistoryPage'
 import { ProgressPage } from './pages/ProgressPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { InformationPage } from './pages/InformationPage'
+import { AboutPage } from './pages/AboutPage'
 import { PlanPage } from './pages/PlanPage'
 import { PlanWizard } from './pages/PlanWizard'
 import { WorkoutPlayer } from './pages/WorkoutPlayer'
@@ -54,6 +56,7 @@ export default function App() {
       <Route path="/reset-password" element={<AuthPage />} />
       <Route path="/privacy" element={<InformationPage kind="privacy" />} />
       <Route path="/sources" element={<InformationPage kind="sources" />} />
+      <Route path="/about" element={<AboutPage />} />
       <Route element={<SessionGate />}>
         <Route element={<JournalShell />}>
           <Route path="/start" element={<PlanWizard mode="onboarding" />} />
@@ -65,6 +68,8 @@ export default function App() {
             <Route path="/kitchen" element={<Suspense fallback={<Skeleton />}><KitchenPage /></Suspense>} />
             <Route path="/plan" element={<PlanPage />} />
             <Route path="/workouts" element={<WorkoutsPage />} />
+            <Route path="/workouts/exercises" element={<ExerciseHistoryPage />} />
+            <Route path="/workouts/exercises/:exercise" element={<ExerciseHistoryPage />} />
             <Route path="/progress" element={<ProgressPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>

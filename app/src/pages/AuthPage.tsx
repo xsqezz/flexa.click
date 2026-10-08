@@ -68,7 +68,7 @@ export function AuthPage() {
       <Brand />
       <div className="auth-story-content">
         <h1>Twój rytm.<br />Jedno miejsce.</h1>
-        <p>Jedz świadomie. Ruszaj się po swojemu.<br />Zobacz, jak małe kroki układają się w całość.</p>
+        <p>Darmowy dziennik jedzenia, treningów i postępów. Jedz świadomie, ruszaj się po swojemu i zobacz, jak małe kroki układają się w całość.</p>
         <div className="auth-preview" aria-label="Ilustracja dziennika">
           <div className="auth-preview-title"><Leaf size={20} aria-hidden="true" /><span>Plan na dobry dzień</span></div>
           <div className="preview-line"><Check size={17} /><span>Jedzenie bez zgadywania</span></div>
@@ -115,7 +115,8 @@ export function AuthPage() {
           <Button variant="secondary" className="full-width" onClick={auth.enterDemo}>Wypróbuj demo</Button>
           <small>Dane demonstracyjne zostają tylko w tej przeglądarce.</small>
         </div>}
-        <div className="auth-legal"><Link to="/privacy">Prywatność</Link><Link to="/sources">O Flexa i źródłach danych</Link></div>
+        <div className="auth-legal"><Link to="/about">O Flexa</Link><Link to="/privacy">Prywatność</Link><Link to="/sources">Źródła danych</Link>
+          <a href="https://xsqezz.github.io/flexa.click/" target="_blank" rel="noreferrer">Strona projektu</a></div>
       </div>
     </main>
   </div>

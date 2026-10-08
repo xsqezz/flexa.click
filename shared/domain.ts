@@ -57,6 +57,13 @@ export const mealSchema = z.object({
   portion: z.number().finite().positive().max(10000),
 })
 
+/** A named set of products ("Zestaw"), e.g. a usual breakfast, added to a meal with one tap. */
+export const mealTemplateSchema = z.object({
+  id: z.uuid(),
+  name: z.string().trim().min(1).max(60),
+  items: z.array(z.object({ food: mealSchema.shape.food, portion: mealSchema.shape.portion })).min(1).max(30),
+})
+
 export const workoutNames = {
   run: 'Bieg',
   ride: 'Rower',
@@ -64,6 +71,14 @@ export const workoutNames = {
   strength: 'Trening siłowy',
   other: 'Inna aktywność',
 } as const
+
+/** One logged set: `exercise` is a library id or a free name typed by the user. */
+export const workoutSetSchema = z.object({
+  exercise: z.string().trim().min(1).max(80),
+  reps: z.number().int().min(1).max(100).nullable(),
+  weightKg: z.number().finite().min(0).max(500).nullable(),
+  seconds: z.number().int().min(1).max(36000).nullable(),
+})
 
 export const workoutSchema = z.object({
   id: z.uuid(),
@@ -76,6 +91,7 @@ export const workoutSchema = z.object({
   effort: z.number().int().min(1).max(10).nullable(),
   elevationM: z.number().finite().nonnegative().max(100000).nullable(),
   importHash: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
+  sets: z.array(workoutSetSchema).max(200).optional(),
 })
 
 export const waterSchema = z.object({
@@ -88,6 +104,9 @@ export const measurementSchema = z.object({
   id: z.uuid(),
   date: dateSchema,
   weightKg: z.number().finite().min(20).max(500),
+  waistCm: z.number().finite().min(40).max(250).nullable().optional(),
+  hipsCm: z.number().finite().min(40).max(250).nullable().optional(),
+  bodyFatPct: z.number().finite().min(2).max(70).nullable().optional(),
 })
 
 export const journalSchema = z.object({
@@ -98,6 +117,7 @@ export const journalSchema = z.object({
   measurements: z.array(measurementSchema),
   customFoods: z.array(foodSchema),
   training: trainingStateSchema.default({ onboardingDone: true, plan: null, unreadable: false }),
+  mealTemplates: z.array(mealTemplateSchema).default([]),
 })
 
 export const searchRequestSchema = z.object({
@@ -116,7 +136,9 @@ export type Food = z.infer<typeof foodSchema>
 export type Profile = z.infer<typeof profileSchema>
 export type Meal = z.infer<typeof mealSchema>
 export type MealKind = Meal['meal']
+export type MealTemplate = z.infer<typeof mealTemplateSchema>
 export type Workout = z.infer<typeof workoutSchema>
+export type WorkoutSet = z.infer<typeof workoutSetSchema>
 export type Water = z.infer<typeof waterSchema>
 export type Measurement = z.infer<typeof measurementSchema>
 export type Journal = z.infer<typeof journalSchema>

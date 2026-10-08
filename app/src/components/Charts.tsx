@@ -55,16 +55,27 @@ export function BarChart({ points, label, unit, goal }: { points: ChartPoint[]; 
   </>
 }
 
-export function LineChart({ points, label }: { points: ChartPoint[]; label: string }) {
+export function LineChart({ points, label, unit = 'kg', average, averageLabel = 'Średnia z 7 dni', empty = 'Dodaj pomiar, aby zobaczyć wykres.' }:
+  { points: ChartPoint[]; label: string; unit?: string; average?: ChartPoint[]; averageLabel?: string; empty?: string }) {
   const known = points.filter((point): point is ChartPoint & { value: number } => point.value !== null)
-  if (!known.length) return <p className="source-credit">Dodaj pomiar, aby zobaczyć wykres.</p>
-  const min = Math.min(...known.map((point) => point.value)) - .5
-  const max = Math.max(...known.map((point) => point.value)) + .5
+  if (!known.length) return <p className="source-credit">{empty}</p>
+  const trend = (average ?? []).filter((point): point is ChartPoint & { value: number } => point.value !== null)
+  const values = [...known, ...trend].map((point) => point.value)
+  const low = Math.min(...values)
+  const high = Math.max(...values)
+  const pad = Math.max(.5, (high - low) * .1, high >= 200 ? high * .05 : 0)
+  const min = low - pad
+  const max = high + pad
   const start = new Date(`${known[0].date}T12:00:00`).getTime()
   const duration = Math.max(86_400_000, new Date(`${known.at(-1)?.date}T12:00:00`).getTime() - start)
   const y = (value: number) => 170 - (value - min) / (max - min) * 140
+  const format = (value: number) => (Math.abs(value) >= 1000 ? integerFormat : numberFormat).format(value)
   return <>
-    <ChartFrame description={`${label}: ${known.length} pomiarów. Ostatni: ${numberFormat.format(known.at(-1)?.value ?? 0)} kg.`}>
+    {trend.length > 0 && <p className="chart-legend">
+      <span><span className="chart-key chart-key-raw" aria-hidden="true" />{label}</span>
+      <span><span className="chart-key chart-key-average" aria-hidden="true" />{averageLabel}</span>
+    </p>}
+    <ChartFrame description={`${label}: ${known.length} ${known.length === 1 ? 'punkt' : 'punktów'}. Ostatni: ${format(known.at(-1)?.value ?? 0)} ${unit}.${trend.length ? ` ${averageLabel}: ${format(trend.at(-1)?.value ?? 0)} ${unit}.` : ''}`}>
       {(viewport) => {
         const right = viewport - 18
         const x = (point: ChartPoint) => 50 + (new Date(`${point.date}T12:00:00`).getTime() - start) / duration * (right - 50)
@@ -72,22 +83,37 @@ export function LineChart({ points, label }: { points: ChartPoint[]; label: stri
         return <>
           {[min, (min + max) / 2, max].map((value) => <g key={value}>
             <line x1="50" x2={right} y1={y(value)} y2={y(value)} stroke="#e4eae5" />
-            <text x="40" y={y(value) + 4} textAnchor="end">{numberFormat.format(value)}</text>
+            <text x="40" y={y(value) + 4} textAnchor="end">{format(value)}</text>
           </g>)}
           <polyline points={coordinates} fill="none" stroke="#326b49" strokeWidth="2.5" />
-          {known.map((point) => <circle key={point.date} cx={x(point)} cy={y(point.value)} r="4" fill="#326b49"><title>{dateLabel(point.date)}: {numberFormat.format(point.value)} kg</title></circle>)}
+          {trend.length > 1 && <polyline className="chart-line-average" points={trend.map((point) => `${x(point)},${y(point.value)}`).join(' ')} fill="none" />}
+          {known.map((point) => <circle key={point.date} cx={x(point)} cy={y(point.value)} r="4" fill="#326b49"><title>{dateLabel(point.date)}: {format(point.value)} {unit}</title></circle>)}
           <text x="50" y="196">{dateLabel(known[0].date, { day: 'numeric', month: 'short' })}</text>
           {known.length > 1 && <text x={right} y="196" textAnchor="end">{dateLabel(known.at(-1)?.date ?? known[0].date, { day: 'numeric', month: 'short' })}</text>}
         </>
       }}
-    </ChartFrame><ChartTable points={points} label={label} unit="kg" />
+    </ChartFrame><ChartTable points={points} label={label} unit={unit} average={average} averageLabel={averageLabel} />
   </>
 }
 
-function ChartTable({ points, label, unit }: { points: ChartPoint[]; label: string; unit: string }) {
+/** A tiny decorative trend line; the values it shows must also be written out next to it. */
+export function Sparkline({ values }: { values: number[] }) {
+  if (values.length < 2) return null
+  const low = Math.min(...values)
+  const high = Math.max(...values)
+  const coordinates = values.map((value, index) => `${2 + index / (values.length - 1) * 96},${high === low ? 14 : 26 - (value - low) / (high - low) * 24}`).join(' ')
+  return <svg className="sparkline" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    <polyline points={coordinates} fill="none" vectorEffect="non-scaling-stroke" />
+  </svg>
+}
+
+function ChartTable({ points, label, unit, average, averageLabel }: { points: ChartPoint[]; label: string; unit: string; average?: ChartPoint[]; averageLabel?: string }) {
+  const trend = new Map((average ?? []).map((point) => [point.date, point.value]))
   return <details><summary>Dane wykresu — {label.toLocaleLowerCase('pl-PL')}</summary>
-    <div className="table-scroll"><table><caption className="sr-only">{label}</caption><thead><tr><th scope="col">Data</th><th scope="col">Wartość ({unit})</th></tr></thead>
-      <tbody>{points.map((point) => <tr key={point.date}><td>{dateLabel(point.date)}</td><td>{point.value === null ? 'Brak zapisu' : numberFormat.format(point.value)}</td></tr>)}</tbody>
+    <div className="table-scroll" tabIndex={0} role="region" aria-label={`Tabela: ${label.toLocaleLowerCase('pl-PL')}`}><table><caption className="sr-only">{label}</caption><thead><tr><th scope="col">Data</th><th scope="col">Wartość ({unit})</th>
+      {average && <th scope="col">{averageLabel} ({unit})</th>}</tr></thead>
+      <tbody>{points.map((point) => <tr key={point.date}><td>{dateLabel(point.date)}</td><td>{point.value === null ? 'Brak zapisu' : numberFormat.format(point.value)}</td>
+        {average && <td>{trend.get(point.date) == null ? '—' : numberFormat.format(trend.get(point.date) ?? 0)}</td>}</tr>)}</tbody>
     </table></div>
   </details>
 }

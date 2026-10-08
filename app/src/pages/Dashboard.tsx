@@ -10,6 +10,7 @@ import { DateControl, PageHeader, useWorkspace } from '../components/Workspace'
 import { NutritionSummary, WaterPanel, WeeklyActivity } from '../components/Summaries'
 import { MealList } from '../components/MealList'
 import { EmptyState, SectionHeading } from '../components/ui'
+import { FirstSteps } from '../components/FirstSteps'
 
 function PlanNote({ date }: { date: string }) {
   const { data } = useJournal()
@@ -41,6 +42,7 @@ export function Dashboard() {
     <PageHeader title={date === today() ? 'Dzisiaj, w Twoim rytmie' : 'Twój dziennik'}
       description={`${dateLabel(date, { weekday: 'long', day: 'numeric', month: 'long' })} · Cześć, ${data.profile.displayName}. Małe kroki też się liczą.`} />
     <div className="page-toolbar"><DateControl /><Link to="/progress" className="text-link">Zobacz swoje postępy <ArrowUpRight size={16} aria-hidden="true" /></Link></div>
+    <FirstSteps />
     <div className="dashboard-grid">
       <div className="dashboard-main">
         <NutritionSummary meals={meals} profile={data.profile} />

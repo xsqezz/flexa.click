@@ -17,6 +17,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     actionTimeout: 12_000,
     timezoneId: 'Europe/Warsaw',
+    serviceWorkers: 'block',
   },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1050 } } },

@@ -21,6 +21,7 @@ jobs:
       - run: npm run build:pages
       - run: npm run check:edge
       - run: npm test
+      - run: npm run test:scripts
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4

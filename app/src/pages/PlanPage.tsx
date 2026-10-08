@@ -11,7 +11,7 @@ import {
 import { findExercise } from '../lib/training/library'
 import { progressScope, readProgress } from '../lib/training/progress'
 import { workoutSteps } from '../lib/training/steps'
-import { useWorkspace } from '../components/Workspace'
+import { TrainingTabs, useWorkspace } from '../components/Workspace'
 import { useFeedback } from '../components/Feedback'
 import { Button, Confirm, EmptyState, Notice, errorMessage } from '../components/ui'
 
@@ -57,6 +57,7 @@ export function PlanPage() {
   }
 
   if (!plan) return <>
+    <TrainingTabs />
     <header className="page-header"><div><h1>Plan treningowy</h1><p>Rozpisany tydzień treningów dopasowany do Ciebie.</p></div></header>
     {data.training.unreadable && <Notice tone="error">Nie udało się odczytać zapisanego planu — mógł powstać w starszej wersji aplikacji. Utwórz go ponownie; poprzednie odpowiedzi nie zostały użyte.</Notice>}
     <section className="panel">
@@ -71,6 +72,7 @@ export function PlanPage() {
   const resume: Resume = saved && savedSession ? { session: saved.session, step: saved.index + 1, total: workoutSteps(savedSession).length } : null
   const sessionsByDay = new Map(plan.sessions.map((session, index) => [session.weekday, { session, index }]))
   return <>
+    <TrainingTabs />
     <header className="page-header">
       <div><h1>Twój plan treningowy</h1><p>{planSummary(plan.answers)}</p></div>
       <Link className="button button-secondary" to="/plan/new"><RefreshCw size={17} aria-hidden="true" />Zmień odpowiedzi</Link>

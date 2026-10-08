@@ -57,13 +57,26 @@ account; it is never presented as synchronized cloud data.
   estimate, and the feature works without AI in the local demo.
 - Open Food Facts is the primary packaged-food source; USDA FoodData Central
   is an optional fallback. Missing nutrient values are not invented.
+- Navigation is five sections (Dzisiaj, Dziennik, Kuchnia, Trening with Plan and
+  Historia views, Postępy) plus a quick-add sheet ("Dodaj") reachable from every
+  screen, a command palette (Ctrl+K) that finds pages, actions and diary entries,
+  day navigation by swipe, arrow keys and a week strip, and undo toasts instead of
+  confirmation dialogs for removing entries. The interface follows the system
+  light or dark setting and can be installed as an offline-capable web app (PWA).
+- Diary extras: copy a meal from yesterday, saved meal templates, recipes saved as
+  products, optional workout sets with load and an exercise history, a weekly summary
+  with neutral week-over-week numbers, a 7-day weight trend, optional waist and hip
+  measurements, an orientation-only energy calculator that never stores age, sex or
+  height, JSON backup restore (merge only) and CSV export.
 - GitHub Pages hosts the public landing and setup documentation. Cloudflare
   Pages hosts the application; Supabase provides Postgres, Auth, and functions.
 - An Android app (`android/`, installed from GitHub Releases, not Google Play) is a
   thin WebView shell around the live application, so web releases reach it
   instantly; it adds a native updater that offers newer APKs with a one-tap
   "Zaktualizuj", verifying the checksum and the signing certificate before the
-  system installer confirms. It adds no analytics, ads, or push notifications.
+  system installer confirms. It also offers opt-in, local-only reminders for
+  training days and water as Android notifications. It adds no analytics, ads, or
+  push servers.
 - All application features are free for users. Infrastructure free tiers,
   external APIs, and domain registration still have costs or quotas.
 - Accounts and all private records are isolated by database authorization.

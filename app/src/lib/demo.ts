@@ -1,7 +1,8 @@
-import { journalSchema, type Food, type Journal } from '../../../shared/domain'
+import { journalSchema, type Food, type Journal, type WorkoutSet } from '../../../shared/domain'
 import type { TrainingAnswers } from '../../../shared/training'
 import { shiftDate, today } from './dates'
 import { generatePlan } from './training/generator'
+import { takesLoad } from './training/sets'
 
 export const DEMO_KEY = 'flexa:demo:v1'
 
@@ -12,6 +13,16 @@ export const demoAnswers: TrainingAnswers = {
 
 function demoTraining(): Journal['training'] {
   return { onboardingDone: true, plan: generatePlan(demoAnswers), unreadable: false }
+}
+
+/** Synthetic sets for the sample strength workouts, built from the first day of the sample plan. */
+function demoSets(extraKg: number): WorkoutSet[] {
+  const items = generatePlan(demoAnswers).sessions[0].blocks.flatMap((block) => block.items)
+    .filter((item) => item.target.type === 'reps').slice(0, 3)
+  return items.flatMap((item, index) => Array.from({ length: Math.min(3, item.sets) }, () => ({
+    exercise: item.exercise, reps: item.target.type === 'reps' ? item.target.max : null,
+    weightKg: takesLoad(item.exercise) ? [12, 10, 8][index] + extraKg : null, seconds: null,
+  })))
 }
 
 export const demoFoods: Food[] = [
@@ -64,20 +75,22 @@ export function createDemo(): Journal {
       fatGoal: 65, waterGoal: 2500, weeklyMinutesGoal: 180, targetWeight: null,
     },
     meals,
-    workouts: [-5, -3, 0].map((offset, index) => ({
+    workouts: [-10, -5, -3, 0].map((offset, index) => ({
       id: crypto.randomUUID(), date: shiftDate(end, offset),
-      name: ['Spokojny bieg', 'Trening całego ciała', 'Bieg w parku'][index],
-      kind: index === 1 ? 'strength' : 'run',
-      minutes: [32, 45, 38][index], distanceKm: index === 1 ? null : [5, 0, 6.2][index],
-      calories: [310, null, 380][index], effort: [4, 6, 5][index],
-      elevationM: index === 1 ? null : 24, importHash: null,
+      name: ['Trening całego ciała', 'Spokojny bieg', 'Trening całego ciała', 'Bieg w parku'][index],
+      kind: index % 2 === 0 ? 'strength' : 'run',
+      minutes: [42, 32, 45, 38][index], distanceKm: index % 2 === 0 ? null : [0, 5, 0, 6.2][index],
+      calories: [null, 310, null, 380][index], effort: [6, 4, 6, 5][index],
+      elevationM: index % 2 === 0 ? null : 24, importHash: null,
+      ...(index % 2 === 0 ? { sets: demoSets(index === 0 ? -2 : 0) } : {}),
     })),
     water: Array.from({ length: 6 }, () => ({
       id: crypto.randomUUID(), date: end, amountMl: 250,
     })),
-    measurements: [-21, -14, -7, 0].map((offset, index) => ({
+    measurements: [-21, -14, -10, -7, -4, -2, 0].map((offset, index) => ({
       id: crypto.randomUUID(), date: shiftDate(end, offset),
-      weightKg: [74.8, 74.6, 74.3, 74.2][index],
+      weightKg: [74.8, 74.6, 74.9, 74.3, 74.5, 74.1, 74.2][index],
+      waistCm: [84, null, null, 83.5, null, null, 83][index],
     })),
     customFoods: [],
     training: demoTraining(),

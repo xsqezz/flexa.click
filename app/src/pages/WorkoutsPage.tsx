@@ -1,31 +1,24 @@
 import { useState } from 'react'
-import { Bike, Dumbbell, Footprints, Trash2 } from 'lucide-react'
-import { workoutNames, type Workout } from '../../../shared/domain'
+import { Bike, ChevronRight, Dumbbell, Footprints, Repeat, Trash2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { workoutNames } from '../../../shared/domain'
 import { useJournal } from '../lib/Journal'
 import { dateLabel, shiftDate } from '../lib/dates'
 import { integerFormat, numberFormat, pace, workoutLoad } from '../lib/nutrition'
-import { DateControl, PageHeader, useWorkspace } from '../components/Workspace'
-import { Confirm, EmptyState, errorMessage } from '../components/ui'
-import { useFeedback } from '../components/Feedback'
+import { exerciseName, formatSet } from '../lib/training/sets'
+import { DateControl, PageHeader, TrainingTabs, useWorkspace } from '../components/Workspace'
+import { EmptyState } from '../components/ui'
 
 export function WorkoutsPage() {
-  const { data, execute, pending } = useJournal()
-  const { date, openWorkout } = useWorkspace()
-  const feedback = useFeedback()
+  const { data, removeWithUndo } = useJournal()
+  const { date, openWorkout, openPlannedWorkout } = useWorkspace()
   const [range, setRange] = useState(30)
-  const [deleting, setDeleting] = useState<Workout | null>(null)
-  const [error, setError] = useState<string | null>(null)
   if (!data) throw new Error('Journal data is unavailable')
   const workouts = data.workouts.filter((workout) => workout.date <= date && (range === 0 || workout.date >= shiftDate(date, -range + 1)))
     .sort((a, b) => b.date.localeCompare(a.date))
-  async function remove() {
-    if (!deleting) return
-    setError(null)
-    try { await execute({ type: 'workout.delete', id: deleting.id }); setDeleting(null); feedback('Trening usunięty.') }
-    catch (cause) { setError(errorMessage(cause)) }
-  }
   return <>
-    <PageHeader title="Treningi po Twojemu" description="Każda aktywność ma swoje miejsce. Bez rankingów i presji." primary="workout" />
+    <TrainingTabs />
+    <PageHeader title="Historia treningów" description="Każda aktywność ma swoje miejsce. Bez rankingów i presji." primary="workout" />
     <div className="page-toolbar"><DateControl /><div className="range-selector" aria-label="Okres aktywności">
       {[7, 30, 0].map((value) => <button key={value} aria-pressed={range === value} onClick={() => setRange(value)}>{value ? `${value} dni` : 'Wszystkie'}</button>)}
     </div></div>
@@ -34,6 +27,7 @@ export function WorkoutsPage() {
       <div><small>Łączny czas</small><strong>{integerFormat.format(workouts.reduce((sum, workout) => sum + workout.minutes, 0))} min</strong></div>
       <div><small>Zapisany dystans</small><strong>{numberFormat.format(workouts.reduce((sum, workout) => sum + (workout.distanceKm ?? 0), 0))} km</strong></div>
     </div>
+    <p className="workouts-links"><Link className="text-link" to="/workouts/exercises">Historia ćwiczeń: serie, ciężary i objętość<ChevronRight size={15} aria-hidden="true" /></Link></p>
     <div className="workouts-list">
       {workouts.length === 0 && <section className="panel"><EmptyState title="Pierwszy trening czeka na zapis" action={<button className="button button-primary" onClick={openWorkout}>Dodaj aktywność</button>}>Zapisz spacer, bieg, siłownię albo zaimportuj własny plik GPX lub TCX.</EmptyState></section>}
       {workouts.map((workout) => {
@@ -50,14 +44,23 @@ export function WorkoutsPage() {
               {load !== null && <div><small>Obciążenie · min × RPE</small><strong>{integerFormat.format(load)}</strong></div>}
               {workout.elevationM !== null && <div><small>Suma przewyższeń</small><strong>{integerFormat.format(workout.elevationM)} m</strong></div>}
             </div>
+            {workout.sets && workout.sets.length > 0 && <details className="workout-sets">
+              <summary>Serie: {workout.sets.length}</summary>
+              <ul>{[...new Set(workout.sets.map((set) => set.exercise))].map((exercise) => <li key={exercise}>
+                <strong>{exerciseName(exercise)}</strong> {workout.sets?.filter((set) => set.exercise === exercise).map(formatSet).join(', ')}
+              </li>)}</ul>
+            </details>}
+            <div className="workout-item-actions">
+              <button type="button" className="button button-ghost" aria-label={`Powtórz dziś: ${workout.name}`}
+                onClick={() => openPlannedWorkout({ name: workout.name, kind: workout.kind, minutes: workout.minutes, distanceKm: workout.distanceKm, sets: workout.sets, origin: 'repeat' })}>
+                <Repeat size={16} aria-hidden="true" />Powtórz dziś</button>
+            </div>
           </div>
-          <button className="icon-button" aria-label={`Usuń trening: ${workout.name}`} onClick={() => { setError(null); setDeleting(workout) }}><Trash2 size={17} /></button>
+          <button className="icon-button" aria-label={`Usuń trening: ${workout.name}`}
+            onClick={() => removeWithUndo({ type: 'workout.delete', id: workout.id }, `Usunięto trening „${workout.name}” z ${dateLabel(workout.date)}.`)}><Trash2 size={17} /></button>
         </article>
       })}
     </div>
     <p className="source-credit">Import działa bez zewnętrznego konta. Integracja API Stravy jest wyłączona: jej regulamin wymaga, aby aplikacja nie konkurowała z jej funkcjami. <a href="https://www.strava.com/legal/api" target="_blank" rel="noreferrer">Poznaj ograniczenia</a>.</p>
-    {deleting && <Confirm title="Usunąć trening?" onClose={() => setDeleting(null)} onConfirm={() => { void remove() }} busy={pending} error={error}>
-      „{deleting.name}” z {dateLabel(deleting.date)}. Jeśli trening pochodzi z pliku, po usunięciu możesz zaimportować go ponownie.
-    </Confirm>}
   </>
 }

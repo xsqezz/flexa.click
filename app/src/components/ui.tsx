@@ -43,7 +43,7 @@ export function EmptyState({ title, children, action }: { title: string; childre
   return <div className="empty-state"><h3>{title}</h3><p>{children}</p>{action}</div>
 }
 
-export function Drawer({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
+export function Drawer({ title, children, onClose, variant = 'side' }: { title: string; children: ReactNode; onClose: () => void; variant?: 'side' | 'sheet' }) {
   const ref = useRef<HTMLDialogElement>(null)
   const id = useId()
   useEffect(() => {
@@ -55,8 +55,9 @@ export function Drawer({ title, children, onClose }: { title: string; children: 
       if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus()
     }
   }, [])
-  return <dialog className="drawer" ref={ref} aria-labelledby={id}
-    onCancel={(event) => { event.preventDefault(); onClose() }}>
+  return <dialog className={variant === 'sheet' ? 'drawer drawer-sheet' : 'drawer'} ref={ref} aria-labelledby={id}
+    onCancel={(event) => { event.preventDefault(); onClose() }}
+    onClick={(event) => { if (variant === 'sheet' && event.target === event.currentTarget) onClose() }}>
     <header className="drawer-header"><h2 id={id}>{title}</h2>
       <button className="icon-button" type="button" onClick={onClose} aria-label="Zamknij panel"><X size={20} /></button>
     </header><div className="drawer-body">{children}</div>

@@ -9,10 +9,11 @@ import { alternativesFor } from '../lib/training/generator'
 import { duration, plannedWorkout, sessionShortName, sessionTitle, stopwatch } from '../lib/training/format'
 import { findExercise } from '../lib/training/library'
 import { clearProgress, newProgress, progressScope, readProgress, writeProgress, type WorkoutProgress } from '../lib/training/progress'
+import { draftsToSets, formatSet, lastSets, setDraftFrom, takesLoad, type SetDraft } from '../lib/training/sets'
 import { blockOf, partLabels, workoutSteps, type TimerPhase, type WorkoutStep } from '../lib/training/steps'
 import { ExerciseVideo } from '../components/ExerciseVideo'
 import { WorkoutDrawer } from '../components/WorkoutDrawer'
-import { Brand, Button, Drawer, Notice, Skeleton } from '../components/ui'
+import { Brand, Button, Drawer, Field, Notice, Skeleton } from '../components/ui'
 
 const SOUND_KEY = 'flexa:workout-sound'
 type Signals = { prime: () => void; beep: (kind: 'tick' | 'end') => void }
@@ -73,6 +74,23 @@ function useWakeLock(active: boolean) {
 const add = (list: string[], id: string) => list.includes(id) ? list : [...list, id]
 const without = (list: string[], ids: string[]) => list.filter((item) => !ids.includes(item))
 const nameOf = (step: WorkoutStep) => findExercise(step.exercise)?.name ?? 'Ćwiczenie'
+/** Strength sets with a repetition target can optionally record what was actually done. */
+const loggable = (step: WorkoutStep) => step.part === 'main' && step.phases === null && findExercise(step.exercise)?.measure === 'reps'
+const hasValue = (draft: SetDraft) => draft.reps.trim() !== '' || draft.weight.trim() !== ''
+
+function SetLog({ step, draft, suggestion, onChange }: { step: WorkoutStep; draft: SetDraft; suggestion: string | null; onChange: (draft: SetDraft) => void }) {
+  const load = takesLoad(step.exercise)
+  return <fieldset className="player-setlog">
+    <legend>Twoja seria <span>(opcjonalnie)</span></legend>
+    <div className="player-setlog-fields">
+      <Field label="Powtórzenia"><input type="number" inputMode="numeric" min="1" max="100" step="1" value={draft.reps}
+        onChange={(event) => onChange({ ...draft, reps: event.target.value })} /></Field>
+      {load && <Field label="Ciężar (kg)"><input type="number" inputMode="decimal" min="0" max="500" step="0.25" value={draft.weight}
+        onChange={(event) => onChange({ ...draft, weight: event.target.value })} /></Field>}
+    </div>
+    <p className="player-setlog-hint">{suggestion ? `Wpisano wartości z ostatniego zapisu (${suggestion}). ` : ''}Możesz zostawić puste — „Skończone” działa tak samo.</p>
+  </fieldset>
+}
 
 function StepTimer({ phases, now, signals, onFinish }: { phases: TimerPhase[]; now: number; signals: Signals; onFinish: () => void }) {
   const total = phases.reduce((sum, phase) => sum + phase.seconds, 0) * 1000
@@ -128,6 +146,9 @@ export function WorkoutPlayer() {
 
 function Player({ plan, session, sessionIndex }: { plan: TrainingPlan; session: PlanSession; sessionIndex: number }) {
   const auth = useAuth()
+  const { data } = useJournal()
+  const workouts = data?.workouts
+  const history = useMemo(() => lastSets(workouts ?? []), [workouts])
   const scope = progressScope(auth.mode, auth.session?.user.id)
   const steps = useMemo(() => workoutSteps(session), [session])
   const title = sessionTitle(session, sessionIndex, plan.answers.goal)
@@ -186,18 +207,38 @@ function Player({ plan, session, sessionIndex }: { plan: TrainingPlan; session: 
     for (let index = from + 1; index < steps.length; index++) if (!skip.has(steps[index].id)) return index
     return -1
   }
-  function moveOn(doneIds: string[], skippedIds: string[], rest: number) {
+  function moveOn(doneIds: string[], skippedIds: string[], rest: number, sets = state.sets) {
     const target = nextIndex(state.index, new Set(skippedIds))
     const time = Date.now()
     setShowResumed(false)
-    if (target < 0) { setState({ ...state, done: doneIds, skipped: skippedIds, rest: null, finishedAt: time }); return }
-    setState({ ...state, done: doneIds, skipped: skippedIds, index: target, rest: rest > 0 ? { endsAt: time + rest * 1000, total: rest, from: state.index } : null })
+    if (target < 0) { setState({ ...state, sets, done: doneIds, skipped: skippedIds, rest: null, finishedAt: time }); return }
+    setState({ ...state, sets, done: doneIds, skipped: skippedIds, index: target, rest: rest > 0 ? { endsAt: time + rest * 1000, total: rest, from: state.index } : null })
     setNow(time)
     if (rest > 0) announce(`${rest <= 20 ? 'Zmiana ćwiczenia' : 'Chwila przerwy'}: ${duration(rest)}.`)
   }
+  function prefill(index: number): { draft: SetDraft; suggestion: string | null } {
+    const current = steps[index]
+    const saved = state.sets[current.id]
+    if (saved) return { draft: saved, suggestion: null }
+    for (let earlier = index - 1; earlier >= 0; earlier--) {
+      const previous = state.sets[steps[earlier].id]
+      if (previous && steps[earlier].exercise === current.exercise) return { draft: previous, suggestion: null }
+    }
+    const last = history.get(current.exercise)
+    if (!last || (last.reps === null && last.weightKg === null)) return { draft: { reps: '', weight: '' }, suggestion: null }
+    const draft = setDraftFrom(last)
+    return { draft: takesLoad(current.exercise) ? draft : { ...draft, weight: '' }, suggestion: formatSet(last) }
+  }
   function complete() {
     signals.prime()
-    moveOn(add(state.done, step.id), without(state.skipped, [step.id]), step.rest)
+    let sets = state.sets
+    if (loggable(step)) {
+      const { draft } = prefill(state.index)
+      sets = { ...sets }
+      if (hasValue(draft)) sets[step.id] = draft
+      else delete sets[step.id]
+    }
+    moveOn(add(state.done, step.id), without(state.skipped, [step.id]), step.rest, sets)
   }
   function skipExercise() {
     const ids = steps.filter((item, index) => index >= state.index && item.exercise === step.exercise && blockOf(item) === blockOf(step)).map((item) => item.id)
@@ -235,6 +276,7 @@ function Player({ plan, session, sessionIndex }: { plan: TrainingPlan; session: 
   const exercise = findExercise(step.exercise)
   const options = alternativesFor(step.exercise, plan.answers)
   const minutes = Math.max(1, Math.min(600, Math.round(elapsed / 60)))
+  const loggedSets = draftsToSets(steps, state.done, state.sets)
 
   return <div className="player-layout">
     <header className="player-header">
@@ -260,6 +302,7 @@ function Player({ plan, session, sessionIndex }: { plan: TrainingPlan; session: 
           <div><dt>Czas</dt><dd>{minutes} min</dd></div>
           <div><dt>Wykonane kroki</dt><dd>{state.done.length} z {steps.length}</dd></div>
           {state.skipped.length > 0 && <div><dt>Pominięte</dt><dd>{state.skipped.length}</dd></div>}
+          {loggedSets.length > 0 && <div><dt>Serie z wynikiem</dt><dd>{loggedSets.length}</dd></div>}
         </dl>
         <p className="player-lead">Zapisz trening, aby zobaczyć go w aktywnościach i podsumowaniu tygodnia.</p>
         <div className="button-row">
@@ -287,6 +330,11 @@ function Player({ plan, session, sessionIndex }: { plan: TrainingPlan; session: 
         <p className="player-dose"><strong>{step.target}</strong>{step.progress && <span>{step.progress}</span>}</p>
         {step.notes.length > 0 && <p className="player-notes">{step.notes.join(' · ')}</p>}
         {step.hint && <p className="player-hint">{step.hint}</p>}
+        {loggable(step) && (() => {
+          const { draft, suggestion } = prefill(state.index)
+          return <SetLog key={step.id} step={step} draft={draft} suggestion={suggestion}
+            onChange={(next) => setState({ ...state, sets: { ...state.sets, [step.id]: next } })} />
+        })()}
         {step.phases && <StepTimer key={step.id} phases={step.phases} now={now} signals={signals} onFinish={complete} />}
         <ExerciseVideo key={step.exercise} exerciseId={step.exercise} name={nameOf(step)} />
         {exercise && <section className="player-technique" aria-labelledby="player-technique">
@@ -327,6 +375,6 @@ function Player({ plan, session, sessionIndex }: { plan: TrainingPlan; session: 
         <Button variant="secondary" onClick={() => { setListOpen(false); setState({ ...state, rest: null, finishedAt: Date.now() }) }}>Zakończ trening teraz</Button>
       </div>}
     </Drawer>}
-    {saving && <WorkoutDrawer date={today()} preset={{ ...plannedWorkout(session, sessionIndex, plan.answers.goal), minutes }} onClose={() => setSaving(false)} />}
+    {saving && <WorkoutDrawer date={today()} preset={{ ...plannedWorkout(session, sessionIndex, plan.answers.goal), minutes, sets: loggedSets }} onClose={() => setSaving(false)} />}
   </div>
 }

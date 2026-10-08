@@ -27,7 +27,7 @@ test('GitHub Pages includes the full local demo with relative assets and reload-
   await expect(page.getByRole('heading', { name: 'Dziennik żywienia', exact: true })).toBeVisible()
   const settings = page.locator('nav:visible a[href="#/settings"]')
   if (await settings.count() > 0) await settings.click()
-  else await page.getByRole('link', { name: 'Otwórz ustawienia konta' }).click()
+  else await page.getByRole('link', { name: /^Konto:/ }).click()
   await expect(page.getByRole('heading', { name: 'Cele i konto', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Eksportuj dane JSON' })).toBeVisible()
   await page.goto(`${origin}/app/#/kitchen`)

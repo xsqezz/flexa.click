@@ -158,10 +158,32 @@ Hints use `aria-describedby`. Inputs have a white fill, thin neutral border and
 at least 44px height. Preserve units, required-state validation and error messages.
 
 **Navigation.** Named line-icon links use muted ink at rest and pale green with
-pine text when active. On phones keep all six primary destinations (Dzisiaj,
-Dziennik, Kuchnia, Plan, Treningi, Postępy) available in the bottom bar; items share
-the width equally and use short labels. Account settings stay reachable from the
-44px avatar in the top bar.
+pine text when active. Five destinations (Dzisiaj, Dziennik, Kuchnia, Trening,
+Postępy) share the rail and the phone's bottom bar. "Trening" covers two views, Plan
+and Historia, switched by a segmented control at the top of both pages. On phones
+a round pine "Dodaj" button sits in the middle of the bottom bar and opens the
+quick-add sheet; on desktop the same sheet opens from "Dodaj" in the top bar. Bottom
+bar labels are at least 11px. Account settings stay reachable from the labelled
+"Konto" link (44px avatar plus text) in the top bar, and "Szukaj" (Ctrl+K) opens the
+command palette beside it.
+
+**Quick add and search.** "Dodaj" is a bottom sheet on phones and a right-hand drawer
+on desktop: two-column grid of 64px action rows (posiłek, skan, woda, trening, pomiar,
+przepis, dzisiejszy trening). The command palette is a centered dialog (640px) with a
+combobox, a listbox of pages, actions and diary entries, and visible key hints.
+
+**Day navigation.** A seven-day strip (day, number, kcal, dot for days with entries)
+sits under the date control in the Dziennik; arrow keys, T and horizontal swipes on
+Dzisiaj and Dziennik move between days.
+
+**Undo.** Removing a diary entry hides it at once and shows a toast with "Cofnij" for
+8 seconds; the deletion is written only when the toast goes away. Confirmation
+drawers are reserved for destructive account-level actions.
+
+**Dark theme.** Follows the system setting. `app/src/theme-dark.css` is generated from
+`styles.css` by `scripts/build-dark-theme.mjs` (OKLab: light fills darken, dark text
+lightens, hue stays); regenerate it after changing colors. Pine becomes `#7cc59a` for
+text and borders, while filled buttons use `#2f7650` so white text keeps 4.5:1.
 
 **Smart Kuchnia.** A flat panel under the page header with a three-step strip
 (Produkty, Preferencje, Przepis) whose current step is pale green with a pine
