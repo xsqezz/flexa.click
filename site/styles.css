@@ -75,6 +75,13 @@ h2 { font-size: 2.3rem; line-height: 1.14; letter-spacing: -.035em; font-weight:
 .honest-note a { display: block; margin-top: 23px; font-size: .82rem; text-decoration: none; }
 .closing { text-align: center; padding: 90px 25px; }
 .closing p { margin: 18px 0 25px; color: #536752; font-size: .94rem; }
+.android-section { max-width: 1210px; margin: 0 auto; padding: 68px 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr 1fr; gap: 100px; align-items: start; }
+.android-section p { color: #536752; margin: 20px 0 26px; max-width: 46ch; }
+.android-steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+.android-steps li { counter-increment: step; display: grid; grid-template-columns: 34px 1fr; gap: 14px; padding: 22px 0; border-top: 1px solid var(--line); color: #536752; font-size: .9rem; line-height: 1.6; }
+.android-steps li:first-child { border-top: 0; padding-top: 4px; }
+.android-steps li::before { content: counter(step); font-weight: 600; color: var(--pine); }
+.android-steps strong { display: block; color: #20352b; font-weight: 600; }
 .site-footer { max-width: 1290px; margin: 0 auto; padding: 29px 40px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 35px; }
 .site-footer > .brand { font-size: 1.4rem; }
 .site-footer p { color: #617265; font-size: .72rem; flex: 1; }
@@ -91,7 +98,7 @@ h2 { font-size: 2.3rem; line-height: 1.14; letter-spacing: -.035em; font-weight:
 .guide code { background: #eaf0e5; padding: 2px 5px; border-radius: 4px; }
 .guide .guide-date { font-size: .78rem; padding-top: 25px; margin-top: 40px; border-top: 1px solid var(--line); }
 @media (max-width: 1290px) {
-  .intro, .feature-ledger { margin-inline: 40px; }
+  .intro, .feature-ledger, .android-section { margin-inline: 40px; }
   .hero { gap: 45px; }
   .hero h1 { font-size: 4.1rem; }
   .free-section { gap: 60px; }
@@ -107,6 +114,7 @@ h2 { font-size: 2.3rem; line-height: 1.14; letter-spacing: -.035em; font-weight:
   .board-header strong { font-size: .86rem; }
   .board-nutrition strong { font-size: 2.1rem; }
   .intro { gap: 45px; }
+  .android-section { gap: 45px; }
   h2 { font-size: 2rem; }
   .feature-ledger > article { gap: 25px; grid-template-columns: .9fr 1.3fr; }
   .feature-detail { grid-column: 2; padding-left: 0; }
@@ -128,6 +136,7 @@ h2 { font-size: 2.3rem; line-height: 1.14; letter-spacing: -.035em; font-weight:
   .board-meal { padding: 17px 0; }
   .intro { grid-template-columns: 1fr; gap: 22px; margin-inline: 23px; padding-top: 43px; }
   .intro p { font-size: .91rem; }
+  .android-section { grid-template-columns: 1fr; gap: 22px; margin-inline: 23px; padding-block: 43px; }
   .feature-ledger { margin-inline: 23px; padding-bottom: 42px; }
   .feature-ledger > article { grid-template-columns: 1fr; gap: 15px; padding-block: 25px; }
   .feature-title { justify-content: space-between; }

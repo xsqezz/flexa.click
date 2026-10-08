@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Brand, Notice } from '../components/ui'
+import { ANDROID_CERT_SHA256 } from '../lib/native'
 import { privacyContact, privacyOperator } from '../lib/supabase'
 
 export function InformationPage({ kind }: { kind: 'privacy' | 'sources' }) {
@@ -9,7 +10,7 @@ export function InformationPage({ kind }: { kind: 'privacy' | 'sources' }) {
       <h1>Twój dziennik. Twoja prywatność.</h1>
       {(!privacyOperator || !privacyContact) && <Notice>Informacje o administratorze nie są jeszcze skonfigurowane. Publiczna rejestracja pozostaje wyłączona. Demo nie wysyła dziennika do chmury.</Notice>}
       <p>Administrator: {privacyOperator || 'do uzupełnienia przed uruchomieniem kont'}. Kontakt: {privacyContact ? <a href={`mailto:${privacyContact}`}>{privacyContact}</a> : 'do uzupełnienia'}.
-        Wersja zgody: 6 października 2026. Informację o poczcie, planie treningowym i filmach instruktażowych uzupełniono 7 października 2026, a o Smart Kuchni — 8 października 2026.</p>
+        Wersja zgody: 6 października 2026. Informację o poczcie, planie treningowym i filmach instruktażowych uzupełniono 7 października 2026, a o Smart Kuchni i aplikacji na Androida — 8 października 2026.</p>
       <h2>Co zapisujemy i dlaczego</h2>
       <p>Adres e-mail i dane uwierzytelnienia obsługuje Supabase Auth. Profil, wybrane cele, posiłki, własne produkty, wodę, aktywności, pomiary oraz — jeśli go utworzysz — plan treningowy przechowujemy, aby prowadzić Twój prywatny dziennik i synchronizować go między urządzeniami.
         Dane o zdrowiu mogą należeć do szczególnych kategorii danych. Rejestracja wymaga wyraźnej zgody na ich przetwarzanie w tym celu i potwierdzenia pełnoletności.</p>
@@ -28,6 +29,9 @@ export function InformationPage({ kind }: { kind: 'privacy' | 'sources' }) {
       <p>Zdjęcie lodówki jest opcjonalne i działa po zalogowaniu. Dopiero po zaznaczeniu zgody pomniejszamy je w przeglądarce, usuwamy dane EXIF (np. lokalizację) i wysyłamy przez funkcję Flexa do modelu Cloudflare Workers AI, który wypisuje widoczne produkty. Żeby nie pomijać małych produktów, większe zdjęcia wysyłamy w całości oraz jako cztery powiększone fragmenty. Nie zapisujemy zdjęcia ani jego treści. Podglądowe zdjęcie potrawy generuje drugi model na podstawie samych nazw składników i rodzaju dania — nie wysyłamy do niego Twojego zdjęcia ani danych z konta. Zliczamy dzienne użycie na konto (kilka zdjęć i obrazów dziennie), aby mieścić się w darmowym limicie. Cloudflare może zapisywać techniczne logi żądań. Wygenerowane obrazy są poglądowe i mogą odbiegać od prawdziwego dania. Zgodę na zdjęcia cofniesz w panelu zdjęcia w Smart Kuchni przyciskiem „Cofnij zgodę”.</p>
       <h2>Kamera i pliki aktywności</h2>
       <p>Skaner prosi o zgodę na kamerę. Obraz jest odczytywany lokalnie i kamera zostaje zatrzymana po skanie lub zamknięciu panelu. Import GPX/TCX również odbywa się lokalnie. Do bazy trafiają tylko zatwierdzone podsumowania, nie współrzędne ani oryginalny plik.</p>
+      <h2>Aplikacja na Androida</h2>
+      <p>Aplikacja jest powłoką, która otwiera tę samą stronę Flexa, więc Twoje dane przetwarzamy tak samo jak w przeglądarce. Prosi o dostęp do internetu, do kamery (skaner kodów i zdjęcie lodówki) oraz o możliwość zainstalowania własnej aktualizacji. Nie zawiera reklam ani analityki, a sesja logowania zostaje w pamięci aplikacji i nie trafia do kopii zapasowej Androida.</p>
+      <p>Przy uruchomieniu aplikacja pobiera z GitHuba (repozytorium xsqezz/flexa.click, zakładka Releases) mały plik z numerem najnowszej wersji. GitHub widzi wtedy adres IP oraz nazwę aplikacji z numerem wersji, ale nie dane z dziennika. Aktualizację zainstaluje Android tylko wtedy, gdy plik jest podpisany kluczem Flexa i potwierdzisz instalację.</p>
       <h2>Eksport, poprawianie i usunięcie</h2>
       <p>W ustawieniach możesz pobrać eksport JSON (zawiera także plan treningowy z odpowiedziami), zmienić cele oraz usunąć konto. Odpowiedzi z ankiety zmienisz w zakładce Plan. Pomyłkę w zapisie posiłku lub treningu poprawisz przez usunięcie wpisu i dodanie prawidłowego. Pomiar zapisany ponownie w tym samym dniu zastępuje poprzedni.</p>
       <p>Usunięcie konta usuwa powiązane rekordy z aktywnej bazy. Techniczne logi i ewentualne kopie dostawcy wygasają według jego zasad retencji; administrator musi podać obowiązujący zakres przed publicznym startem. Nie obiecujemy natychmiastowego usunięcia z każdej kopii infrastruktury.</p>
@@ -54,6 +58,8 @@ export function InformationPage({ kind }: { kind: 'privacy' | 'sources' }) {
       <p>Do ćwiczeń w planie dołączamy publicznie dostępne filmy z YouTube, osadzane oficjalnym odtwarzaczem dopiero po kliknięciu. Prawa do nagrań mają ich autorzy; przy filmie pokazujemy tytuł i kanał. Nie kopiujemy ani nie hostujemy nagrań, a dostępność każdego filmu sprawdzamy przez oficjalny interfejs oEmbed. Gdy filmu brakuje, aplikacja proponuje wyszukanie ćwiczenia na YouTube.</p>
       <h2>Smart Kuchnia</h2>
       <p>Wartości odżywcze ponad 140 składników to zaokrąglone, przybliżone średnie z ogólnodostępnych tablic składu żywności (m.in. USDA FoodData Central i polskich tabel); konkretny produkt może się różnić, więc sprawdzaj etykietę. Przepisy powstają z reguł zapisanych w aplikacji, a nie z kopiowania serwisów kulinarnych. Rozpoznawanie produktów na zdjęciu i podglądowe obrazy potraw korzystają z modeli dostępnych w Cloudflare Workers AI (m.in. Google Gemma 4, Meta Llama 4 Scout oraz FLUX.1 schnell od Black Forest Labs) na licencjach ich autorów.</p>
+      <h2>Aplikacja na Androida</h2>
+      <p>Plik APK jest budowany z kodu w katalogu <code>android</code> repozytorium przez GitHub Actions i podpisywany kluczem Flexa. Przed instalacją możesz porównać odcisk SHA-256 certyfikatu: <code className="fingerprint">{ANDROID_CERT_SHA256}</code>. Wydania i sumy kontrolne znajdziesz w zakładce Releases repozytorium.</p>
       <h2>Czego obecnie nie obiecujemy</h2>
       <p>API Stravy zabrania aplikacji konkurujących z jej funkcjami; integracja jest wyłączona do uzyskania akceptacji.
         Nie ma dostępu do jej segmentów czy rankingów. Apple Health i Health Connect nie są dostępne bez natywnej integracji. Szacowanie kalorii gotowych posiłków ze zdjęcia talerza, społeczność i mapy tras nie są częścią tej wersji; zdjęcie w Smart Kuchni służy wyłącznie do rozpoznania produktów.</p>

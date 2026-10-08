@@ -18,6 +18,8 @@ if (process.env.FLEXA_APP_URL?.trim()) {
   }
 }
 const escape = (value) => value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+const androidUrl = new URL(process.env.FLEXA_ANDROID_URL?.trim() || 'https://github.com/xsqezz/flexa.click/releases/latest/download/flexa.apk')
+if (androidUrl.protocol !== 'https:') throw new Error('FLEXA_ANDROID_URL must use HTTPS.')
 for (const file of ['index.html', 'setup.html', 'styles.css', 'favicon.svg']) {
   const output = join(destination, file)
   if (file.endsWith('.html')) {
@@ -25,6 +27,7 @@ for (const file of ['index.html', 'setup.html', 'styles.css', 'favicon.svg']) {
       .replaceAll('{{APP_URL}}', () => escape(app?.origin ?? (withDemo ? 'app/#/demo' : 'setup.html')))
       .replaceAll('{{DEMO_URL}}', () => escape(withDemo ? 'app/#/demo' : app ? `${app.origin}/demo` : 'setup.html#demo'))
       .replaceAll('{{APP_CTA}}', app ? 'Otwórz aplikację' : withDemo ? 'Otwórz demo Flexa' : 'Jak uruchomić Flexa')
+      .replaceAll('{{ANDROID_URL}}', () => escape(androidUrl.href))
     writeFileSync(output, html)
   } else copyFileSync(join('site', file), output)
 }

@@ -218,6 +218,10 @@ input::placeholder { color: #718177; }
 .settings-grid h2 { margin-bottom: 15px; }
 .settings-grid .form-stack { margin-top: 23px; }
 .settings-grid > .panel { min-width: 0; }
+.app-steps { margin: 12px 0 0; padding-left: 20px; }
+.app-steps li + li { margin-top: 4px; }
+.settings-grid p > svg { vertical-align: -3px; margin-right: 6px; color: var(--pine); }
+.settings-grid .panel > p + p { margin-top: 12px; }
 .danger-zone { margin-top: 25px; padding-top: 25px; border-top: 1px solid var(--line); }
 .danger-zone h3 { color: #903631; margin-bottom: 8px; }
 .workouts-list { display: flex; flex-direction: column; gap: 16px; }
@@ -254,6 +258,7 @@ th { font-weight: 600; }
 .information-page p + p { margin-top: 15px; }
 .information-page ul { padding-left: 22px; }
 .information-page li { margin: 7px 0; }
+.information-page .fingerprint { overflow-wrap: anywhere; font-size: .8rem; }
 .information-page footer { border-top: 1px solid var(--line); margin-top: 45px; padding-top: 20px; font-size: .8rem; }
 .wizard-layout { min-height: 100dvh; display: flex; flex-direction: column; }
 .wizard-header, .wizard-progress, .wizard-main { width: 100%; max-width: 740px; margin: 0 auto; padding-inline: 24px; }

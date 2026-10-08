@@ -9,6 +9,7 @@ import { DEMO_KEY } from '../lib/demo'
 import { callFunction } from '../lib/functions'
 import { downloadJournal } from '../lib/export'
 import { useFeedback } from '../components/Feedback'
+import { AndroidAppPanel } from '../components/AndroidAppPanel'
 import { PageHeader } from '../components/Workspace'
 import { Button, Confirm, Drawer, Field, Notice, errorMessage } from '../components/ui'
 
@@ -93,6 +94,7 @@ export function SettingsPage() {
             }}>{auth.mode === 'demo' ? 'Wyzeruj demo' : 'Usuń konto i dane'}</Button></div>
           </div>
         </section>
+        <AndroidAppPanel />
         <section className="panel"><h2>Integracje bez niespodzianek</h2><p>Import GPX/TCX jest niezależny od zewnętrznych kont. API Stravy wymaga osobnej akceptacji jej zasad — nie jest włączone.</p>
           <p style={{ marginTop: 12 }}>Apple Health i Health Connect wymagają aplikacji natywnej. Nie udajemy, że strona internetowa synchronizuje te dane.</p>
           <div className="button-row"><Link className="text-link" to="/sources">Źródła, licencje i ograniczenia</Link></div>

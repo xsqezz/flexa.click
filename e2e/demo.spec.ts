@@ -140,6 +140,39 @@ test('water, goals, measurements, complete JSON export and demo reset', async ({
   await expect(page.getByRole('heading', { name: 'Dobrze Cię widzieć' })).toBeVisible()
 })
 
+test('settings offer the Android app in a browser', async ({ page }) => {
+  await openDemo(page)
+  await navigate(page, '/settings')
+  await expect(page.getByRole('heading', { name: 'Aplikacja na Androida' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Pobierz Flexa (APK)' }))
+    .toHaveAttribute('href', 'https://github.com/xsqezz/flexa.click/releases/latest/download/flexa.apk')
+  await expect(page.getByRole('button', { name: 'Sprawdź aktualizacje' })).toHaveCount(0)
+})
+
+test.describe('inside the Android app', () => {
+  test.use({ userAgent: 'Mozilla/5.0 (Linux; Android 16; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36 FlexaAndroid/1.2.3' })
+
+  test('shows the version, checks for updates and hands exports to the native save dialog', async ({ page }) => {
+    await page.addInitScript(() => {
+      const messages: string[] = []
+      Object.assign(window, { nativeMessages: messages, flexaNative: { postMessage: (message: string) => messages.push(message) } })
+    })
+    await openDemo(page)
+    await navigate(page, '/settings')
+    await expect(page.getByText('Korzystasz z aplikacji Flexa na Androida, wersja 1.2.3.')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Pobierz Flexa (APK)' })).toHaveCount(0)
+    await accessible(page)
+    await page.getByRole('button', { name: 'Sprawdź aktualizacje' }).click()
+    await page.getByRole('button', { name: 'Eksportuj dane JSON' }).click()
+    const messages = await page.evaluate(() => (window as unknown as { nativeMessages: string[] }).nativeMessages.map((message) => JSON.parse(message) as Record<string, string>))
+    expect(messages).toHaveLength(2)
+    expect(messages[0]).toEqual({ type: 'check-update' })
+    expect(messages[1]).toMatchObject({ type: 'save-file', mime: 'application/json' })
+    expect(messages[1].name).toMatch(/^flexa-demo-\d{4}-\d{2}-\d{2}\.json$/)
+    expect((JSON.parse(messages[1].text) as { mode: string }).mode).toBe('demo')
+  })
+})
+
 test('workout and GPX import, duplicate prevention and deleted import recovery', async ({ page }) => {
   await openDemo(page)
   await navigate(page, '/workouts')
@@ -378,6 +411,8 @@ test('all main pages, dialog, privacy and landing are accessible without overflo
   await accessible(page)
   await page.goto('http://127.0.0.1:4174')
   await expect(page.getByRole('heading', { name: /Jedzenie.*Ruch.*Twój rytm/ })).toBeVisible()
+  await expect(page.locator('#android').getByRole('link', { name: /Pobierz Flexa \(\.apk\)/ }))
+    .toHaveAttribute('href', 'https://github.com/xsqezz/flexa.click/releases/latest/download/flexa.apk')
   await accessible(page)
   await page.getByRole('link', { name: /Zobacz źródła, koszty i granice/ }).click()
   await expect(page.getByRole('heading', { name: /Co jest potrzebne/ })).toBeVisible()
