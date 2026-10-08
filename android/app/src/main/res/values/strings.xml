@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Flexa</string>
 
     <string name="update_title">Dostępna aktualizacja Flexa</string>
@@ -40,4 +40,16 @@
     <string name="save_failed">Nie udało się zapisać pliku.</string>
     <string name="download_unsupported">Tego pliku nie da się pobrać w aplikacji.</string>
     <string name="cannot_open_link">Nie znaleziono aplikacji, która otworzy ten link.</string>
+
+    <string name="reminder_channel_training">Przypomnienia o treningu</string>
+    <string name="reminder_channel_training_description">W dni treningowe z Twojego planu, o wybranej godzinie.</string>
+    <string name="reminder_channel_water">Przypomnienia o wodzie</string>
+    <string name="reminder_channel_water_description">Co kilka godzin w wybranym przedziale dnia.</string>
+    <string name="reminder_training_heading">Dzień treningowy</string>
+    <!-- „ok.” to polski skrót od „około”. -->
+    <string name="reminder_training_session" tools:ignore="Typos">Dziś w planie trening: %1$s · ok. %2$d min</string>
+    <string name="reminder_training_title">Dziś w planie trening: %1$s</string>
+    <string name="reminder_training_generic">Dziś dzień treningowy w Twoim planie</string>
+    <string name="reminder_water_heading">Woda</string>
+    <string name="reminder_water_text">Może szklanka wody? Dopisz ją w Flexa, kiedy Ci wygodnie.</string>
 </resources>

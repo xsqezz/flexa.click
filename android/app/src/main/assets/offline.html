@@ -15,6 +15,13 @@
     button:active { background: #1d4933; }
     button:focus-visible { outline: 3px solid #336fac; outline-offset: 2px; }
     small { display: block; margin-top: 18px; font-size: .875rem; color: #617068; }
+    @media (prefers-color-scheme: dark) {
+      :root { color: #e3ece6; background: #0f1612; color-scheme: dark; }
+      p, small { color: #a3b4aa; }
+      button { background: #2f7650; }
+      button:active { background: #256140; }
+      button:focus-visible { outline-color: #7fb2e6; }
+    }
   </style>
 </head>
 <body>

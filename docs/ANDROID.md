@@ -124,14 +124,72 @@ okna zainstaluje się wersja 1.0.1 (`adb shell dumpsys package click.flexa.app.d
 - Kamera: skaner kodów kreskowych i zdjęcie lodówki (Smart Kuchnia); Android prosi o zgodę w chwili użycia.
   Strona dostaje wyłącznie wideo i tylko z adresu aplikacji.
 - Wybór plików (import GPX/TCX, zdjęcia) przez systemowy wybierak; zdjęcia z aparatu przez `FileProvider`.
-- Eksport danych JSON przez okno „Zapisz jako” (kanał `window.flexaNative`, dostępny tylko dla adresu aplikacji;
-  komunikaty `save-file` i `check-update`). Strona rozpoznaje aplikację po `FlexaAndroid/<wersja>` w User-Agent
-  (zob. `app/src/lib/native.ts`).
+- Eksport danych przez okno „Zapisz jako” (kanał `window.flexaNative`, dostępny tylko dla adresu aplikacji;
+  komunikaty `save-file` i `check-update`). Typy plików: JSON (`application/json`, `.json`) i od wersji 1.1.0
+  CSV (`text/csv`, `.csv`); nazwa jest oczyszczana i zawsze dostaje rozszerzenie zgodne z typem. Strona rozpoznaje
+  aplikację po `FlexaAndroid/<wersja>` w User-Agent (zob. `app/src/lib/native.ts`: `canSaveNatively`, `saveFileNatively`).
+- Przypomnienia (od 1.1.0, opisane niżej).
 - Brak sieci: ekran „Brak połączenia z internetem” z przyciskiem i automatycznym wczytaniem po powrocie sieci.
 - Przycisk „Wstecz” cofa historię strony; na jej początku zamyka aplikację.
 - Uprawnienia: `INTERNET`, `ACCESS_NETWORK_STATE`, `CAMERA`, `VIBRATE` (sygnał końca treningu),
-  `REQUEST_INSTALL_PACKAGES` (instalacja aktualizacji). Bez reklam, analityki i zewnętrznych bibliotek śledzących;
+  `REQUEST_INSTALL_PACKAGES` (instalacja aktualizacji), `POST_NOTIFICATIONS` (przypomnienia; Android 13+ pyta
+  o zgodę dopiero, gdy włączysz przypomnienie), `RECEIVE_BOOT_COMPLETED` (przywrócenie przypomnień po restarcie
+  telefonu). Bez reklam, analityki i zewnętrznych bibliotek śledzących;
   kopie zapasowe Androida są wyłączone (`allowBackup=false`). Szczegóły: strona „Prywatność” w aplikacji.
+
+## Przypomnienia (od wersji 1.1.0)
+
+Dobrowolne, domyślnie wyłączone powiadomienia, bez liczenia serii i bez upominania:
+
+- **trening** — w dni treningowe z planu (albo w dni wybrane ręcznie, gdy nie ma planu), o wybranej godzinie:
+  „Dziś w planie trening: Dzień 1: Całe ciało A · ok. 45 min” (bez nazwy: „Dziś dzień treningowy w Twoim planie”).
+  Dotknięcie otwiera `/plan`. Powiadomienie znika samo o północy.
+- **woda** — co 1–4 godziny w wybranym przedziale (np. 9:00–21:00, przypomnienia o 9, 11, …, 21).
+  Dotknięcie otwiera stronę główną. Kolejne przypomnienie zastępuje poprzednie, a niezauważone znika po N godzinach.
+
+Ustawienia są w **Ustawienia → Przypomnienia** (tylko w aplikacji; starsza wersja pokazuje „Zaktualizuj aplikację,
+aby włączyć przypomnienia”). Kanały powiadomień: „Przypomnienia o treningu” i „Przypomnienia o wodzie” — każdy
+można wyciszyć lub wyłączyć w ustawieniach Androida. Gdy powiadomienia są zablokowane, strona to pokazuje
+i otwiera systemowe ustawienia powiadomień Flexa.
+
+**Prywatność:** ustawienia przypomnień (godziny, dni, nazwy treningów z planu) są zapisane wyłącznie w telefonie
+(`SharedPreferences`, bez kopii zapasowej) i nie trafiają na serwer. Aplikacja nie wie, czy trening się odbył:
+przypomnienie pojawia się w dzień treningowy niezależnie od wpisów.
+
+**Planowanie:** `AlarmManager` z alarmami niedokładnymi, bez uprawnienia `SCHEDULE_EXACT_ALARM`. Każdy termin ma dwa
+alarmy na tę samą godzinę: `setWindow` (okno 15 min, punktualny, gdy telefon jest w użyciu) i `setAndAllowWhileIdle`
+(dociera także w trybie Doze, czasem z opóźnieniem; na Androidzie 14+ najwyżej ok. godzinę). Pierwszy, który zadzwoni, pokazuje powiadomienie
+i planuje kolejny termin; duplikaty i przypomnienia spóźnione o ponad 90 min są pomijane. Wybraliśmy `AlarmManager`
+zamiast WorkManagera, bo potrzebujemy konkretnej godziny zegarowej (WorkManager nie gwarantuje pory i dokłada
+zależność), a tylko jednego alarmu na rodzaj przypomnienia. Godziny są liczone w strefie czasowej telefonu i trzymają
+się zegara przy zmianie czasu (godzina z „dziury” wiosennej przesuwa się o godzinę, podwójna jesienna dzwoni raz).
+Alarmy są odtwarzane po `BOOT_COMPLETED`, `TIMEZONE_CHANGED`, `TIME_SET`, `MY_PACKAGE_REPLACED` i przy każdym
+uruchomieniu aplikacji (np. po wymuszonym zatrzymaniu). Logika terminów: `reminders/ReminderSchedule.kt` (testy JVM).
+
+**Protokół** (`window.flexaNative`, tylko główna ramka adresu aplikacji). Strona wysyła:
+
+```jsonc
+{ "type": "reminders.get", "id": "r-1" }
+{ "type": "reminders.set", "id": "r-2",
+  "training": { "enabled": true, "time": "18:00", "weekdays": [0, 2, 4],          // 0 = poniedziałek … 6 = niedziela
+                "title": "opcjonalnie", "sessions": [{ "weekday": 0, "name": "Dzień 1: Całe ciało A", "minutes": 45 }] },
+  "water": { "enabled": true, "from": "09:00", "to": "21:00", "everyHours": 2 } }
+{ "type": "reminders.open-settings" }
+```
+
+Aplikacja odpowiada przez `JavaScriptReplyProxy` zdarzeniem `message` na `window.flexaNative`
+(`addEventListener('message', …)` albo `onmessage`) z tym samym `id`:
+`{ "type": "reminders.state", "id", "training", "water", "permission": "granted" | "denied" | "default", "supported": true }`
+albo `{ "type": "reminders.error", "id", "reason": "invalid" }`. Walidacja jest ścisła po obu stronach (nieznane pola,
+zły format godziny, dni spoza 0–6, powtórzenia, `everyHours` spoza 1–4, `from` ≥ `to`, teksty ponad 120 znaków
+odrzucają całość). `permission: "default"` oznacza Androida 13+ przed pierwszym pytaniem; `denied` — odmowę,
+wyłączone powiadomienia aplikacji albo wyłączony potrzebny kanał. Strona: `getReminders`, `setReminders`,
+`remindersSupported`, `openNotificationSettings` w `app/src/lib/native.ts` (limity czasu: 5 s odczyt, 2 min zapis,
+bo zapis może czekać na systemowe pytanie o zgodę).
+
+Ręczny test na emulatorze: zbuduj wersję debug z `-Pflexa.appUrl=http://localhost:4190`, uruchom podgląd strony
+(`npm run preview --workspace app -- --port 4190 --strictPort`), `adb reverse tcp:4190 tcp:4190`, włącz przypomnienie
+na godzinę za 1–2 minuty i sprawdź alarmy: `adb shell dumpsys alarm | findstr flexa`.
 
 ## Ograniczenia
 
@@ -143,7 +201,8 @@ okna zainstaluje się wersja 1.0.1 (`adb shell dumpsys package click.flexa.app.d
   niezarejestrowane da się wtedy instalować tylko „zaawansowanym trybem” (kilka dodatkowych kroków) albo przez adb.
   Zanim zasada obejmie Polskę, zarejestruj `click.flexa.app` i odcisk certyfikatu w Android Developer Console
   (<https://developer.android.com/developer-verification>).
-- Brak powiadomień push, Health Connect i Apple Health (tak jak w wersji przeglądarkowej). Brak wersji na iPhone'a.
+- Brak powiadomień push z serwera, Health Connect i Apple Health (tak jak w wersji przeglądarkowej); przypomnienia są
+  wyłącznie lokalne, planowane w telefonie. Brak wersji na iPhone'a.
 
 ## Gdzie co jest
 
@@ -151,6 +210,7 @@ okna zainstaluje się wersja 1.0.1 (`adb shell dumpsys package click.flexa.app.d
 | --- | --- |
 | `android/app/src/main/kotlin/click/flexa/app/MainActivity.kt` | okno z `WebView`, marginesy systemowe, tryb offline |
 | `.../web/` | polityka nawigacji, kanał strona→aplikacja, wybór plików, kamera, zapis plików |
+| `.../reminders/` | przypomnienia: ustawienia i walidacja, terminy, alarmy, powiadomienia, zgoda na powiadomienia |
 | `.../update/` | sprawdzanie `update.json`, pobieranie, instalacja, okna aktualizacji |
 | `android/version.properties`, `release-notes.txt`, `signing-fingerprint.txt` | wersja, opis zmian, odcisk klucza |
 | `scripts/android-*.mjs`, `scripts/lib/android-version.mjs` | wydanie, `update.json`, klucz, serwer testowy (testy: `scripts/android.test.mjs`) |

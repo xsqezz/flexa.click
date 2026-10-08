@@ -2,13 +2,17 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ANDROID_APK_URL, ANDROID_CERT_SHA256, androidAppVersion, checkAppUpdate, saveJsonNatively } from './native'
+import {
+  ANDROID_APK_URL, ANDROID_CERT_SHA256, androidAppVersion, canSaveNatively, checkAppUpdate, getReminders, openNotificationSettings,
+  remindersSupported, saveFileNatively, saveJsonNatively, setReminders, type ReminderSettings,
+} from './native'
 
 function userAgent(value: string) {
   vi.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue(value)
 }
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.restoreAllMocks()
   delete (window as unknown as { flexaNative?: unknown }).flexaNative
 })
@@ -63,6 +67,153 @@ describe('messages to the Android app', () => {
   it('ignores an object that is not a message channel', () => {
     ;(window as unknown as { flexaNative: unknown }).flexaNative = { postMessage: 'nope' }
     expect(saveJsonNatively('a.json', '{}')).toBe(false)
+  })
+
+  it('hands CSV files only to app versions that can save them', () => {
+    const postMessage = vi.fn()
+    ;(window as unknown as { flexaNative: unknown }).flexaNative = { postMessage }
+    userAgent('Mozilla/5.0 Chrome/133 Mobile Safari/537.36 FlexaAndroid/1.0.4')
+    expect(canSaveNatively('application/json')).toBe(true)
+    expect(canSaveNatively('text/csv')).toBe(false)
+    expect(saveFileNatively('posilki.csv', 'a;b', 'text/csv')).toBe(false)
+    userAgent('Mozilla/5.0 Chrome/133 Mobile Safari/537.36 FlexaAndroid/1.1.0')
+    expect(saveFileNatively('posilki.csv', 'a;b', 'text/csv')).toBe(true)
+    expect(JSON.parse(postMessage.mock.calls[0][0] as string)).toEqual({ type: 'save-file', name: 'posilki.csv', mime: 'text/csv', text: 'a;b' })
+  })
+})
+
+const APP_1_1 = 'Mozilla/5.0 (Linux; Android 16) Chrome/133.0 Mobile Safari/537.36 FlexaAndroid/1.1.0'
+const settings: ReminderSettings = {
+  training: { enabled: true, time: '18:30', weekdays: [0, 2, 4], sessions: [{ weekday: 0, name: 'Dzień 1: Całe ciało A', minutes: 45 }] },
+  water: { enabled: true, from: '09:00', to: '21:00', everyHours: 2 },
+}
+type Sent = Record<string, unknown>
+
+/** Imitates the object androidx.webkit injects: replies arrive asynchronously as `message` events. */
+function mockApp(respond: (message: Sent) => unknown, style: 'listener' | 'onmessage' = 'listener') {
+  userAgent(APP_1_1)
+  const listeners: ((event: { data: unknown }) => void)[] = []
+  const sent: Sent[] = []
+  const native: Record<string, unknown> = {
+    postMessage: (raw: string) => {
+      const message = JSON.parse(raw) as Sent
+      sent.push(message)
+      const reply = respond(message)
+      if (reply === undefined) return
+      queueMicrotask(() => {
+        const event = { data: typeof reply === 'string' ? reply : JSON.stringify(reply) }
+        listeners.forEach((listener) => listener(event))
+        ;(native.onmessage as ((event: { data: unknown }) => void) | undefined)?.(event)
+      })
+    },
+  }
+  if (style === 'listener') native.addEventListener = (_type: string, listener: (event: { data: unknown }) => void) => listeners.push(listener)
+  ;(window as unknown as { flexaNative: unknown }).flexaNative = native
+  return sent
+}
+
+const stateFor = (message: Sent, permission = 'granted') => ({
+  type: 'reminders.state', id: message.id, training: message.training ?? settings.training,
+  water: message.water ?? settings.water, permission, supported: true,
+})
+
+describe('reminders in the Android app', () => {
+  it('are available only from app version 1.1.0 with the message channel', () => {
+    expect(remindersSupported()).toBe(false)
+    userAgent('Mozilla/5.0 Chrome/133 Mobile Safari/537.36 FlexaAndroid/1.0.9')
+    ;(window as unknown as { flexaNative: unknown }).flexaNative = { postMessage: vi.fn() }
+    expect(remindersSupported()).toBe(false)
+    userAgent(APP_1_1)
+    expect(remindersSupported()).toBe(true)
+    userAgent('Mozilla/5.0 Chrome/133 Mobile Safari/537.36 FlexaAndroid/2.0.0')
+    expect(remindersSupported()).toBe(true)
+    delete (window as unknown as { flexaNative?: unknown }).flexaNative
+    expect(remindersSupported()).toBe(false)
+  })
+
+  it('returns null without asking an app that cannot answer', async () => {
+    const postMessage = vi.fn()
+    userAgent('Mozilla/5.0 Chrome/133 Mobile Safari/537.36 FlexaAndroid/1.0.0')
+    ;(window as unknown as { flexaNative: unknown }).flexaNative = { postMessage }
+    await expect(getReminders()).resolves.toBeNull()
+    expect(postMessage).not.toHaveBeenCalled()
+    expect(openNotificationSettings()).toBe(false)
+  })
+
+  it('reads the current settings through message events', async () => {
+    const sent = mockApp((message) => stateFor(message, 'default'))
+    await expect(getReminders()).resolves.toEqual({ ...settings, permission: 'default', supported: true })
+    expect(sent).toHaveLength(1)
+    expect(sent[0]).toMatchObject({ type: 'reminders.get' })
+    expect(sent[0].id).toMatch(/^[A-Za-z0-9-]{1,40}$/)
+  })
+
+  it('also works with a channel that only offers onmessage', async () => {
+    mockApp((message) => stateFor(message), 'onmessage')
+    await expect(getReminders()).resolves.toMatchObject({ permission: 'granted' })
+    await expect(getReminders()).resolves.toMatchObject({ permission: 'granted' })
+  })
+
+  it('saves settings and reports the notification permission', async () => {
+    const sent = mockApp((message) => stateFor(message, 'denied'))
+    await expect(setReminders(settings)).resolves.toEqual({ ...settings, permission: 'denied', supported: true })
+    expect(sent[0]).toEqual({ type: 'reminders.set', id: sent[0].id, ...settings })
+  })
+
+  it('matches each reply to its own request', async () => {
+    mockApp((message) => message.type === 'reminders.get'
+      ? stateFor({ ...message, training: { ...settings.training, enabled: false } })
+      : stateFor(message))
+    const [read, saved] = await Promise.all([getReminders(), setReminders(settings)])
+    expect(read?.training.enabled).toBe(false)
+    expect(saved.training.enabled).toBe(true)
+  })
+
+  it('ignores replies meant for someone else and gives up after a timeout', async () => {
+    vi.useFakeTimers()
+    mockApp(() => ({ type: 'reminders.state', id: 'someone-else', ...settings, permission: 'granted', supported: true }))
+    const read = getReminders(1_000)
+    const saved = setReminders(settings, 2_000)
+    const failure = expect(saved).rejects.toThrow('Aplikacja nie odpowiedziała')
+    await vi.advanceTimersByTimeAsync(2_000)
+    await expect(read).resolves.toBeNull()
+    await failure
+  })
+
+  it('rejects malformed or refused replies', async () => {
+    mockApp((message) => ({ ...stateFor(message), permission: 'maybe' }))
+    await expect(setReminders(settings)).rejects.toThrow('nieznanym formacie')
+    await expect(getReminders()).resolves.toBeNull()
+    mockApp((message) => ({ ...stateFor(message), extra: true }))
+    await expect(setReminders(settings)).rejects.toThrow('nieznanym formacie')
+    mockApp((message) => ({ ...stateFor(message), water: { ...settings.water, everyHours: 9 } }))
+    await expect(setReminders(settings)).rejects.toThrow('nieznanym formacie')
+    mockApp((message) => 'not json' + String(message.id))
+    await expect(getReminders(50)).resolves.toBeNull()
+    mockApp((message) => ({ type: 'reminders.error', id: message.id, reason: 'invalid' }))
+    await expect(setReminders(settings)).rejects.toThrow('nie przyjęła')
+  })
+
+  it('validates settings before sending them', async () => {
+    const sent = mockApp((message) => stateFor(message))
+    const invalid: ReminderSettings[] = [
+      { ...settings, water: { ...settings.water, everyHours: 5 } },
+      { ...settings, water: { ...settings.water, from: '21:00', to: '09:00' } },
+      { ...settings, training: { ...settings.training, weekdays: [] } },
+      { ...settings, training: { ...settings.training, weekdays: [7] } },
+      { ...settings, training: { ...settings.training, weekdays: [1, 1] } },
+      { ...settings, training: { ...settings.training, time: '7:00' } },
+      { ...settings, training: { ...settings.training, title: 'a\nb' } },
+    ]
+    for (const value of invalid) await expect(setReminders(value)).rejects.toThrow('Sprawdź godziny i dni')
+    expect(sent).toHaveLength(0)
+    await expect(setReminders({ ...settings, training: { enabled: false, time: '18:00', weekdays: [] } })).resolves.toMatchObject({ permission: 'granted' })
+  })
+
+  it('opens the system notification settings', () => {
+    const sent = mockApp(() => undefined)
+    expect(openNotificationSettings()).toBe(true)
+    expect(sent).toEqual([{ type: 'reminders.open-settings' }])
   })
 })
 

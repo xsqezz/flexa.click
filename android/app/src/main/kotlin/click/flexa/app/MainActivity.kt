@@ -37,8 +37,10 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import click.flexa.app.reminders.ReminderController
 import click.flexa.app.update.UpdateAnnouncer
 import click.flexa.app.update.UpdateController
+import click.flexa.app.web.AppPaths
 import click.flexa.app.web.FileChooser
 import click.flexa.app.web.FileSaver
 import click.flexa.app.web.FlexaChromeClient
@@ -60,6 +62,7 @@ class MainActivity : ComponentActivity(), WebHost {
     private val fileChooser = FileChooser(this)
     private val cameraAccess = WebCameraAccess(this, policy)
     private val fileSaver = FileSaver(this)
+    private val reminders = ReminderController(this)
     private lateinit var updates: UpdateController
 
     private lateinit var root: FrameLayout
@@ -94,8 +97,8 @@ class MainActivity : ComponentActivity(), WebHost {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.argb(0x33, 0, 0, 0)),
+            statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.argb(0x33, 0, 0, 0)),
         )
         splash.setKeepOnScreenCondition { !contentShown && !splashExpired }
         main.postDelayed({ splashExpired = true }, SPLASH_MAX_MS)
@@ -104,6 +107,7 @@ class MainActivity : ComponentActivity(), WebHost {
         buildLayout()
         updates = UpdateController(this)
         FileChooser.cleanOldCaptures(this)
+        reminders.onAppStart()
         onBackPressedDispatcher.addCallback(this, backCallback)
 
         val view = createWebView()
@@ -311,7 +315,7 @@ class MainActivity : ComponentActivity(), WebHost {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             WebViewCompat.addWebMessageListener(
                 view, NativeBridge.NAME, setOf(BuildConfig.APP_URL.trimEnd('/')),
-                NativeBridge(onSaveFile = fileSaver::save, onCheckUpdate = updates::checkInteractively),
+                NativeBridge(onSaveFile = fileSaver::save, onCheckUpdate = updates::checkInteractively, onReminders = reminders::handle),
             )
         }
         return view
@@ -324,6 +328,7 @@ class MainActivity : ComponentActivity(), WebHost {
     }
 
     private fun startUrl(intent: Intent?): String {
+        AppPaths.resolve(BuildConfig.APP_URL, intent?.getStringExtra(AppPaths.EXTRA_PATH))?.let { return it }
         val data = intent?.takeIf { it.action == Intent.ACTION_VIEW }?.dataString
         return if (data != null && policy.decide(data, isMainFrame = true) == Navigation.Allow) data else homeUrl
     }
