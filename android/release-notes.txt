@@ -1,2 +1,3 @@
-Po aktualizacji aplikacja potwierdza, że działa już nowa wersja.
-Czytelniejsza podpowiedź przy instalacji aktualizacji.
+Przypomnienia o treningu i wodzie jako powiadomienia (opcjonalne, ustawiane w Cele i konto).
+Ciemny motyw zgodny z ustawieniami telefonu.
+Zapis eksportu CSV obok JSON.
