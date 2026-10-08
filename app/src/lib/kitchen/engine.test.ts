@@ -145,6 +145,35 @@ describe('recipe engine', () => {
     expect(shrimp).toBeGreaterThan(pepper)
   })
 
+  it('does not say "at the end" about leaves that are cooked before the eggs go in', () => {
+    const owned = ['egg', 'spinach', 'cheese-yellow', 'milk', 'onion']
+    const recipes = generateRecipes(owned, { ...defaultPreferences, equipment: ['pan'], minutes: 30 }, 12).filter((recipe) => recipe.format === 'eggs')
+    expect(recipes.length).toBeGreaterThan(0)
+    let wilted = 0
+    for (const recipe of recipes) {
+      const leaves = recipe.steps.findIndex((step) => step.includes('aż zwiędnie'))
+      if (leaves < 0) continue
+      wilted++
+      expect(recipe.steps[leaves], recipe.title).not.toMatch(/^Na koniec/)
+      const eggsIn = recipe.steps.findIndex((step) => /wlej jajka|wbij jajka/i.test(step))
+      expect(eggsIn, recipe.title).toBeGreaterThan(leaves)
+    }
+    expect(wilted).toBeGreaterThan(0)
+    const stirFry = generateRecipes(['chicken-breast', 'spinach', 'rice-white'], { ...defaultPreferences, minutes: 45 }).find((recipe) => recipe.format === 'skillet')
+    expect(stirFry?.steps.some((step) => step.startsWith('Na koniec dodaj szpinak'))).toBe(true)
+  })
+
+  it('always says what the filling of a sandwich goes on', () => {
+    const wrap = (owned: string[]) => generateRecipes(owned, { ...defaultPreferences, minutes: 30 }, 12).find((recipe) => recipe.format === 'wrap')
+    expect(wrap(['bread-roll', 'tuna-canned', 'tomato', 'cheese-yellow'])?.steps.some((step) => step.includes('na przekrojonej bułce'))).toBe(true)
+    expect(wrap(['bread-wheat', 'ham', 'cucumber', 'cheese-yellow'])?.steps.some((step) => step.includes('na kromkach chleba pszennego'))).toBe(true)
+    const withSauce = wrap(['tortilla', 'ham', 'lettuce', 'mayonnaise'])?.steps ?? []
+    expect(withSauce.some((step) => step.startsWith('Rozsmaruj majonez na tortilli'))).toBe(true)
+    expect(withSauce.some((step) => step.endsWith('na wierzchu.'))).toBe(true)
+    const cold = wrap(['bread-roll', 'ham', 'cucumber'])?.steps ?? []
+    expect(cold.at(-1)).toBe('Przykryj drugą połówką bułki i od razu podawaj.')
+  })
+
   it('respects allergies and dislikes', () => {
     const owned = ['chicken-breast', 'egg', 'milk', 'cheese-yellow', 'pasta', 'tomato', 'bell-pepper', 'mushrooms', 'tofu', 'soy-sauce', 'rice-white', 'zucchini']
     const prefs: Preferences = { ...defaultPreferences, minutes: 90, avoid: ['milk', 'egg', 'gluten', 'meat'], dislikes: 'papryka, grzyby' }

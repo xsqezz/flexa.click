@@ -163,8 +163,8 @@ function withTitle(head: string, tail: readonly Ingredient[]): string {
   return title.length > 70 && tail.length > 1 ? withTitle(head, tail.slice(0, -1)) : title
 }
 
-/** Orders pan additions by cooking time: slow items start first and everything finishes together; leaves wilt at the end. */
-function panStages(entries: readonly Ingredient[]): { steps: string[]; minutes: number } {
+/** Orders pan additions by cooking time: slow items start first and everything finishes together; leaves wilt last. `closing` is false when eggs or similar still follow. */
+function panStages(entries: readonly Ingredient[], closing = true): { steps: string[]; minutes: number } {
   type Entry = { item: Ingredient; time: number }
   const timed: Entry[] = entries.map((item) => ({ item, time: cookTime(item, 'pan') }))
   const wilt = timed.filter((entry) => entry.time <= 2 && !isRawProtein(entry.item))
@@ -188,7 +188,10 @@ function panStages(entries: readonly Ingredient[]): { steps: string[]; minutes: 
     const names = joinList(items.map((item) => item.acc))
     return index === 0 ? `Dodaj ${names}. Smaż ok. ${duration} min, ${motion}${done}.` : `Następnie dodaj ${names}. Smaż ok. ${duration} min${done}.`
   })
-  if (wilt.length) steps.push(`Na koniec dodaj ${joinList(wilt.map((entry) => entry.item.acc))} i mieszaj 1–2 min, aż zwiędnie.`)
+  if (wilt.length) {
+    const lead = closing ? 'Na koniec dodaj' : steps.length ? 'Następnie dodaj' : 'Dodaj'
+    steps.push(`${lead} ${joinList(wilt.map((entry) => entry.item.acc))} i mieszaj 1–2 min, aż zwiędnie.`)
+  }
   return { steps, minutes: longest + (wilt.length ? 2 : 0) }
 }
 
@@ -429,7 +432,7 @@ function eggs(ctx: Ctx): Draft | null {
     steps.push(heatStep(ctx, 'głęboką patelnię'))
     const aromatic = aromaticStep(aromatics)
     if (aromatic) steps.push(aromatic)
-    const stages = panStages(veg.filter((item) => item.id !== tomatoBase.id))
+    const stages = panStages(veg.filter((item) => item.id !== tomatoBase.id), false)
     steps.push(...stages.steps)
     steps.push(`Dodaj ${tomatoBase.acc}${ctx.prefs.staples ? ', paprykę słodką i sól' : ''}, wymieszaj i duś pod przykryciem ok. 6 min, aż sos zgęstnieje.`)
     steps.push(`Zrób w sosie wgłębienia i wbij ${egg.acc}. Przykryj i gotuj na małym ogniu 5–6 min, aż białko całkiem się zetnie.`)
@@ -441,7 +444,7 @@ function eggs(ctx: Ctx): Draft | null {
     steps.push(heatStep(ctx, 'patelnię'))
     const aromatic = aromaticStep(aromatics)
     if (aromatic) steps.push(aromatic)
-    const stages = panStages(veg)
+    const stages = panStages(veg, false)
     steps.push(...stages.steps)
     steps.push('Zmniejsz ogień, wlej jajka na patelnię i smaż pod przykryciem ok. 3 min, aż masa całkiem się zetnie.')
     steps.push(`${extra ? `Posyp ${extra.ins}, złóż` : 'Złóż'} omlet na pół i smaż jeszcze minutę.`)
@@ -452,7 +455,7 @@ function eggs(ctx: Ctx): Draft | null {
     steps.push(heatStep(ctx, 'patelnię'))
     const aromatic = aromaticStep(aromatics)
     if (aromatic) steps.push(aromatic)
-    const stages = panStages(veg)
+    const stages = panStages(veg, false)
     steps.push(...stages.steps)
     if (extra && extra.category === 'meat') steps.push(`Dodaj ${extra.acc} i smaż 1–2 min.`)
     steps.push('Wlej jajka na patelnię i mieszaj na małym ogniu 2–3 min, aż się zetną, ale zostaną kremowe.')
@@ -588,14 +591,15 @@ function wrap(ctx: Ctx): Draft | null {
   if (heat === 'oven') steps.push('Rozgrzej piekarnik do 200 °C.')
   const prep = prepStep([main, ...veg, addedCheese])
   if (prep) steps.push(prep)
-  if (sauce) steps.push(`Rozsmaruj ${sauce.acc} na ${base.id === 'tortilla' ? 'tortilli' : 'pieczywie'}.`)
-  steps.push(`Ułóż ${joinList([main, ...veg, ...(addedCheese ? [addedCheese] : [])].map((item) => item.acc))}.`)
+  const surface = base.id === 'tortilla' ? 'tortilli' : base.id === 'bread-roll' ? 'przekrojonej bułce' : `kromkach ${base.gen}`
+  if (sauce) steps.push(`Rozsmaruj ${sauce.acc} na ${surface}.`)
+  steps.push(`Ułóż ${joinList([main, ...veg, ...(addedCheese ? [addedCheese] : [])].map((item) => item.acc))} ${sauce ? 'na wierzchu' : `na ${surface}`}.`)
   let minutes = prepTime([main, ...veg, addedCheese]) + 2
   let equipment: Equipment[] = []
   if (heat === 'airfryer') { steps.push('Złóż i podpiecz w air fryerze 4 min w 180 °C, aż ser się roztopi, a pieczywo lekko się zarumieni.'); equipment = ['airfryer']; minutes += 6 }
   else if (heat === 'oven') { steps.push('Złóż i zapiekaj w piekarniku ok. 8 min, aż ser się roztopi.'); equipment = ['oven']; minutes += 12 }
   else if (heat === 'pan') { steps.push('Złóż i opiekaj na suchej patelni po 2 min z każdej strony, aż ser się roztopi, a pieczywo się zarumieni.'); equipment = ['pan']; minutes += 6 }
-  else steps.push(base.id === 'tortilla' ? 'Zwiń szczelnie, przekrój na pół i od razu podawaj.' : 'Przykryj drugą kromką, przekrój na pół i od razu podawaj.')
+  else steps.push(base.id === 'tortilla' ? 'Zwiń szczelnie, przekrój na pół i od razu podawaj.' : base.id === 'bread-roll' ? 'Przykryj drugą połówką bułki i od razu podawaj.' : 'Przykryj drugą kromką, przekrój na pół i od razu podawaj.')
   const slices = base.id === 'tortilla' ? (ctx.prefs.size === 'large' ? 2 : 1) : base.id === 'bread-roll' ? 1 : ctx.prefs.size === 'large' ? 3 : 2
   const lines: DraftLine[] = [
     L(base.id, slices * (base.piece ?? 35), true), L(main.id, main.id === 'hummus' ? 40 : proteinGrams(main), true), ...vegLines(veg, 100),
