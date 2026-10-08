@@ -54,7 +54,9 @@ describe('kitchen status and routing', () => {
 })
 
 describe('photo recognition', () => {
-  const photo = { image: base64(png) }
+  const photo = { images: [base64(png)] }
+  const gemma = '@cf/google/gemma-4-26b-a4b-it'
+  const scout = '@cf/meta/llama-4-scout-17b-16e-instruct'
 
   it('requires a signed-in user and a configured AI binding', async () => {
     const ai = aiReturning({ response: 'jajka' })
@@ -65,16 +67,24 @@ describe('photo recognition', () => {
     expect(ai.run).not.toHaveBeenCalled()
   })
 
-  it('validates the photo before spending quota', async () => {
+  it('validates every photo before spending quota', async () => {
     const fetcher = rpc(true)
     const ai = aiReturning({ response: 'jajka' })
-    expect((await handleKitchenRequest('vision', request('vision', { image: 'x' }), deps(ai, fetcher))).status).toBe(400)
-    expect((await handleKitchenRequest('vision', request('vision', {}), deps(ai, fetcher))).status).toBe(400)
-    expect((await handleKitchenRequest('vision', request('vision', { image: '!!!'.repeat(60) }), deps(ai, fetcher))).status).toBe(400)
-    expect((await handleKitchenRequest('vision', request('vision', { image: base64(Uint8Array.from({ length: 500 }, () => 7)) }), deps(ai, fetcher))).status).toBe(400)
+    const send = async (body: unknown) => (await handleKitchenRequest('vision', request('vision', body), deps(ai, fetcher))).status
+    expect(await send({ images: ['x'] })).toBe(400)
+    expect(await send({})).toBe(400)
+    expect(await send({ images: [] })).toBe(400)
+    expect(await send({ image: base64(png) })).toBe(400)
+    expect(await send({ images: Array.from({ length: 6 }, () => base64(png)) })).toBe(400)
+    expect(await send({ images: ['!!!'.repeat(60)] })).toBe(400)
+    expect(await send({ images: [base64(Uint8Array.from({ length: 500 }, () => 7))] })).toBe(400)
+    expect(await send({ images: [base64(png), base64(Uint8Array.from({ length: 500 }, () => 7))] })).toBe(400)
     const huge = new Uint8Array(maxPhotoBytes + 10)
     huge.set([0xff, 0xd8, 0xff])
-    expect((await handleKitchenRequest('vision', request('vision', { image: base64(huge) }), deps(ai, fetcher))).status).toBe(413)
+    expect(await send({ images: [base64(huge)] })).toBe(413)
+    const large = new Uint8Array(Math.floor(maxPhotoBytes * 0.95))
+    large.set([0xff, 0xd8, 0xff])
+    expect(await send({ images: [base64(large), base64(large), base64(large)] })).toBe(413)
     const broken = new Request('https://flexa.test/api/kitchen/vision', { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: '{not json' })
     expect((await handleKitchenRequest('vision', broken, deps(ai, fetcher))).status).toBe(400)
     expect(fetcher).not.toHaveBeenCalled()
@@ -91,15 +101,40 @@ describe('photo recognition', () => {
     expect(url).toBe('https://project.supabase.co/rest/v1/rpc/consume_kitchen_ai')
     expect(init.headers).toMatchObject({ apikey: 'sb_publishable_test', authorization: `Bearer ${token}` })
     expect(JSON.parse(String(init.body))).toEqual({ p_kind: 'vision', p_limit: aiLimits.vision })
-    const input = ai.run.mock.calls[0][1] as { messages: { content: { type: string; image_url?: { url: string } }[] }[] }
-    expect(ai.run.mock.calls[0][0]).toBe('@cf/meta/llama-4-scout-17b-16e-instruct')
-    expect(input.messages[0].content.find((part) => part.type === 'image_url')?.image_url?.url).toMatch(/^data:image\/png;base64,/)
+    const [model, input] = ai.run.mock.calls[0] as [string, { messages: { content: { type: string; text?: string; image_url?: { url: string } }[] }[]; chat_template_kwargs?: unknown; max_tokens: number }]
+    expect(model).toBe(gemma)
+    expect(input.chat_template_kwargs).toEqual({ enable_thinking: false })
+    expect(input.max_tokens).toBeLessThanOrEqual(500)
+    expect(input.messages[0].content.find((part) => part.type === 'image_url')?.image_url?.url).toBe(`data:image/png;base64,${base64(png)}`)
+    expect(input.messages[0].content.find((part) => part.type === 'text')?.text).toBe(visionPrompt())
+  })
+
+  it('keeps only the name from "name | where" lines and drops drinks and sweets', async () => {
+    const answer = { choices: [{ message: { content: 'jajko | w przezroczystym pojemniku, na dole\nmleko | w drzwiach\nsok pomarańczowy | po lewej\nczekolada | na półce\nnutella | na półce\nhummus | w misce\nmango | w szufladzie\nkawa | w szafce\n' } }] }
+    const response = await handleKitchenRequest('vision', request('vision', photo), deps(aiReturning(answer)))
+    expect(await json(response)).toEqual({ items: ['egg', 'milk', 'hummus', 'mango'], unknown: [], seen: ['jajko', 'mleko', 'hummus', 'mango'] })
+  })
+
+  it('combines several images and ranks what more than one of them shows first', async () => {
+    const ai = aiReturning({ response: 'jajka | a\nmleko | b' }, { response: 'ser żółty | c\nJajko | d' }, { response: 'BRAK' }, { response: 'czosnek | e\nkolendra | f' })
+    const response = await handleKitchenRequest('vision', request('vision', { images: [base64(png), base64(png), base64(png), base64(jpeg).padEnd(140, 'A')] }), deps(ai))
+    expect(await json(response)).toEqual({ items: ['egg', 'milk', 'cheese-yellow', 'garlic'], unknown: ['kolendra'], seen: ['jajka', 'mleko', 'ser żółty', 'czosnek', 'kolendra'] })
+    expect(ai.run).toHaveBeenCalledTimes(4)
+  })
+
+  it('still answers when only some of the images could be analysed', async () => {
+    const ai = aiReturning({ response: 'jajka' }, new Error('overloaded'), { response: 'mleko' }, new Error('still overloaded'))
+    const response = await handleKitchenRequest('vision', request('vision', { images: [base64(png), base64(png), base64(png)] }), deps(ai))
+    expect(response.status).toBe(200)
+    expect((await json(response)).items).toEqual(['egg', 'milk'])
   })
 
   it('accepts a JPEG data URL and reports "nothing visible" as an empty list', async () => {
     const ai = aiReturning({ response: 'BRAK' })
-    const response = await handleKitchenRequest('vision', request('vision', { image: `data:image/jpeg;base64,${base64(jpeg).padEnd(140, 'A')}` }), deps(ai))
+    const response = await handleKitchenRequest('vision', request('vision', { images: [`data:image/jpeg;base64,${base64(jpeg).padEnd(140, 'A')}`] }), deps(ai))
     expect(await json(response)).toMatchObject({ items: [], unknown: [], seen: [] })
+    const input = ai.run.mock.calls[0][1] as { messages: { content: { image_url?: { url: string } }[] }[] }
+    expect(input.messages[0].content.find((part) => part.image_url)?.image_url?.url).toMatch(/^data:image\/jpeg;base64,/)
   })
 
   it('stops with a clear message when the daily limit is used up or the quota service fails', async () => {
@@ -118,9 +153,18 @@ describe('photo recognition', () => {
     const first = aiReturning(new Error('model overloaded'), { choices: [{ message: { content: 'jajka\nmleko' } }] })
     const ok = await handleKitchenRequest('vision', request('vision', photo), deps(first))
     expect((await json(ok)).items).toEqual(['egg', 'milk'])
-    expect(first.run.mock.calls.map((call) => call[0])).toEqual(['@cf/meta/llama-4-scout-17b-16e-instruct', '@cf/mistralai/mistral-small-3.1-24b-instruct'])
+    expect(first.run.mock.calls.map((call) => call[0])).toEqual([gemma, scout])
+    expect(first.run.mock.calls[1][1]).not.toHaveProperty('chat_template_kwargs')
     const dead = aiReturning(new Error('down'), new Error('down'))
     expect((await handleKitchenRequest('vision', request('vision', photo), deps(dead))).status).toBe(503)
+  })
+
+  it('treats an answer that only contains reasoning as a failure of that model', async () => {
+    const thinking = { choices: [{ finish_reason: 'length', message: { content: '', reasoning_content: 'Let me look at the image…' } }] }
+    const ai = aiReturning(thinking, { response: 'ser żółty' })
+    const response = await handleKitchenRequest('vision', request('vision', photo), deps(ai))
+    expect((await json(response)).items).toEqual(['cheese-yellow'])
+    expect(ai.run.mock.calls.map((call) => call[0])).toEqual([gemma, scout])
   })
 
   it('does not leak model internals in errors', async () => {
@@ -183,18 +227,20 @@ describe('dish picture', () => {
 })
 
 describe('helpers', () => {
-  it('lists recognisable ingredient names, but never staples or water', () => {
+  it('asks for grounded, visible-only food names without sending our ingredient list', () => {
     const prompt = visionPrompt()
-    expect(prompt).toContain('pierś z kurczaka')
-    expect(prompt).toContain('jogurt grecki')
-    expect(prompt).not.toMatch(/(^|, )sól(,|\.)/)
-    expect(prompt).not.toMatch(/(^|, )woda(,|\.)/)
+    expect(prompt).toContain('name | where in the photo you see it')
+    expect(prompt).toContain('BRAK')
+    expect(prompt).toMatch(/never guess/i)
+    expect(prompt).not.toContain('jogurt grecki')
     expect(prompt).not.toContain('olej rzepakowy')
-    expect(prompt.length).toBeLessThan(6000)
+    expect(prompt.length).toBeLessThan(1500)
   })
 
   it('parses model answers defensively', () => {
     expect(parseVisionText('1) Jajka.\n2) Mleko;ser żółty\n\n• pomidor\n' + 'x'.repeat(80) + '\na b c d e f g\nBRAK')).toEqual(['Jajka', 'Mleko', 'ser żółty', 'pomidor'])
+    expect(parseVisionText('Oto produkty:\n- ser żółty, pomidor\nBRAK')).toEqual(['ser żółty', 'pomidor'])
+    expect(parseVisionText('jajka | na dole, po lewej\nmleko|drzwi\nUwaga: to wszystko\npomi')).toEqual(['jajka', 'mleko'])
     expect(parseVisionText('')).toEqual([])
     expect(parseVisionText(Array.from({ length: 100 }, (_, index) => `produkt ${index}`).join('\n')).length).toBeLessThanOrEqual(30)
   })

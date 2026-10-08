@@ -23,6 +23,16 @@ function tokens(text: string): string[] {
   return normalizeName(text).split(' ').filter((token) => token && !noise.has(token) && !/^\d+$/.test(token))
 }
 
+const nonIngredients = new Set([
+  'sok', 'napoj', 'syrop', 'lody', 'baton', 'batony', 'chipsy', 'cukierki', 'cukierek', 'nutella', 'ciastko', 'ciastka', 'biszkopt', 'biszkopty', 'paluszki',
+  'herbata', 'kawa', 'cola', 'piwo', 'wino', 'wodka', 'whisky',
+])
+
+/** Drinks, sweets and snacks are not something the recipe engine cooks with, and "orange juice" must never become an orange. */
+export function isNonIngredientName(name: string): boolean {
+  return tokens(name).some((token) => nonIngredients.has(token) || token.startsWith('czekolad'))
+}
+
 function sameStem(a: string, b: string): boolean {
   if (a === b) return true
   const shortest = Math.min(a.length, b.length)
@@ -52,7 +62,7 @@ function alignment(entry: AliasEntry, words: string[]): number {
 /** Maps a free-form (Polish or English) product name to an ingredient id, or null when nothing fits. */
 export function matchIngredientName(name: string): string | null {
   const words = tokens(name)
-  if (!words.length) return null
+  if (!words.length || isNonIngredientName(name)) return null
   let best: { id: string; score: number; extra: number } | null = null
   for (const entry of aliasEntries) {
     const score = alignment(entry, words)
@@ -67,6 +77,7 @@ export function matchIngredientNames(names: readonly string[]): { ids: string[];
   const ids: string[] = []
   const unknown: string[] = []
   for (const name of names) {
+    if (isNonIngredientName(name)) continue
     const id = matchIngredientName(name)
     if (id) { if (!ids.includes(id)) ids.push(id) }
     else if (name.trim() && !unknown.includes(name.trim())) unknown.push(name.trim())

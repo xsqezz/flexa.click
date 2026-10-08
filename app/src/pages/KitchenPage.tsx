@@ -10,7 +10,7 @@ import {
   type Avoid, type Preferences, type Recipe,
 } from '../lib/kitchen/context'
 import {
-  KitchenAiError, kitchenAiAvailable, photoConsentGiven, preparePhoto, recognizePhoto, rememberPhotoConsent,
+  KitchenAiError, kitchenAiAvailable, photoConsentGiven, preparePhoto, recognizePhoto, rememberPhotoConsent, type PreparedPhoto,
 } from '../lib/kitchen/ai-client'
 import { clearKitchen, readKitchen, writeKitchen } from '../lib/kitchen/storage'
 import { cap, minutesLabel } from '../lib/kitchen/text'
@@ -45,7 +45,7 @@ function Chip({ pressed, onClick, children, label }: { pressed: boolean; onClick
 function PhotoPanel({ aiReady, onFound }: { aiReady: boolean | null; onFound: (ids: string[]) => void }) {
   const auth = useAuth()
   const token = auth.session?.access_token ?? null
-  const [photo, setPhoto] = useState<{ base64: string; preview: string } | null>(null)
+  const [photo, setPhoto] = useState<PreparedPhoto | null>(null)
   const [remembered, setRemembered] = useState(photoConsentGiven)
   const [consent, setConsent] = useState(false)
   const [busy, setBusy] = useState<'preparing' | 'working' | null>(null)
@@ -74,7 +74,7 @@ function PhotoPanel({ aiReady, onFound }: { aiReady: boolean | null; onFound: (i
     setRemembered(true)
     setError(null); setBusy('working')
     try {
-      const found = await recognizePhoto(photo.base64, token)
+      const found = await recognizePhoto(photo.images, token)
       onFound(found.items)
       setResult({ ids: found.items, unknown: found.unknown })
       setPhoto(null)

@@ -238,6 +238,48 @@ export const fruitIngredients: readonly Ingredient[] = [
     prep: 'Opłucz {acc} i oderwij od gałązek.',
   },
   {
+    id: 'mango', nom: 'mango', acc: 'mango', ins: 'mango', gen: 'mango', en: 'mango', emoji: '🥭',
+    aliases: ['mangi', 'mangos', 'mangoes'],
+    category: 'fruit', roles: ['fruit'], per100: per(60, 0.8, 15, 0.4, 1.6), piece: 200, diet: 'vegan', ready: true,
+    prep: 'Obierz {acc}, zdejmij miąższ z pestki i pokrój w kostkę.',
+  },
+  {
+    id: 'pineapple', nom: 'ananas', acc: 'ananas', ins: 'ananasem', gen: 'ananasa', en: 'pineapple', emoji: '🍍',
+    aliases: ['ananasy', 'ananas z puszki', 'pineapple'],
+    category: 'fruit', roles: ['fruit'], per100: per(50, 0.5, 13, 0.1, 1.4), diet: 'vegan', ready: true,
+    prep: 'Obierz {acc}, wytnij twardy środek i pokrój w kostkę.',
+  },
+  {
+    id: 'kiwi', nom: 'kiwi', acc: 'kiwi', ins: 'kiwi', gen: 'kiwi', en: 'kiwi', emoji: '🥝',
+    aliases: ['kiwis'],
+    category: 'fruit', roles: ['fruit'], per100: per(61, 1.1, 14.7, 0.5, 3), piece: 75, diet: 'vegan', ready: true,
+    prep: 'Obierz {acc} i pokrój w plasterki.',
+  },
+  {
+    id: 'melon', nom: 'melon', acc: 'melon', ins: 'melonem', gen: 'melona', en: 'melon', emoji: '🍈',
+    aliases: ['melony', 'melon miodowy', 'cantaloupe', 'honeydew'],
+    category: 'fruit', roles: ['fruit'], per100: per(34, 0.8, 8.2, 0.2, 0.9), diet: 'vegan', ready: true,
+    prep: 'Przekrój {acc}, usuń pestki, obierz i pokrój miąższ w kostkę.',
+  },
+  {
+    id: 'watermelon', nom: 'arbuz', acc: 'arbuz', ins: 'arbuzem', gen: 'arbuza', en: 'watermelon', emoji: '🍉',
+    aliases: ['arbuzy', 'watermelon'],
+    category: 'fruit', roles: ['fruit'], per100: per(30, 0.6, 7.6, 0.2, 0.4), diet: 'vegan', ready: true,
+    prep: 'Usuń skórkę z {gen}, wyjmij pestki i pokrój miąższ w kostkę.',
+  },
+  {
+    id: 'plum', nom: 'śliwka', acc: 'śliwkę', ins: 'śliwką', gen: 'śliwki', en: 'plum', emoji: '🍑',
+    aliases: ['śliwki', 'plum', 'plums'],
+    category: 'fruit', roles: ['fruit'], per100: per(46, 0.7, 11.4, 0.3, 1.4), piece: 60, diet: 'vegan', ready: true,
+    prep: 'Umyj {acc}, przekrój na pół, wyjmij pestkę i pokrój w ćwiartki.',
+  },
+  {
+    id: 'peach', nom: 'brzoskwinia', acc: 'brzoskwinię', ins: 'brzoskwinią', gen: 'brzoskwini', en: 'peach', emoji: '🍑',
+    aliases: ['brzoskwinie', 'nektarynka', 'nektarynki', 'peach', 'peaches', 'nectarine'],
+    category: 'fruit', roles: ['fruit'], per100: per(39, 0.9, 9.5, 0.3, 1.5), piece: 150, diet: 'vegan', ready: true,
+    prep: 'Umyj {acc}, wyjmij pestkę i pokrój w cząstki.',
+  },
+  {
     id: 'mixed-berries-frozen', nom: 'owoce leśne mrożone', acc: 'owoce leśne mrożone', ins: 'owocami leśnymi mrożonymi', gen: 'owoców leśnych mrożonych', en: 'frozen mixed berries', emoji: '🍓',
     aliases: ['owoce leśne', 'mieszanka owoców leśnych', 'frozen berries', 'mixed berries'],
     category: 'fruit', roles: ['fruit'], per100: per(45, 0.8, 9.5, 0.5, 3.5), diet: 'vegan', ready: true,

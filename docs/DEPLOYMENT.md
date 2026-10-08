@@ -156,11 +156,17 @@ w przeglądarce i nie wymaga żadnej konfiguracji.
    `VITE_SUPABASE_PUBLISHABLE_KEY`) odczytanych w czasie działania — ustaw je jako zmienne
    środowiska Pages dla Production (nie jako „build only”). Nie używa klucza service_role:
    tożsamość i dzienny limit sprawdza funkcja `consume_kitchen_ai` z tokenem zalogowanego użytkownika.
-3. Workers AI ma na planie Workers Free 10 000 neuronów dziennie bez rozliczania nadwyżki; po
+3. Modele: rozpoznawanie używa `@cf/google/gemma-4-26b-a4b-it` (tryb „thinking” wyłączony, bo
+   bez tego odpowiedź trwa kilkadziesiąt sekund), awaryjnie `@cf/meta/llama-4-scout-17b-16e-instruct`;
+   obraz potrawy — `@cf/black-forest-labs/flux-1-schnell`, awaryjnie SDXL Lightning. Aplikacja wysyła
+   zdjęcie jako przegląd plus cztery powiększone wycinki (małe produkty na zatłoczonych półkach
+   inaczej giną), czyli ok. 5 równoległych wywołań i ok. 30 neuronów na jedno zdjęcie. Modele
+   „Paid access required” (np. GLM 5.3 Flash) nie działają na planie Free.
+4. Workers AI ma na planie Workers Free 10 000 neuronów dziennie bez rozliczania nadwyżki; po
    przekroczeniu żądania kończą się błędem, a aplikacja wraca do ręcznego wyboru produktów i
    ilustracji składników. Limity per konto (12 zdjęć i 30 obrazów dziennie) ustawia `aiLimits`
    w `shared/kitchen/ai.ts`. Nie przechodź na plan płatny bez uzgodnienia.
-4. Weryfikacja: `GET /api/kitchen/status` zwraca `{"available":true,...}`; bez bindingu lub zmiennych
+5. Weryfikacja: `GET /api/kitchen/status` zwraca `{"available":true,...}`; bez bindingu lub zmiennych
    `available` jest `false` i interfejs ukrywa przesyłanie zdjęć. Obraz i zdjęcie są zwracane
    użytkownikowi, nie zapisywane.
 

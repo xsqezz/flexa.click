@@ -222,6 +222,10 @@ describe('ingredient names', () => {
     ['czosnek', 'garlic'], ['sos sojowy', 'soy-sauce'], ['chicken breast', 'chicken-breast'], ['cucumber', 'cucumber'], ['mielone mięso z indyka', 'minced-turkey'],
     ['mięso mielone', 'minced-pork'], ['wołowina mielona', 'minced-beef'], ['szynka', 'ham'], ['kiełbasa', 'sausage'], ['tuńczyk w puszce', 'tuna-canned'], ['płatki owsiane', 'oats'],
     ['quinoa', 'quinoa'], ['soczewica zielona', 'lentils-green'], ['dynia', 'pumpkin'], ['natka pietruszki', 'parsley'], ['szpinak', 'spinach'], ['sałata', 'lettuce'],
+    ['ananas', 'pineapple'], ['Ananas z puszki', 'pineapple'], ['mango', 'mango'], ['melon', 'melon'], ['arbuz', 'watermelon'], ['kiwi', 'kiwi'], ['śliwka', 'plum'],
+    ['brzoskwinia', 'peach'], ['nektarynki', 'peach'], ['mandarynki', 'orange'],
+    ['sok pomarańczowy', null], ['sok jabłkowy', null], ['sok z cytryny', null], ['pasta czekoladowa', null], ['czekolada', null], ['nutella', null], ['kawa', null], ['herbata', null],
+    ['pasta', null], ['winogrona', 'grapes'],
     ['coś zupełnie nieznanego xyz', null], ['', null],
   ]
   it.each(cases)('matches "%s"', (name, id) => {

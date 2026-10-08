@@ -15,7 +15,7 @@ export const pantryIngredients: readonly Ingredient[] = [
   },
   {
     id: 'pasta', nom: 'makaron', acc: 'makaron', ins: 'makaronem', gen: 'makaronu', en: 'pasta', emoji: '🍝',
-    aliases: ['makaron pszenny', 'spaghetti', 'penne', 'fusilli', 'świderki', 'pasta'],
+    aliases: ['makaron pszenny', 'spaghetti', 'penne', 'fusilli', 'świderki'],
     category: 'grain', roles: ['carb'], per100: per(360, 12.5, 72, 1.5, 3), allergens: ['gluten'], diet: 'vegan',
     prep: 'Odmierz {acc}.', cook: { boil: 10 },
   },

@@ -46,7 +46,7 @@ pytania (czas, sprzęt, czego nie lubisz/alergie/ochota, a także liczba osób i
 przepis: nazwę, czas i sprzęt, listę składników z gramaturą, kroki dopasowane do patelni, garnka,
 piekarnika, air fryera, mikrofalówki czy blendera, oraz makroskładniki na porcję (kcal, białko, tłuszcze,
 węglowodany). Składnik można zamienić, a przepis zapisać w dzienniku jako posiłek. Przepisy i makro
-układa deterministyczny silnik w przeglądarce (`app/src/lib/kitchen`, baza ok. 170 składników w
+układa deterministyczny silnik w przeglądarce (`app/src/lib/kitchen`, baza ponad 140 składników w
 `shared/kitchen`), więc działa bez kluczy i także w demo. Tylko rozpoznanie produktów ze zdjęcia i
 poglądowy obraz potrawy używają Cloudflare Workers AI przez funkcję Pages (`functions/api/kitchen`);
 wymagają konta, zgody na wysłanie zdjęcia i mają dzienne limity na konto (migracja

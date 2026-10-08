@@ -247,6 +247,34 @@ test('the questionnaire can be skipped and opened later from the Plan tab', asyn
 
 const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
 
+/** A phone-sized photo, so that the app also prepares the zoomed crops. */
+async function bigPhoto(page: Page): Promise<Buffer> {
+  const encoded = await page.evaluate(async () => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 1600
+    canvas.height = 1200
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('no canvas')
+    const gradient = context.createLinearGradient(0, 0, 1600, 1200)
+    gradient.addColorStop(0, '#d8e8d0')
+    gradient.addColorStop(1, '#f4d9b0')
+    context.fillStyle = gradient
+    context.fillRect(0, 0, 1600, 1200)
+    context.fillStyle = '#c0392b'
+    context.beginPath()
+    context.arc(500, 600, 160, 0, Math.PI * 2)
+    context.fill()
+    context.fillStyle = '#f1c40f'
+    context.fillRect(900, 300, 400, 500)
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))
+    if (!blob) throw new Error('no jpeg')
+    let binary = ''
+    for (const byte of new Uint8Array(await blob.arrayBuffer())) binary += String.fromCharCode(byte)
+    return btoa(binary)
+  })
+  return Buffer.from(encoded, 'base64')
+}
+
 test('Smart Kuchnia recognises products from a photo after consent and shows an AI picture of the dish', async ({ page }) => {
   await fixture(page)
   const authorizations: string[] = []
@@ -266,7 +294,7 @@ test('Smart Kuchnia recognises products from a photo after consent and shows an 
   await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
   await page.locator('nav:visible a[href="/kitchen"]').click()
   await expect(page.getByRole('heading', { name: 'Zdjęcie lodówki lub produktów' })).toBeVisible()
-  await page.locator('input[type=file]').nth(1).setInputFiles({ name: 'lodowka.png', mimeType: 'image/png', buffer: tinyPng })
+  await page.locator('input[type=file]').nth(1).setInputFiles({ name: 'lodowka.jpg', mimeType: 'image/jpeg', buffer: await bigPhoto(page) })
   await expect(page.getByAltText('Podgląd wybranego zdjęcia produktów')).toBeVisible()
   await page.getByRole('button', { name: 'Rozpoznaj produkty' }).click()
   await expect(page.getByRole('alert')).toContainText('zgodę')
@@ -277,7 +305,9 @@ test('Smart Kuchnia recognises products from a photo after consent and shows an 
   await expect(page.getByText(/Nie mam w bazie: kolendra/)).toBeVisible()
   expect(authorizations).toHaveLength(1)
   expect(authorizations[0]).toMatch(/^Bearer \S+\.\S+\.\S+$/)
-  expect(sent[0]).toMatchObject({ image: expect.stringMatching(/^\/9j\//) })
+  const request = sent[0] as { images: string[] }
+  expect(request.images).toHaveLength(5)
+  for (const image of request.images) expect(image).toMatch(/^\/9j\//)
   await expect(page.getByRole('group', { name: 'Wybrane produkty' }).getByRole('button')).toHaveCount(3)
   await page.getByRole('button', { name: 'Dalej: preferencje' }).click()
   await page.getByRole('button', { name: 'Pokaż przepis' }).click()
