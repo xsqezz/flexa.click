@@ -1,2 +1,2 @@
-Pierwsza wersja aplikacji Flexa na Androida.
-Aplikacja sama sprawdza, czy jest nowsza wersja, i pozwala ją zainstalować jednym dotknięciem.
+Po aktualizacji aplikacja potwierdza, że działa już nowa wersja.
+Czytelniejsza podpowiedź przy instalacji aktualizacji.
