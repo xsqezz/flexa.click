@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises'
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { journalSchema } from '../shared/domain'
+import { estimateEnergy } from '../app/src/lib/energy'
+import { shiftDate } from '../app/src/lib/dates'
 import { mockEmptyCatalog } from './catalog-fixture'
 
 test.beforeEach(async ({ page }) => {
@@ -32,7 +34,7 @@ async function journal(page: Page) {
 
 async function navigate(page: Page, route: string) {
   const link = page.locator(`nav:visible a[href="${route}"]`)
-  if (route === '/settings' && await link.count() === 0) await page.getByRole('link', { name: /^Konto:/ }).click()
+  if (route === '/settings' && await link.count() === 0) await page.getByRole('link', { name: /^Konto i ustawienia:/ }).click()
   else if (route === '/workouts' && await link.count() === 0) {
     await page.locator('nav:visible a[href="/plan"]').first().click()
     await page.getByRole('navigation', { name: 'Widok treningu' }).getByRole('link', { name: 'Historia' }).click()
@@ -66,8 +68,10 @@ test('demo, food search, portions, persistent meals and deletion', async ({ page
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(addButton).toBeFocused()
   expect((await journal(page)).meals).toHaveLength(before + 1)
+  await navigate(page, '/meals')
+  await expect(page.getByText('Jogurt naturalny', { exact: true }).last()).toBeVisible()
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Posiłki', exact: true })).toBeVisible()
   expect((await journal(page)).meals.at(-1)?.portion).toBe(200)
   const deleteButtons = page.getByRole('button', { name: 'Usuń: Jogurt naturalny', exact: true })
   const visibleBefore = await deleteButtons.count()
@@ -107,31 +111,36 @@ test('custom fluid product, unknown macro and validated barcode', async ({ page 
   expect(meal?.food.nutrients.kcal).toBe(42)
   expect(meal?.food.nutrients.protein).toBeNull()
   expect(meal?.portion).toBe(250)
+  await navigate(page, '/goals')
   await expect(page.getByText('Brak danych w 1 wpisie')).toHaveCount(3)
 })
 
 test('water, goals, measurements, complete JSON export and demo reset', async ({ page }, testInfo) => {
   await openDemo(page)
+  await navigate(page, '/goals')
   const amount = (await journal(page)).water.length
   await page.getByRole('button', { name: '250 ml', exact: true }).click()
   await expect.poll(async () => (await journal(page)).water.length).toBe(amount + 1)
   await page.getByRole('button', { name: 'Cofnij ostatni wpis wody' }).click()
   await expect.poll(async () => (await journal(page)).water.length).toBe(amount)
-  await navigate(page, '/settings')
-  await page.getByLabel('Imię lub pseudonim', { exact: true }).fill('Demo test')
+  await page.locator('.page-toolbar').getByRole('link', { name: 'Rozpocznij nowy cykl' }).click()
+  await page.getByLabel('Koniec', { exact: true }).fill('2099-12-31')
   await page.getByLabel('Energia (kcal / dzień)', { exact: true }).fill('2400')
-  await page.getByRole('button', { name: 'Zapisz cele' }).click()
+  await page.getByRole('checkbox', { name: /Sprawdziłem/ }).check()
+  await page.getByRole('button', { name: 'Zatwierdź cele i rozpocznij cykl' }).click()
   await expect.poll(async () => (await journal(page)).profile.calorieGoal).toBe(2400)
+  await expect(page.getByRole('heading', { name: 'Archiwum cykli' })).toBeVisible()
   await navigate(page, '/progress')
   await page.getByRole('button', { name: 'Dodaj pomiar', exact: true }).click()
   await page.getByRole('dialog').getByLabel('Masa ciała (kg)', { exact: true }).fill('75.5')
   await page.getByRole('dialog').getByRole('button', { name: 'Zapisz pomiar' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
-  // Overview strip, the weekly summary ("Twój tydzień") and the measurement table.
-  await expect(page.getByText('75,5 kg', { exact: true })).toHaveCount(3)
+  await expect(page.getByRole('cell', { name: '75,5 kg', exact: true })).toBeVisible()
   await page.getByRole('button', { name: '90 dni', exact: true }).click()
   await expect(page.getByRole('button', { name: '90 dni', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await navigate(page, '/settings')
+  await page.getByLabel('Imię lub pseudonim', { exact: true }).fill('Demo test')
+  await page.getByRole('button', { name: 'Zapisz ustawienia' }).click()
   const downloadEvent = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Eksportuj dane JSON' }).click()
   const download = await downloadEvent
@@ -141,11 +150,73 @@ test('water, goals, measurements, complete JSON export and demo reset', async ({
   expect(exported.mode).toBe('demo')
   expect(exported.data.meals.length).toBe((await journal(page)).meals.length)
   expect(exported.data.profile.calorieGoal).toBe(2400)
+  expect(exported.data.goals.cycles).toHaveLength(2)
   await page.getByRole('button', { name: 'Wyzeruj demo', exact: true }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Wyzeruj demo', exact: true }).click()
   await expect.poll(async () => (await journal(page)).profile.calorieGoal).toBe(2200)
   await page.getByRole('button', { name: 'Wyjdź z demo', exact: true }).last().click()
   await expect(page.getByRole('heading', { name: 'Dobrze Cię widzieć' })).toBeVisible()
+})
+
+test('seven destinations have one owner each, and old journal links still open Meals', async ({ page }) => {
+  await openDemo(page)
+  expect((await page.locator('.mobile-nav a, .mobile-nav button').allTextContents()).map((label) => label.trim()))
+    .toEqual(['Dzisiaj', 'Cele', 'Posiłki', 'Dodaj', 'Treningi', 'Kuchnia', 'Postępy'])
+  expect((await page.locator('.main-nav a').allTextContents()).slice(0, 6).map((label) => label.trim()))
+    .toEqual(['Dzisiaj', 'Cele', 'Posiłki', 'Treningi', 'Kuchnia', 'Postępy'])
+  await expect(page.locator('.nutrition-panel, .meal-group, .water-panel')).toHaveCount(0)
+  await navigate(page, '/goals')
+  await expect(page.locator('.nutrition-panel, .water-panel')).toHaveCount(2)
+  await expect(page.locator('.meal-group')).toHaveCount(0)
+  await navigate(page, '/meals')
+  await expect(page.locator('.meal-group')).toHaveCount(4)
+  await expect(page.locator('.nutrition-panel, .water-panel')).toHaveCount(0)
+  await page.goto('/journal')
+  await expect(page).toHaveURL(/\/meals$/)
+  await navigate(page, '/progress')
+  await expect(page.getByRole('heading', { name: 'Energia w dzienniku' })).toHaveCount(0)
+  await accessible(page)
+})
+
+test('cycle approval keeps the earlier calorie history, target weight and expired-cycle prompt', async ({ page }) => {
+  await openDemo(page)
+  const currentDay = await browserToday(page)
+  await navigate(page, '/goals')
+  await page.locator('.page-toolbar').getByRole('link', { name: 'Rozpocznij nowy cykl' }).click()
+  await page.getByRole('radio', { name: /^Budowa mięśni/ }).check()
+  await page.getByLabel('Koniec', { exact: true }).fill('2099-12-31')
+  await page.getByLabel('Masa docelowa (kg)').fill('77')
+  await page.getByLabel('Energia (kcal / dzień)').fill('2600')
+  await page.getByRole('checkbox', { name: /Sprawdziłem/ }).check()
+  expect((await journal(page)).profile.calorieGoal).toBe(2200)
+  await page.getByRole('button', { name: 'Zatwierdź cele i rozpocznij cykl' }).click()
+  await expect(page.getByRole('heading', { name: 'Cele', exact: true })).toBeVisible()
+  expect((await journal(page)).goals.cycles).toMatchObject([{ kind: 'reduction', status: 'completed' }, { kind: 'muscle_gain', status: 'active' }])
+  await expect(page.locator('.goals-cycles')).toContainText('Redukcja')
+  const day = page.getByLabel('Dzień dziennika', { exact: true })
+  await day.fill(shiftDate(currentDay, -1))
+  expect((await page.locator('.energy-value').innerText()).replace(/\s/g, '')).toContain('/2200kcal')
+  await day.fill(currentDay)
+  expect((await page.locator('.energy-value').innerText()).replace(/\s/g, '')).toContain('/2600kcal')
+  await page.getByText('Zmień masę docelową', { exact: true }).click()
+  await page.getByLabel('Masa docelowa (kg)').fill('76.5')
+  await page.getByRole('button', { name: 'Zapisz wagę docelową' }).click()
+  await expect.poll(async () => (await journal(page)).profile.targetWeight).toBe(76.5)
+  expect((await journal(page)).goals.cycles[0].targetWeightKg).toBe(72)
+
+  await page.evaluate((expired) => {
+    const key = 'flexa:demo:v1'
+    const data = JSON.parse(localStorage.getItem(key) ?? '{}')
+    const active = data.goals.cycles.find((cycle: { status: string }) => cycle.status === 'active')
+    active.startDate = expired
+    active.endDate = expired
+    localStorage.setItem(key, JSON.stringify(data))
+  }, shiftDate(currentDay, -1))
+  await page.reload()
+  await expect(page.getByText(/Cykl zakończył się/)).toBeVisible()
+  expect((await journal(page)).profile.calorieGoal).toBe(2600)
+  expect((await page.locator('.energy-value').innerText()).replace(/\s/g, '')).toContain('/2600kcal')
+  await expect(page.locator('.goals-cycles')).toContainText('okres minął, cele pozostały bez zmian')
 })
 
 test('settings offer the Android app in a browser', async ({ page }) => {
@@ -284,7 +355,7 @@ test('quick add, search and day navigation work from any screen', async ({ page 
   await expect(page).toHaveURL(/\/plan$/)
   await expect(page.getByRole('navigation', { name: 'Widok treningu' }).getByRole('link', { name: 'Plan' })).toHaveAttribute('aria-current', 'page')
 
-  await navigate(page, '/journal')
+  await navigate(page, '/meals')
   const day = page.getByLabel('Dzień dziennika', { exact: true })
   const start = await day.inputValue()
   await page.locator('main h1').click()
@@ -501,6 +572,16 @@ test('demo plan rebuilds from new answers', async ({ page }) => {
   await expect(page.locator('.plan-day')).toHaveCount(4)
   await expect(page.getByText(/Osoby niepełnoletnie/)).toBeVisible()
   expect((await journal(page)).training.plan?.answers).toMatchObject({ age: 16, goal: 'strength', place: 'gym', equipment: [], weekdays: [0, 2, 4, 5], minutes: 60 })
+  await page.goto('/goals/new')
+  await expect(page.getByRole('radio', { name: /^Własny cel/ })).toBeVisible()
+  await expect(page.getByRole('radio', { name: /^Redukcja|^Budowa mięśni/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Oblicz propozycję' })).toHaveCount(0)
+  await expect(page.getByText(/Osoby w wieku 16–17 lat/)).toBeVisible()
+  await page.getByLabel('Koniec', { exact: true }).fill('2099-12-31')
+  await page.getByRole('checkbox', { name: /Sprawdziłem/ }).check()
+  await page.getByRole('button', { name: 'Zatwierdź cele i rozpocznij cykl' }).click()
+  await expect(page.getByRole('heading', { name: 'Cele', exact: true })).toBeVisible()
+  expect((await journal(page)).goals.cycles.at(-1)?.kind).toBe('manual')
 })
 
 test('all main pages, dialog, privacy and landing are accessible without overflow', async ({ page }, testInfo) => {
@@ -509,14 +590,16 @@ test('all main pages, dialog, privacy and landing are accessible without overflo
   await openDemo(page)
   await accessible(page)
   if (testInfo.project.name === 'mobile') {
+    await navigate(page, '/goals')
     const width = await page.locator('.nutrition-panel').evaluate((node) => node.getBoundingClientRect().width)
     const widths = await page.locator('.dashboard-aside .panel').evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().width))
     expect(widths.every((value) => Math.abs(value - width) < 1)).toBe(true)
+    await navigate(page, '/')
   }
   await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
   await accessible(page)
   await page.keyboard.press('Escape')
-  for (const route of ['/journal', '/kitchen', '/plan', '/workouts', '/progress', '/settings']) {
+  for (const route of ['/goals', '/meals', '/kitchen', '/plan', '/workouts', '/progress', '/settings']) {
     await navigate(page, route)
     await expect(page.locator('main h1')).toBeVisible()
     await accessible(page)
@@ -573,7 +656,7 @@ test('all main pages, dialog, privacy and landing are accessible without overflo
 test('chart labels retain their physical size and fit at every supported viewport', async ({ page }) => {
   await openDemo(page)
   await navigate(page, '/progress')
-  await expect(page.locator('.chart-svg')).toHaveCount(3)
+  await expect(page.locator('.chart-svg')).toHaveCount(2)
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 1050 })
     await expect.poll(async () => page.locator('.chart-svg').evaluateAll((charts) => charts.every((chart) => {
@@ -766,13 +849,11 @@ test('a logged workout repeats today, strength sets can be added by hand and exe
   await accessible(page)
 })
 
-test('progress shows the week at a glance, a 7-day weight trend and optional body measurements', async ({ page }) => {
+test('progress shows a 7-day weight trend and optional body measurements without calorie summaries', async ({ page }) => {
   await openDemo(page)
   await navigate(page, '/progress')
-  const week = page.getByRole('region', { name: 'Twój tydzień' })
-  await expect(week).toContainText('Dni z zapisem jedzenia')
-  await expect(week).toContainText('Poprzedni tydzień')
-  await expect(week).toContainText('Ostatni pomiar masy')
+  await expect(page.getByRole('region', { name: 'Twój tydzień' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Energia w dzienniku' })).toHaveCount(0)
   await expect(page.getByText('Średnia z 7 dni', { exact: true })).toBeVisible()
   await page.getByText('Dane wykresu — masa ciała').click()
   await expect(page.getByRole('columnheader', { name: 'Średnia z 7 dni (kg)' })).toBeVisible()
@@ -794,6 +875,7 @@ test('progress shows the week at a glance, a 7-day weight trend and optional bod
 
 test('meals copy from yesterday, reuse the last portion and become one-tap templates', async ({ page }) => {
   await openDemo(page)
+  await navigate(page, '/meals')
   const today = await browserToday(page)
   const dinnerToday = async () => (await journal(page)).meals.filter((meal) => meal.date === today && meal.meal === 'dinner')
   expect(await dinnerToday()).toHaveLength(0)
@@ -851,33 +933,36 @@ test('a Smart Kuchnia recipe is saved once to the product library', async ({ pag
   await page.getByRole('button', { name: 'Zapisano w bibliotece' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'już w Twojej bibliotece' })).toBeVisible()
   expect((await journal(page)).customFoods).toHaveLength(1)
-  await navigate(page, '/')
+  await navigate(page, '/meals')
   await page.getByRole('button', { name: 'Dodaj do: Śniadanie' }).click()
   await expect(page.getByRole('dialog').getByRole('button', { name: new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*wartości szacunkowe`) })).toBeVisible()
 })
 
-test('settings estimate goals, export CSV and restore a backup without deleting anything', async ({ page }, testInfo) => {
+test('approved goal estimate, CSV export and backup restore without deleting anything', async ({ page }, testInfo) => {
   await openDemo(page)
-  await navigate(page, '/settings')
-  await page.getByRole('button', { name: 'Oblicz orientacyjne zapotrzebowanie' }).click()
-  let dialog = page.getByRole('dialog', { name: 'Orientacyjne zapotrzebowanie' })
-  await expect(dialog).toContainText('nie są nigdzie zapisywane')
-  await dialog.getByText('Kobieta', { exact: true }).click()
-  await dialog.getByLabel('Wiek (lata)', { exact: true }).fill('17')
-  await dialog.getByLabel('Wzrost (cm)', { exact: true }).fill('165')
-  await dialog.getByLabel('Masa ciała (kg)', { exact: true }).fill('60')
-  await dialog.getByRole('radio', { name: /^Umiarkowana/ }).check()
-  await dialog.getByRole('button', { name: 'Oblicz', exact: true }).click()
-  await expect(dialog.getByRole('alert')).toContainText('dla dorosłych')
-  await dialog.getByLabel('Wiek (lata)', { exact: true }).fill('30')
-  await dialog.getByRole('button', { name: 'Oblicz', exact: true }).click()
-  await expect(dialog.getByRole('definition').first()).toHaveText(/^2050\s*kcal/)
-  await expect(dialog).toContainText('To orientacyjny szacunek, nie porada medyczna')
+  await navigate(page, '/goals')
+  await page.locator('.page-toolbar').getByRole('link', { name: 'Rozpocznij nowy cykl' }).click()
+  await page.getByLabel('Koniec', { exact: true }).fill('2099-12-31')
+  await page.getByRole('button', { name: 'Oblicz propozycję' }).click()
+  await expect(page.getByText('32 lat z ankiety treningowej')).toBeVisible()
+  await page.getByText('Kobieta', { exact: true }).click()
+  await page.getByLabel('Wzrost (cm)', { exact: true }).fill('165')
+  await page.getByRole('radio', { name: /^Umiarkowana/ }).check()
+  await page.getByRole('button', { name: 'Policz orientacyjnie' }).click()
+  const proposed = estimateEnergy({ age: 32, sex: 'female', heightCm: 165, weightKg: 74.2, activity: 'moderate', goal: 'lose' })
+  await expect(page.locator('.goals-proposal')).toContainText(new RegExp(`${proposed.calories}`))
+  expect((await journal(page)).profile.calorieGoal).toBe(2200)
   await accessible(page)
-  await dialog.getByRole('button', { name: 'Ustaw jako moje cele' }).click()
-  await expect(page.getByRole('dialog')).toHaveCount(0)
-  await expect.poll(async () => (await journal(page)).profile).toMatchObject({ calorieGoal: 2050, proteinGoal: 96, fatGoal: 57, carbsGoal: 288, waterGoal: 2100 })
-  await expect(page.getByLabel('Energia (kcal / dzień)', { exact: true })).toHaveValue('2050')
+  await page.getByRole('button', { name: 'Przenieś propozycję do pól' }).click()
+  await expect(page.getByLabel('Energia (kcal / dzień)', { exact: true })).toHaveValue(String(proposed.calories))
+  await page.getByRole('checkbox', { name: /Sprawdziłem/ }).check()
+  await page.getByRole('button', { name: 'Zatwierdź cele i rozpocznij cykl' }).click()
+  await expect(page.getByRole('heading', { name: 'Cele', exact: true })).toBeVisible()
+  await expect.poll(async () => (await journal(page)).profile).toMatchObject({
+    calorieGoal: proposed.calories, proteinGoal: proposed.protein, fatGoal: proposed.fat,
+    carbsGoal: proposed.carbs, waterGoal: proposed.water,
+  })
+  await navigate(page, '/settings')
 
   const csvEvent = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Eksportuj CSV: Posiłki' }).click()
@@ -901,7 +986,7 @@ test('settings estimate goals, export CSV and restore a backup without deleting 
   backup.data.measurements[0] = { ...backup.data.measurements[0], weightKg: 99 }
   backup.data.profile = { ...backup.data.profile, calorieGoal: 1999 }
   await page.locator('input[type="file"][accept*="json"]').setInputFiles({ name: 'kopia.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) })
-  dialog = page.getByRole('dialog', { name: 'Przywróć z kopii' })
+  let dialog = page.getByRole('dialog', { name: 'Przywróć z kopii' })
   await expect(dialog.getByRole('row', { name: /^Posiłki/ }).getByRole('cell')).toHaveText([String(before.meals.length + 1), '1', String(before.meals.length)])
   await expect(dialog).toContainText('Zostawimy Twoje obecne wartości')
   await accessible(page)
@@ -914,7 +999,7 @@ test('settings estimate goals, export CSV and restore a backup without deleting 
   expect(after.measurements.find((item) => item.date === before.measurements[0].date)?.weightKg).toBe(before.measurements[0].weightKg)
   expect(after.profile.calorieGoal).toBe(1999)
   await page.locator('input[type="file"][accept*="json"]').setInputFiles({ name: 'kopia.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) })
-  await expect(page.getByRole('dialog', { name: 'Przywróć z kopii' })).toContainText('Wszystkie wpisy z tej kopii już są')
+  await expect(page.getByRole('dialog', { name: 'Przywróć z kopii' })).toContainText('Nie ma wybranych wpisów do dodania')
   await page.getByRole('dialog').getByRole('button', { name: 'Zamknij', exact: true }).click()
   await page.locator('input[type="file"][accept*="json"]').setInputFiles({ name: 'zly.json', mimeType: 'application/json', buffer: Buffer.from('{"hello":1}') })
   await expect(page.getByRole('alert')).toContainText('To nie jest kopia dziennika Flexa')

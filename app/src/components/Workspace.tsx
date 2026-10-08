@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type TouchEvent } from 'react'
 import {
   CalendarDays, ChartNoAxesCombined, ChefHat, ChevronLeft, ChevronRight, CircleHelp, Cloud, CloudOff, Dumbbell, LogOut, Plus, Search,
-  Settings2, Utensils,
+  Settings2, Target, Utensils,
 } from 'lucide-react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import type { MealKind } from '../../../shared/domain'
@@ -29,9 +29,10 @@ const WorkspaceContext = createContext<WorkspaceValue | null>(null)
 type Section = { to: string; label: string; short: string; Icon: typeof CalendarDays; matches: (path: string) => boolean }
 export const sections: Section[] = [
   { to: '/', label: 'Dzisiaj', short: 'Dzisiaj', Icon: CalendarDays, matches: (path) => path === '/' },
-  { to: '/journal', label: 'Dziennik', short: 'Dziennik', Icon: Utensils, matches: (path) => path.startsWith('/journal') },
-  { to: '/kitchen', label: 'Smart Kuchnia', short: 'Kuchnia', Icon: ChefHat, matches: (path) => path.startsWith('/kitchen') },
-  { to: '/plan', label: 'Trening', short: 'Trening', Icon: Dumbbell, matches: (path) => path.startsWith('/plan') || path.startsWith('/workouts') },
+  { to: '/goals', label: 'Cele', short: 'Cele', Icon: Target, matches: (path) => path.startsWith('/goals') },
+  { to: '/meals', label: 'Posiłki', short: 'Posiłki', Icon: Utensils, matches: (path) => path.startsWith('/meals') },
+  { to: '/plan', label: 'Treningi', short: 'Treningi', Icon: Dumbbell, matches: (path) => path.startsWith('/plan') || path.startsWith('/workouts') },
+  { to: '/kitchen', label: 'Kuchnia', short: 'Kuchnia', Icon: ChefHat, matches: (path) => path.startsWith('/kitchen') },
   { to: '/progress', label: 'Postępy', short: 'Postępy', Icon: ChartNoAxesCombined, matches: (path) => path.startsWith('/progress') },
 ]
 
@@ -43,8 +44,8 @@ export function mealForHour(hour: number): MealKind {
   return 'snack'
 }
 
-const DATED_ROUTES = ['/', '/journal', '/workouts', '/progress']
-const SWIPE_ROUTES = ['/', '/journal']
+const DATED_ROUTES = ['/', '/goals', '/meals', '/workouts', '/progress']
+const SWIPE_ROUTES = ['/', '/goals', '/meals']
 
 function isTyping(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName))
@@ -129,7 +130,7 @@ export function Workspace() {
             </Link>
           })}
           <NavLink to="/settings" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-            <Settings2 size={20} aria-hidden="true" /><span>Cele i konto</span>
+            <Settings2 size={20} aria-hidden="true" /><span>Konto i ustawienia</span>
           </NavLink>
         </nav>
         <div className="sidebar-note">
@@ -156,7 +157,7 @@ export function Workspace() {
             <Search size={17} aria-hidden="true" /><span>Szukaj</span><kbd aria-hidden="true">Ctrl K</kbd>
           </button>
           <Button className="topbar-add" onClick={() => setQuickAdd(true)}><Plus size={18} aria-hidden="true" />Dodaj</Button>
-          <Link className="account-link" to="/settings" aria-label={`Konto: ${accountName}, cele i ustawienia`}>
+          <Link className="account-link" to="/settings" aria-label={`Konto i ustawienia: ${accountName}`}>
             <span className="user-avatar" aria-hidden="true">{accountName.slice(0, 1).toUpperCase()}</span>
             <span className="account-label" aria-hidden="true">Konto</span>
           </Link>
@@ -174,11 +175,11 @@ export function Workspace() {
         </footer>
       </div>
       <nav className="mobile-nav" aria-label="Menu mobilne">
-        {sections.slice(0, 2).map((section) => <MobileLink key={section.to} section={section} pathname={pathname} />)}
+        {sections.slice(0, 3).map((section) => <MobileLink key={section.to} section={section} pathname={pathname} />)}
         <button type="button" className="mobile-add" onClick={() => setQuickAdd(true)}>
           <span className="mobile-add-mark"><Plus size={22} aria-hidden="true" /></span>Dodaj
         </button>
-        {sections.slice(2).map((section) => <MobileLink key={section.to} section={section} pathname={pathname} />)}
+        {sections.slice(3).map((section) => <MobileLink key={section.to} section={section} pathname={pathname} />)}
       </nav>
     </div>
     {quickAdd && <QuickAdd date={date} onClose={() => setQuickAdd(false)} />}
@@ -203,7 +204,7 @@ export function useWorkspace() {
   return workspace
 }
 
-/** Przełącznik w zakładce „Trening”: plan tygodnia i historia zapisanych aktywności. */
+/** Przełącznik w zakładce „Treningi”: plan tygodnia i historia zapisanych aktywności. */
 export function TrainingTabs() {
   return <nav className="subnav" aria-label="Widok treningu">
     <NavLink to="/plan" end className={({ isActive }) => isActive ? 'active' : undefined}>Plan</NavLink>

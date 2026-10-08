@@ -27,8 +27,8 @@ test('the app is installable and the demo opens offline after the first visit', 
   expect(cached.some((path) => path.startsWith('/assets/') && path.endsWith('.js'))).toBe(true)
 
   await context.setOffline(true)
-  await page.goto('/journal')
-  await expect(page.getByRole('heading', { name: 'Dziennik żywienia', exact: true })).toBeVisible()
+  await page.goto('/meals')
+  await expect(page.getByRole('heading', { name: 'Posiłki', exact: true })).toBeVisible()
   await context.setOffline(false)
 })
 

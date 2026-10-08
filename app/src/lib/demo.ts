@@ -72,7 +72,16 @@ export function createDemo(): Journal {
   return journalSchema.parse({
     profile: {
       displayName: 'Alex', calorieGoal: 2200, proteinGoal: 140, carbsGoal: 260,
-      fatGoal: 65, waterGoal: 2500, weeklyMinutesGoal: 180, targetWeight: null,
+      fatGoal: 65, waterGoal: 2500, weeklyMinutesGoal: 180, targetWeight: 72,
+    },
+    goals: {
+      setupDone: true,
+      cycles: [{
+        id: crypto.randomUUID(), kind: 'reduction', startDate: shiftDate(end, -21), endDate: shiftDate(end, 70),
+        startWeightKg: 74.8, targetWeightKg: 72,
+        calorieGoal: 2200, proteinGoal: 140, carbsGoal: 260, fatGoal: 65, waterGoal: 2500,
+        status: 'active', createdAt: new Date().toISOString(), completedAt: null,
+      }],
     },
     meals,
     workouts: [-10, -5, -3, 0].map((offset, index) => ({

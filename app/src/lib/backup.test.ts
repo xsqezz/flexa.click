@@ -3,6 +3,7 @@ import type { Journal } from '../../../shared/domain'
 import { createDemo, demoAnswers } from './demo'
 import { journalExportText } from './export'
 import { importedFoodId, parseBackup, planImport } from './backup'
+import { shiftDate, today } from './dates'
 import { isUuid } from './ids'
 import { generatePlan } from './training/generator'
 
@@ -18,9 +19,11 @@ describe('backup parsing', () => {
     const legacyData: Record<string, unknown> = { ...journal }
     delete legacyData.mealTemplates
     delete legacyData.training
+    delete legacyData.goals
     const legacy = parseBackup(`\uFEFF${JSON.stringify({ format: 'flexa-journal', version: 1, exportedAt: '2026-10-01T08:00:00Z', mode: 'demo', data: legacyData })}`)
     expect(legacy.version).toBe(1)
     expect(legacy.journal.mealTemplates).toEqual([])
+    expect(legacy.journal.goals).toEqual({ setupDone: true, cycles: [] })
   })
 
   it('explains what is wrong instead of importing a broken file', () => {
@@ -91,5 +94,29 @@ describe('import merge plan', () => {
     expect(preview.payload.plan).toBeNull()
     expect(preview.planNote).toMatch(/zgody/)
     expect(preview.hasPlan).toBe(true)
+  })
+
+  it('previews archived cycles separately, changes their IDs, and never imports an active cycle', () => {
+    const existing = createDemo()
+    const backup = clone(existing)
+    existing.goals.cycles = []
+    const historic = {
+      ...backup.goals.cycles[0], id: crypto.randomUUID(), status: 'completed' as const,
+      startDate: shiftDate(today(), -90), endDate: shiftDate(today(), -40),
+      completedAt: new Date().toISOString(),
+    }
+    backup.goals.cycles.push(historic)
+    const withoutConsent = planImport(existing, backup, options)
+    expect(withoutConsent.goalsInFile).toBe(2)
+    expect(withoutConsent.goalsRestorable).toBe(1)
+    expect(withoutConsent.payload.goalCycles).toEqual([])
+    expect(withoutConsent.goalCycleNote).toMatch(/Aktywnych/)
+
+    const accepted = planImport(existing, backup, { ...options, restoreGoalHistory: true })
+    expect(accepted.payload.goalCycles).toHaveLength(1)
+    expect(accepted.payload.goalCycles[0]).toMatchObject({ kind: historic.kind, status: 'completed' })
+    expect(accepted.payload.goalCycles[0].id).not.toBe(historic.id)
+    expect(accepted.total).toBe(1)
+    expect(planImport(backup, backup, { ...options, restoreGoalHistory: true }).goalsRestorable).toBe(0)
   })
 })

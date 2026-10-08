@@ -11,7 +11,8 @@ const out = join(import.meta.dirname, '..', 'site', 'screens')
 const port = 4196
 const shots = [
   { file: 'dzisiaj.jpg', route: '/', wait: 'Dzisiaj, w Twoim rytmie' },
-  { file: 'dziennik.jpg', route: '/journal', wait: 'Dziennik żywienia' },
+  { file: 'cele.jpg', route: '/goals', wait: 'Cele' },
+  { file: 'posilki.jpg', route: '/meals', wait: 'Posiłki' },
   { file: 'trening.jpg', route: '/plan', wait: 'Twój plan treningowy' },
   { file: 'postepy.jpg', route: '/progress', wait: 'Postępy bez pośpiechu' },
 ]

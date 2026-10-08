@@ -15,6 +15,7 @@ const workout = (date: string, minutes: number) => ({
 function journal(patch: Partial<Journal> = {}): Journal {
   return {
     profile: { displayName: 'Test', calorieGoal: 2000, proteinGoal: 100, carbsGoal: 200, fatGoal: 60, waterGoal: 2000, weeklyMinutesGoal: 150, targetWeight: null },
+    goals: { setupDone: true, cycles: [] },
     meals: [], workouts: [], water: [], measurements: [], customFoods: [],
     training: { onboardingDone: true, plan: null, unreadable: false },
     mealTemplates: [],

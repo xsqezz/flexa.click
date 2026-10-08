@@ -158,14 +158,23 @@ Hints use `aria-describedby`. Inputs have a white fill, thin neutral border and
 at least 44px height. Preserve units, required-state validation and error messages.
 
 **Navigation.** Named line-icon links use muted ink at rest and pale green with
-pine text when active. Five destinations (Dzisiaj, Dziennik, Kuchnia, Trening,
-Postępy) share the rail and the phone's bottom bar. "Trening" covers two views, Plan
-and Historia, switched by a segmented control at the top of both pages. On phones
-a round pine "Dodaj" button sits in the middle of the bottom bar and opens the
-quick-add sheet; on desktop the same sheet opens from "Dodaj" in the top bar. Bottom
-bar labels are at least 11px. Account settings stay reachable from the labelled
-"Konto" link (44px avatar plus text) in the top bar, and "Szukaj" (Ctrl+K) opens the
-command palette beside it.
+pine text when active. The rail and phone's seven-position bar follow the exact
+order Dzisiaj · Cele · Posiłki · Dodaj · Treningi · Kuchnia · Postępy.
+"Treningi" covers Plan and Historia, switched by a segmented control at the top
+of both views. On phones a round pine "Dodaj" button sits in the middle of the
+bar and opens the quick-add sheet; on desktop the same sheet opens from the top
+bar. Bottom labels are at least 11px at 320px and remain usable with seven targets.
+Account settings stay reachable from the labelled "Konto" link in the top bar,
+and "Szukaj" (Ctrl+K) opens the command palette beside it.
+
+**Screen ownership.** Dzisiaj is a lightweight agenda without duplicated food
+ledger or calorie summary. Cele own confirmed daily kcal, macros, hydration,
+weight and dated cycle history; Posiłki own meal entry and copying, with the
+week strip but no second target panel. Treningi own the plan, its workout player,
+logged sessions and weekly movement. Postępy own weight trends and longer-term
+activity charts, not another daily food dashboard. The goals setup reuses the
+plan's age and sex when available and shows an editable estimate before an
+explicit confirmation; expired cycles never activate a new phase automatically.
 
 **Quick add and search.** "Dodaj" is a bottom sheet on phones and a right-hand drawer
 on desktop: two-column grid of 64px action rows (posiłek, skan, woda, trening, pomiar,
@@ -173,8 +182,9 @@ przepis, dzisiejszy trening). The command palette is a centered dialog (640px) w
 combobox, a listbox of pages, actions and diary entries, and visible key hints.
 
 **Day navigation.** A seven-day strip (day, number, kcal, dot for days with entries)
-sits under the date control in the Dziennik; arrow keys, T and horizontal swipes on
-Dzisiaj and Dziennik move between days.
+sits under the date control in Posiłki; arrow keys, T and horizontal swipes on
+Dzisiaj, Cele and Posiłki move between days. Cele also show a date-indexed table
+of consumed versus historically approved kcal, distinguishing no entry from zero.
 
 **Undo.** Removing a diary entry hides it at once and shows a toast with "Cofnij" for
 8 seconds; the deletion is written only when the toast goes away. Confirmation

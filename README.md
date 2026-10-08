@@ -19,7 +19,7 @@ kategoriach oraz tysiące rzeczywistych wariantów z kodami. Jest dostępny do
 [pobrania na licencji ODbL](app/public/data/polish-products.json);
 [opis źródeł i aktualizacji](docs/CATALOG.md).
 
-**Zaimplementowane:** konta Supabase, cele kalorii/makro i wody, dziennik posiłków,
+**Zaimplementowane:** konta Supabase, zatwierdzane cele kalorii/makro i wody, cykle żywieniowe, dziennik posiłków,
 produkty własne, wyszukiwanie Open Food Facts + opcjonalnie USDA, kamera
 BarcodeDetector/ZXing, treningi, import własnych GPX/TCX, tempo i minuty × RPE,
 analizy 7/30/90 dni, pomiary, eksport JSON, usunięcie konta i synchronizacja.
@@ -40,6 +40,15 @@ po odświeżeniu i zapis do dziennika. Filmy instruktażowe z YouTube ładują s
 po kliknięciu (youtube-nocookie.com); ID filmów sprawdzamy przez oEmbed, a dla ćwiczeń
 bez sprawdzonego filmu jest link do wyszukiwania.
 
+**Cele i cykle:** po ankiecie (także jeśli pominiesz plan) możesz zapisać masę
+początkową, docelową, rodzaj i daty cyklu. Wiek/płeć z planu pomagają policzyć
+orientacyjną propozycję; wzrost i aktywność służą tylko do obliczenia. Własne
+kcal, makro i wodę zatwierdzasz przed zapisem. Faza redukcji, utrzymania lub
+budowy mięśni nigdy nie zmienia kalorii sama: po końcu cyklu cel pozostaje bez
+zmian, a następny cykl wymaga potwierdzenia. W Celach widać spożycie dla dnia,
+bieżącą i docelową masę oraz historię kalorii i cykli. Demo dla 16–17-latków
+oferuje tylko cele ręczne, bez kalkulatora i propozycji faz.
+
 **Smart Kuchnia:** zakładka „Kuchnia” układa przepis z tego, co masz w domu. Wybierasz produkty
 (lub — po zalogowaniu — robisz zdjęcie lodówki i zatwierdzasz rozpoznaną listę), odpowiadasz na trzy
 pytania (czas, sprzęt, czego nie lubisz/alergie/ochota, a także liczba osób i wielkość porcji) i dostajesz
@@ -53,15 +62,15 @@ wymagają konta, zgody na wysłanie zdjęcia i mają dzienne limity na konto (mi
 `202610080001_kitchen_ai_quota.sql`). Zdjęć nie zapisujemy; AI nigdy nie pisze przepisu ani nie
 liczy makro.
 
-**Nawigacja i wygoda:** pięć sekcji (Dzisiaj, Dziennik, Kuchnia, Trening z widokami Plan i Historia, Postępy), przycisk „Dodaj”
+**Nawigacja i wygoda:** siedem pozycji: Dzisiaj · Cele · Posiłki · Dodaj · Treningi (Plan | Historia) · Kuchnia · Postępy. Dzisiaj jest agendą, Cele skupiają bilans i historię energii, Posiłki służą wpisywaniu jedzenia, a Postępy pokazują długoterminowe pomiary i aktywność. Przycisk „Dodaj”
 na każdym ekranie (posiłek, skan kodu, woda, trening, pomiar), wyszukiwarka Ctrl+K (strony, akcje, wpisy), zmiana dnia przesunięciem
 palca, strzałkami lub paskiem tygodnia, „Cofnij” po usunięciu wpisu, lista „Zacznij tu” dla nowych kont, strona „O Flexa” ze
 skrótami klawiszowymi, ciemny motyw według ustawień systemu i instalacja jako aplikacja (PWA) z działaniem offline.
 
 **Dziennik i dane:** kopiowanie posiłków z wczoraj, zestawy posiłków, zapis przepisu jako własnego produktu, kalkulator orientacyjnego
-zapotrzebowania (nie zapisuje wieku, płci ani wzrostu), przywracanie kopii JSON (tylko dodawanie brakujących wpisów), eksport CSV,
-serie i ciężary w treningach z historią ćwiczeń, podsumowanie tygodnia, trend wagi z 7 dni oraz opcjonalne obwody talii i bioder.
-Kolejne migracje: `202610090001_meal_templates.sql` i `202610090002_training_details.sql`.
+zapotrzebowania (nowe dane użyte do obliczenia nie są trwale zapisywane), przywracanie kopii JSON (domyślnie tylko brakujące wpisy; opcjonalnie profil, plan i zakończone cykle), eksport CSV,
+serie i ciężary w treningach z historią ćwiczeń, tygodniowy cel ruchu, trend wagi z 7 dni oraz opcjonalne obwody talii i bioder.
+Kolejne migracje: `202610090001_meal_templates.sql`, `202610090002_training_details.sql` i `202610100001_goal_cycles.sql`.
 
 **Aplikacja na Androida:** `android/` to powłoka Kotlin z `WebView`, która otwiera działającą stronę (zmiany
 w aplikacji są więc widoczne od razu) i sama proponuje aktualizację, gdy w GitHub Releases pojawi się nowszy APK:

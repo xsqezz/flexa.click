@@ -38,6 +38,37 @@ export const profileSchema = z.object({
   targetWeight: z.number().min(20).max(500).nullable(),
 })
 
+export const goalCycleInputSchema = z.object({
+  kind: z.enum(['reduction', 'maintenance', 'muscle_gain', 'manual']),
+  startDate: dateSchema,
+  endDate: dateSchema,
+  startWeightKg: z.number().finite().min(20).max(500),
+  targetWeightKg: z.number().finite().min(20).max(500).nullable(),
+  calorieGoal: profileSchema.shape.calorieGoal,
+  proteinGoal: profileSchema.shape.proteinGoal,
+  carbsGoal: profileSchema.shape.carbsGoal,
+  fatGoal: profileSchema.shape.fatGoal,
+  waterGoal: profileSchema.shape.waterGoal,
+}).refine((cycle) => cycle.endDate >= cycle.startDate, {
+  message: 'Koniec cyklu nie może poprzedzać początku.',
+  path: ['endDate'],
+})
+
+export const goalCycleSchema = goalCycleInputSchema.safeExtend({
+  id: z.uuid(),
+  status: z.enum(['active', 'completed']),
+  createdAt: z.iso.datetime({ offset: true }),
+  completedAt: z.iso.datetime({ offset: true }).nullable(),
+}).refine((cycle) => (cycle.status === 'active') === (cycle.completedAt === null), {
+  message: 'Zakończony cykl musi mieć datę zamknięcia.',
+  path: ['completedAt'],
+})
+
+export const goalsStateSchema = z.object({
+  setupDone: z.boolean(),
+  cycles: z.array(goalCycleSchema),
+})
+
 export const mealNames = {
   breakfast: 'Śniadanie',
   lunch: 'Obiad',
@@ -111,6 +142,7 @@ export const measurementSchema = z.object({
 
 export const journalSchema = z.object({
   profile: profileSchema,
+  goals: goalsStateSchema.default({ setupDone: true, cycles: [] }),
   meals: z.array(mealSchema),
   workouts: z.array(workoutSchema),
   water: z.array(waterSchema),
@@ -134,6 +166,8 @@ export const searchResponseSchema = z.object({
 
 export type Food = z.infer<typeof foodSchema>
 export type Profile = z.infer<typeof profileSchema>
+export type GoalCycleInput = z.infer<typeof goalCycleInputSchema>
+export type GoalCycle = z.infer<typeof goalCycleSchema>
 export type Meal = z.infer<typeof mealSchema>
 export type MealKind = Meal['meal']
 export type MealTemplate = z.infer<typeof mealTemplateSchema>

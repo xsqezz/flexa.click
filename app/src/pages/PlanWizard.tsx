@@ -53,10 +53,12 @@ export function PlanWizard({ mode }: { mode: 'onboarding' | 'edit' }) {
     <Notice tone="error">{journal.error ?? 'Nie udało się odczytać danych konta.'}</Notice>
     <Button variant="secondary" onClick={journal.refresh}>Spróbuj ponownie</Button>
   </main>
-  return <WizardForm mode={mode} initial={journal.data.training.plan?.answers} onboardingDone={journal.data.training.onboardingDone || journal.data.training.plan !== null} />
+  return <WizardForm mode={mode} initial={journal.data.training.plan?.answers}
+    onboardingDone={journal.data.training.onboardingDone || journal.data.training.plan !== null} goalsDone={journal.data.goals.setupDone} />
 }
 
-function WizardForm({ mode, initial, onboardingDone }: { mode: 'onboarding' | 'edit'; initial?: TrainingAnswers; onboardingDone: boolean }) {
+function WizardForm({ mode, initial, onboardingDone, goalsDone }:
+  { mode: 'onboarding' | 'edit'; initial?: TrainingAnswers; onboardingDone: boolean; goalsDone: boolean }) {
   const auth = useAuth()
   const { execute, pending } = useJournal()
   const navigate = useNavigate()
@@ -70,7 +72,7 @@ function WizardForm({ mode, initial, onboardingDone }: { mode: 'onboarding' | 'e
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => { heading.current?.focus() }, [step])
 
-  if (mode === 'onboarding' && onboardingDone && !finishing) return <Navigate to="/" replace />
+  if (mode === 'onboarding' && onboardingDone && !finishing) return <Navigate to={goalsDone ? '/' : '/goals/setup'} replace />
 
   const steps: Step[] = [
     ...(mode === 'onboarding' ? ['intro' as const] : []), 'about', 'goal', 'place',
@@ -122,7 +124,7 @@ function WizardForm({ mode, initial, onboardingDone }: { mode: 'onboarding' | 'e
     try {
       await execute({ type: 'plan.save', value: generatePlan(value) })
       feedback('Twój plan jest gotowy. Powodzenia na pierwszym treningu!')
-      navigate('/plan', { replace: true })
+      navigate(mode === 'onboarding' && !goalsDone ? '/goals/setup' : '/plan', { replace: true })
     } catch (cause) {
       setFinishing(false)
       setError(errorMessage(cause))
@@ -135,8 +137,8 @@ function WizardForm({ mode, initial, onboardingDone }: { mode: 'onboarding' | 'e
     setFinishing(true)
     try {
       await execute({ type: 'onboarding.skip' })
-      feedback('Plan ułożysz w każdej chwili w zakładce Plan.')
-      navigate('/', { replace: true })
+      feedback('Plan ułożysz w każdej chwili w zakładce Treningi.')
+      navigate(goalsDone ? '/' : '/goals/setup', { replace: true })
     } catch (cause) {
       setFinishing(false)
       setError(errorMessage(cause))

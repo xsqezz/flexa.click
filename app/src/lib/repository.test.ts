@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEMO_KEY, createDemo, demoAnswers, readDemo, writeDemo } from './demo'
 import { DemoRepository, SupabaseRepository, readPages, setsFromRow, trainingFromRow } from './repository'
-import { today } from './dates'
+import { shiftDate, today } from './dates'
 import { generatePlan } from './training/generator'
 import { planImport, type ImportPayload } from './backup'
 
@@ -174,6 +174,10 @@ describe('cloud backup import', () => {
   function fakeClient(failOn?: { table: string; call: number }) {
     const calls: { table: string; size: number }[] = []
     const client = {
+      rpc: async (name: string, args: { p_cycles: unknown[] }) => {
+        calls.push({ table: `rpc:${name}`, size: args.p_cycles.length })
+        return { data: args.p_cycles.length, error: null }
+      },
       from: (table: string) => ({
         insert: (rows: { id?: string }[]) => ({
           select: async () => {
@@ -191,7 +195,7 @@ describe('cloud backup import', () => {
     const food = createDemo().meals[0].food
     return {
       meals: Array.from({ length: count }, (_, index) => ({ date: '2026-01-01', meal: 'lunch' as const, food, portion: index + 1 })),
-      workouts: [], water: [], measurements: [], customFoods: [], mealTemplates: [], profile: null, plan: null,
+      workouts: [], water: [], measurements: [], customFoods: [], mealTemplates: [], goalCycles: [], profile: null, plan: null,
     }
   }
 
@@ -207,5 +211,37 @@ describe('cloud backup import', () => {
   it('names how many entries were saved when a chunk fails', async () => {
     const { repository } = fakeClient({ table: 'meal_entries', call: 1 })
     await expect(repository.execute({ type: 'journal.import', value: payload(450) })).rejects.toThrow('Zapisano 200 z 450 pozycji')
+  })
+
+  it('imports only the explicitly selected finished history before writing other entries', async () => {
+    const { calls, repository } = fakeClient()
+    const historic = { ...createDemo().goals.cycles[0], status: 'completed' as const,
+      endDate: shiftDate(today(), -5), completedAt: new Date().toISOString() }
+    const value = { ...payload(1), goalCycles: [historic] }
+    const progress: number[] = []
+    await repository.execute({ type: 'journal.import', value, onProgress: (saved) => progress.push(saved) })
+    expect(calls).toMatchObject([{ table: 'rpc:restore_goal_cycle_history', size: 1 }, { table: 'meal_entries', size: 1 }])
+    expect(progress).toEqual([1, 2])
+  })
+})
+
+describe('goal cycles in demo persistence', () => {
+  beforeEach(() => localStorage.clear())
+  it('restores only completed history into an empty diary, never replacing an existing active cycle', async () => {
+    const original = createDemo()
+    const backup = structuredClone(original)
+    backup.goals.cycles = [{ ...original.goals.cycles[0], status: 'completed',
+      endDate: shiftDate(today(), -3), completedAt: new Date().toISOString() }]
+    const empty = structuredClone(original)
+    empty.goals.cycles = []
+    writeDemo(empty)
+    const repository = new DemoRepository()
+    const preview = planImport(empty, backup, { replaceProfile: false, restorePlan: false, restoreGoalHistory: true })
+    expect(preview.payload.goalCycles).toHaveLength(1)
+    await repository.execute({ type: 'journal.import', value: preview.payload })
+    expect(readDemo().goals.cycles).toMatchObject([{ status: 'completed', kind: 'reduction' }])
+    expect(readDemo().profile).toEqual(empty.profile)
+    await expect(repository.execute({ type: 'journal.import', value: preview.payload })).rejects.toThrow('Historia cykli już istnieje')
+    expect(readDemo().goals.cycles).toHaveLength(1)
   })
 })

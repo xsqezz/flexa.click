@@ -138,6 +138,14 @@
     .mobile-add:active .mobile-add-mark { background: #256140; }
   }
   .sets-editor-row input { border: 1px solid #404f47; }
+  .today-quick-link:hover { background: #1b201a; }
+  .goals-current { background: #1d2819; border-color: #35473a; }
+  .goals-history-table tr.selected { background: #1c2219; }
+  .goals-history-meter { background: #222c1e; }
+  .goals-setup-layout { background: #0f1612; }
+  .goals-estimator { background: #1a1f19; }
+  .goals-proposal { border: 1px solid #3d4e43; }
+  .goals-confirm { background: #1d231a; }
   .chart-svg line[stroke="#e4eae5"] { stroke: #2c3a32; }
   .chart-svg polyline[stroke="#326b49"] { stroke: #7cc59a; }
   .chart-svg circle[fill="#326b49"] { fill: #7cc59a; }

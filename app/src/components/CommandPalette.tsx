@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import {
   CalendarDays, ChartNoAxesCombined, ChefHat, CircleHelp, ClipboardList, Download, Droplet, Dumbbell, History, Play, Ruler,
-  ScanBarcode, Search, Settings2, Shield, Utensils, X,
+  ScanBarcode, Search, Settings2, Shield, Target, Utensils, X,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { mealNames } from '../../../shared/domain'
@@ -71,12 +71,13 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
         run: go(`/plan/${plan.sessions[sessionIndex].key}`),
       }] : []),
       { id: 'page-today', group: 'Przejdź do', label: 'Dzisiaj', keywords: 'pulpit start podsumowanie', icon: icon(CalendarDays), run: go('/') },
-      { id: 'page-journal', group: 'Przejdź do', label: 'Dziennik', keywords: 'posilki tydzien jedzenie', icon: icon(Utensils), run: go('/journal') },
-      { id: 'page-kitchen', group: 'Przejdź do', label: 'Smart Kuchnia', keywords: 'przepis gotowanie lodowka', icon: icon(ChefHat), run: go('/kitchen') },
-      { id: 'page-plan', group: 'Przejdź do', label: 'Plan treningowy', keywords: 'trening cwiczenia tydzien', icon: icon(ClipboardList), run: go('/plan') },
+      { id: 'page-goals', group: 'Przejdź do', label: 'Cele', keywords: 'kalorie makro waga cykle', icon: icon(Target), run: go('/goals') },
+      { id: 'page-meals', group: 'Przejdź do', label: 'Posiłki', keywords: 'dziennik tydzien jedzenie', icon: icon(Utensils), run: go('/meals') },
+      { id: 'page-plan', group: 'Przejdź do', label: 'Treningi', keywords: 'plan treningowy cwiczenia tydzien', icon: icon(ClipboardList), run: go('/plan') },
+      { id: 'page-kitchen', group: 'Przejdź do', label: 'Kuchnia', keywords: 'przepis gotowanie lodowka', icon: icon(ChefHat), run: go('/kitchen') },
       { id: 'page-workouts', group: 'Przejdź do', label: 'Historia treningów', keywords: 'aktywnosc treningi', icon: icon(History), run: go('/workouts') },
       { id: 'page-progress', group: 'Przejdź do', label: 'Postępy', keywords: 'wykresy waga pomiary analiza', icon: icon(ChartNoAxesCombined), run: go('/progress') },
-      { id: 'page-settings', group: 'Przejdź do', label: 'Cele i konto', keywords: 'ustawienia profil kalorie makro konto', icon: icon(Settings2), run: go('/settings') },
+      { id: 'page-settings', group: 'Przejdź do', label: 'Konto i ustawienia', keywords: 'ustawienia profil eksport konto', icon: icon(Settings2), run: go('/settings') },
       { id: 'plan-new', group: 'Przejdź do', label: plan ? 'Zmień odpowiedzi w planie treningowym' : 'Ułóż plan treningowy', keywords: 'ankieta plan', icon: icon(ClipboardList), run: go('/plan/new') },
       { id: 'export', group: 'Przejdź do', label: 'Eksport i kopia danych', keywords: 'json csv kopia zapasowa pobierz', icon: icon(Download), run: go('/settings') },
       { id: 'page-about', group: 'Przejdź do', label: 'O Flexa', keywords: 'pomoc informacje kontakt', icon: icon(CircleHelp), run: go('/about') },
@@ -92,7 +93,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
         list.push({
           id: `meal-${meal.id}`, group: 'W dzienniku', label: meal.food.name,
           detail: `${dateLabel(meal.date)} · ${mealNames[meal.meal]} · ${numberFormat.format(meal.portion)} ${meal.food.unit ?? ''}`.trim(),
-          icon: icon(Utensils), run: () => { workspace.setDate(meal.date); navigate('/journal') },
+          icon: icon(Utensils), run: () => { workspace.setDate(meal.date); navigate('/meals') },
         })
       }
       for (const workout of [...data.workouts].sort((a, b) => b.date.localeCompare(a.date))) {

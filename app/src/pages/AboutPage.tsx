@@ -14,15 +14,16 @@ export function AboutPage() {
 
     <h2>Jak się poruszać</h2>
     <ul>
-      <li><strong>Dzisiaj</strong> — podsumowanie dnia: energia i makro, posiłki, aktywność, woda.</li>
-      <li><strong>Dziennik</strong> — tydzień jedzenia: pasek dni, posiłki wybranego dnia i tabela tygodnia.</li>
+      <li><strong>Dzisiaj</strong> — agenda wybranego dnia: planowany trening i szybkie przejście do wpisów.</li>
+      <li><strong>Cele</strong> — zatwierdzone kalorie, makroskładniki i woda, bieżąca i docelowa masa, historia dziennych zapisów oraz cykli. Fazy zmieniasz wyłącznie samodzielnie.</li>
+      <li><strong>Posiłki</strong> — pasek dni tygodnia, wpisy według pory dnia, kopiowanie posiłków i zestawy.</li>
+      <li><strong>Treningi</strong> — „Plan” prowadzi przez trening krok po kroku, a „Historia” pokazuje zapisane aktywności.</li>
       <li><strong>Kuchnia</strong> — Smart Kuchnia układa przepis z produktów, które masz.</li>
-      <li><strong>Trening</strong> — „Plan” prowadzi przez trening krok po kroku, a „Historia” pokazuje zapisane aktywności.</li>
-      <li><strong>Postępy</strong> — wykresy energii, pomiarów i obciążenia.</li>
+      <li><strong>Postępy</strong> — wykresy pomiarów, trendu wagi i odczuwalnego obciążenia.</li>
       <li><strong>Dodaj</strong> (przycisk „+”) — posiłek, skan kodu, woda, trening albo pomiar z każdego ekranu.</li>
-      <li><strong>Konto</strong> (w prawym górnym rogu) — cele, eksport danych, przypomnienia w aplikacji na Androida i usunięcie konta.</li>
+      <li><strong>Konto</strong> (w prawym górnym rogu) — ustawienia profilu, eksport danych, przypomnienia w aplikacji na Androida i usunięcie konta.</li>
     </ul>
-    <p>Na telefonie przesuń palcem w lewo lub w prawo na ekranach „Dzisiaj” i „Dziennik”, żeby zmienić dzień. Usunięty wpis możesz przywrócić przyciskiem „Cofnij” w komunikacie, który pojawia się na kilka sekund.</p>
+    <p>Na telefonie przesuń palcem w lewo lub w prawo na ekranach „Dzisiaj”, „Cele” i „Posiłki”, żeby zmienić dzień. Usunięty wpis możesz przywrócić przyciskiem „Cofnij” w komunikacie, który pojawia się na kilka sekund.</p>
 
     <h2>Skróty klawiszowe</h2>
     <div className="table-scroll"><table>

@@ -2,7 +2,8 @@ import { Droplets, Minus, Plus, TrendingUp } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Journal, Meal } from '../../../shared/domain'
-import { daysEndingAt, dateLabel, weekStart, shiftDate } from '../lib/dates'
+import { daysEndingAt, dateLabel, today, weekStart, shiftDate } from '../lib/dates'
+import { goalForDay } from '../lib/goals'
 import { calorieStatus, integerFormat, numberFormat, nutritionTotal, progress } from '../lib/nutrition'
 import { useJournal } from '../lib/Journal'
 import { useFeedback } from './Feedback'
@@ -15,13 +16,13 @@ const macroDefinitions = [
   { key: 'fat', name: 'Tłuszcze', goal: 'fatGoal', className: 'fat' },
 ] as const
 
-export function NutritionSummary({ meals, profile }: { meals: Meal[]; profile: Journal['profile'] }) {
+export function NutritionSummary({ meals, profile, date }: { meals: Meal[]; profile: Journal['profile']; date: string }) {
   const energy = nutritionTotal(meals, 'kcal').value
   const percent = progress(energy, profile.calorieGoal)
   return <section className="panel nutrition-panel" aria-label="Podsumowanie żywienia">
     <div className="nutrition-main">
       <div>
-        <div className="summary-label">Energia na dziś</div>
+        <div className="summary-label">{date === today() ? 'Energia na dziś' : 'Energia w wybranym dniu'}</div>
         <div className="energy-value">{integerFormat.format(energy)} <span>/ {integerFormat.format(profile.calorieGoal)} kcal</span></div>
         <p className="energy-caption">{calorieStatus(energy, profile.calorieGoal)}</p>
         <div className="energy-meter" role="progressbar" aria-label="Realizacja celu energetycznego"
@@ -47,7 +48,7 @@ export function NutritionSummary({ meals, profile }: { meals: Meal[]; profile: J
         </div>
       })}
     </div>
-    <div className="summary-footnote">Cel ustalasz Ty. Energia treningów nie zwiększa go automatycznie. <Link to="/settings">Zmień cele</Link></div>
+    <div className="summary-footnote">Cel zatwierdzasz Ty. Energia treningów nie zwiększa go automatycznie. <Link to="/goals/new">Rozpocznij nowy cykl</Link></div>
   </section>
 }
 
@@ -57,7 +58,7 @@ export function WaterPanel({ data, date }: { data: Journal; date: string }) {
   const [error, setError] = useState<string | null>(null)
   const entries = data.water.filter((entry) => entry.date === date)
   const amount = entries.reduce((sum, entry) => sum + entry.amountMl, 0)
-  const target = data.profile.waterGoal
+  const target = goalForDay(data, date)?.waterGoal ?? null
   async function add() {
     setError(null)
     try { await execute({ type: 'water.add', value: { date, amountMl: 250 } }); feedback('Dodano 250 ml wody.') }
@@ -72,11 +73,11 @@ export function WaterPanel({ data, date }: { data: Journal; date: string }) {
   }
   return <section className="panel water-panel">
     <div className="panel-title"><h2>Nawodnienie</h2><Droplets size={20} aria-hidden="true" /></div>
-    <div className="water-value">{numberFormat.format(amount / 1000)} <span>/ {numberFormat.format(target / 1000)} l</span></div>
+    <div className="water-value">{numberFormat.format(amount / 1000)} <span>/ {target === null ? '—' : numberFormat.format(target / 1000)} l</span></div>
     <div className="water-glasses" aria-hidden="true">
       {Array.from({ length: 8 }, (_, index) => <svg key={index} viewBox="0 0 25 34">
-        <path d="M3 3h19l-3 27H6L3 3Z" fill={index < progress(amount, target) / 12.5 ? '#b6d3f0' : '#eef3f6'} stroke="#7a9bb9" strokeWidth="1.5" />
-        {index < progress(amount, target) / 12.5 && <path d="M5 14h15l-2 14H7L5 14Z" fill="#4985ba" />}
+        <path d="M3 3h19l-3 27H6L3 3Z" fill={index < progress(amount, target ?? 0) / 12.5 ? '#b6d3f0' : '#eef3f6'} stroke="#7a9bb9" strokeWidth="1.5" />
+        {index < progress(amount, target ?? 0) / 12.5 && <path d="M5 14h15l-2 14H7L5 14Z" fill="#4985ba" />}
       </svg>)}
     </div>
     {error && <Notice tone="error">{error}</Notice>}

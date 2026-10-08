@@ -15,7 +15,7 @@ const answers = (patch: Record<string, unknown> = {}) => JSON.stringify({
   minutes: 30, limitations: [], cautiousStart: false, healthConsent: false, ...patch,
 })
 const plan = JSON.stringify({ version: 1, createdAt: '2026-10-07T10:00:00.000Z', sessions: [] })
-const tables = ['profiles', 'meal_entries', 'workouts', 'water_entries', 'measurements', 'custom_foods', 'training_plans']
+const tables = ['profiles', 'meal_entries', 'workouts', 'water_entries', 'measurements', 'custom_foods', 'training_plans', 'goal_cycles']
 const migrations = new URL('../../../supabase/migrations/', import.meta.url)
 let database: PGlite
 
@@ -35,9 +35,11 @@ beforeAll(async () => {
     grant execute on function auth.uid() to anon, authenticated, service_role;
   `)
   for (const file of (await readdir(migrations)).filter((name) => name.endsWith('.sql')).sort()) {
+    if (file === '202610100001_goal_cycles.sql') {
+      await database.query('insert into auth.users(id, raw_user_meta_data) values ($1, $3), ($2, $3)', [alice, bob, consent])
+    }
     await database.exec(await readFile(new URL(file, migrations), 'utf8'))
   }
-  await database.query('insert into auth.users(id, raw_user_meta_data) values ($1, $3), ($2, $3)', [alice, bob, consent])
   await database.query('insert into public.meal_entries(user_id, date, meal, food, portion) values ($1, $2, $3, $4, $5)', [alice, '2026-10-06', 'lunch', food, 100])
   await database.query('insert into public.custom_foods(user_id, food) values ($1, $2)', [alice, food])
   await database.query("insert into public.workouts(user_id, date, name, kind, minutes) values ($1, '2026-10-06', 'Bieg', 'run', 30)", [alice])
@@ -55,7 +57,7 @@ describe('Postgres ownership and privacy', () => {
       await asUser(bob)
       expect((await database.query(`select * from public.${table} where user_id = $1`, [alice])).rows).toHaveLength(0)
       const deleted = await database.query(`delete from public.${table} where user_id = $1 returning user_id`, [alice]).catch((error: unknown) => error)
-      if (table === 'profiles') expect(deleted).toBeInstanceOf(Error)
+      if (table === 'profiles' || table === 'goal_cycles') expect(deleted).toBeInstanceOf(Error)
       else expect(deleted).toHaveProperty('rows', [])
     })
   }
@@ -97,6 +99,108 @@ describe('Postgres ownership and privacy', () => {
     const hash = 'a'.repeat(64)
     await database.query("insert into public.workouts(user_id,date,name,kind,minutes,import_hash) values ($1,'2026-10-06','Import','run',10,$2)", [alice, hash])
     await expect(database.query("insert into public.workouts(user_id,date,name,kind,minutes,import_hash) values ($1,'2026-10-06','Import','run',10,$2)", [alice, hash])).rejects.toThrow('unique constraint')
+  })
+})
+
+describe('nutrition goals and cycles', () => {
+  const day = new Date().toISOString().slice(0, 10)
+  const start = (id: string, weight = 75, calories = 2300) => database.query<{ cycle_id: string }>(
+    "select public.start_goal_cycle($1, 'maintenance', $2, '2100-01-01', $3, 72, $4, 150, 260, 70, 2500) as cycle_id",
+    [id, day, weight, calories])
+  async function rejects(run: () => Promise<unknown>, message: string) {
+    await database.exec('savepoint attempt')
+    await expect(run()).rejects.toThrow(message)
+    await database.exec('rollback to savepoint attempt')
+  }
+
+  it('backfills existing accounts but leaves new accounts pending configuration', async () => {
+    await asUser(alice)
+    expect((await database.query<{ goals_setup_done_at: string | null }>('select goals_setup_done_at from public.profiles')).rows[0].goals_setup_done_at).not.toBeNull()
+    await database.exec('reset role')
+    const newUser = crypto.randomUUID()
+    await database.query('insert into auth.users(id, raw_user_meta_data) values ($1, $2)', [newUser, consent])
+    await asUser(newUser)
+    expect((await database.query<{ goals_setup_done_at: string | null }>('select goals_setup_done_at from public.profiles')).rows[0].goals_setup_done_at).toBeNull()
+  })
+
+  it('atomically approves one cycle, archives the old one and updates the profile', async () => {
+    const first = crypto.randomUUID()
+    const second = crypto.randomUUID()
+    await asUser(alice)
+    expect((await start(first)).rows[0].cycle_id).toBe(first)
+    expect((await start(first)).rows[0].cycle_id).toBe(first)
+    expect((await database.query<{ id: string }>('select id from public.goal_cycles')).rows).toHaveLength(1)
+    expect((await start(second, 75, 2500)).rows[0].cycle_id).toBe(second)
+    const cycles = (await database.query<{ status: string; calorie_goal: string; completed_at: string | null }>(
+      'select status, calorie_goal, completed_at from public.goal_cycles order by calorie_goal')).rows
+    expect(cycles).toMatchObject([
+      { status: 'completed', calorie_goal: '2300' },
+      { status: 'active', calorie_goal: '2500', completed_at: null },
+    ])
+    expect(cycles[0].completed_at).not.toBeNull()
+    expect((await database.query<{ calorie_goal: string; target_weight: string }>(
+      'select calorie_goal, target_weight from public.profiles')).rows[0]).toMatchObject({ calorie_goal: '2500', target_weight: '72' })
+    expect((await database.query('select * from public.measurements where date = $1', [day])).rows).toHaveLength(1)
+  })
+
+  it('rejects conflicting start measurements and invalid goals without partial writes', async () => {
+    await asUser(alice)
+    await database.query('insert into public.measurements(user_id, date, weight_kg) values ($1, $2, 74) on conflict (user_id, date) do update set weight_kg = 74', [alice, day])
+    await rejects(() => start(crypto.randomUUID()), 'Dla daty początku')
+    expect((await database.query('select * from public.goal_cycles')).rows).toHaveLength(0)
+    await rejects(() => start(crypto.randomUUID(), 74, 1), 'check constraint')
+    expect((await database.query('select * from public.goal_cycles')).rows).toHaveLength(0)
+    expect((await database.query<{ weight_kg: string }>('select weight_kg from public.measurements where date = $1', [day])).rows[0].weight_kg).toBe('74')
+    expect((await database.query<{ calorie_goal: string }>('select calorie_goal from public.profiles')).rows[0].calorie_goal).toBe('2200')
+  })
+
+  it('isolates cycle history and only changes approved goals through atomic functions', async () => {
+    await asUser(alice)
+    const id = crypto.randomUUID()
+    await start(id)
+    await rejects(() => database.query('update public.profiles set calorie_goal = 999'), 'permission denied')
+    await rejects(() => database.query('update public.goal_cycles set calorie_goal = 999'), 'permission denied')
+    await database.query('select public.save_flexa_profile($1, 2400, 155, 265, 75, 2600, 160, 70)', ['Ala'])
+    expect((await database.query<{ calorie_goal: string; target_weight_kg: string }>('select calorie_goal, target_weight_kg from public.goal_cycles')).rows[0])
+      .toMatchObject({ calorie_goal: '2400', target_weight_kg: '70' })
+    await asUser(bob)
+    expect((await database.query('select * from public.goal_cycles')).rows).toHaveLength(0)
+    await rejects(() => database.query('insert into public.goal_cycles(id, user_id) values ($1, $2)', [crypto.randomUUID(), alice]), 'permission denied')
+    await database.exec('reset role; set role anon')
+    await rejects(() => start(crypto.randomUUID()), 'permission denied')
+  })
+
+  it('restores only completed history without activating it or changing the profile', async () => {
+    const history = [{
+      id: crypto.randomUUID(), kind: 'maintenance', startDate: '2020-01-01', endDate: '2020-02-01',
+      startWeightKg: 75, targetWeightKg: null, calorieGoal: 2300, proteinGoal: 150,
+      carbsGoal: 260, fatGoal: 70, waterGoal: 2500, status: 'completed',
+      createdAt: '2020-01-01T10:00:00Z', completedAt: '2020-02-01T10:00:00Z',
+    }]
+    await asUser(alice)
+    expect((await database.query<{ restored: number }>('select public.restore_goal_cycle_history($1::jsonb) as restored',
+      [JSON.stringify(history)])).rows[0].restored).toBe(1)
+    expect((await database.query<{ status: string }>('select status from public.goal_cycles')).rows).toEqual([{ status: 'completed' }])
+    expect((await database.query<{ calorie_goal: string; target_weight: string | null }>('select calorie_goal, target_weight from public.profiles')).rows[0])
+      .toMatchObject({ calorie_goal: '2200', target_weight: null })
+    await rejects(() => database.query('select public.restore_goal_cycle_history($1::jsonb)', [JSON.stringify(history)]), 'Historia cykli już istnieje')
+    await asUser(bob)
+    expect((await database.query('select * from public.goal_cycles')).rows).toHaveLength(0)
+    await database.exec('reset role; set role anon')
+    await rejects(() => database.query('select public.restore_goal_cycle_history($1::jsonb)', [JSON.stringify(history)]), 'permission denied')
+  })
+
+  it('rolls back the entire imported history when a cycle is active or a later record is invalid', async () => {
+    const valid = { id: crypto.randomUUID(), kind: 'maintenance', startDate: '2020-01-01',
+      endDate: '2020-02-01', startWeightKg: 75, targetWeightKg: null,
+      calorieGoal: 2300, proteinGoal: 150, carbsGoal: 260, fatGoal: 70, waterGoal: 2500,
+      status: 'completed', createdAt: '2020-01-01T10:00:00Z', completedAt: '2020-02-01T10:00:00Z' }
+    await asUser(alice)
+    await rejects(() => database.query('select public.restore_goal_cycle_history($1::jsonb)',
+      [JSON.stringify([valid, { ...valid, id: crypto.randomUUID(), status: 'active', completedAt: null }])]), 'Import dopuszcza')
+    await rejects(() => database.query('select public.restore_goal_cycle_history($1::jsonb)',
+      [JSON.stringify([valid, { ...valid, id: crypto.randomUUID(), calorieGoal: -1 }])]), 'check constraint')
+    expect((await database.query('select * from public.goal_cycles')).rows).toHaveLength(0)
   })
 })
 

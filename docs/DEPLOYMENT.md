@@ -7,13 +7,13 @@ Nie publikuj całej aplikacji z logowaniem i dziennikami na GitHub Pages.
 
 ## Bieżące środowisko
 
-Konfiguracja z 7 października 2026:
+Środowisko uruchomione 7 października 2026, rozszerzone o cele i cykle:
 
 - Aplikacja: `https://flexa-click.pages.dev`, Cloudflare Pages z gałęzi `main`,
   Node 24, `npm run build`, katalog wynikowy `app/dist`.
 - Osobny projekt Supabase `Flexa`: Frankfurt (`eu-central-1`), migracje
-  `202610060001_flexa.sql`, `202610070001_training_plans.sql` i
-  `202610080001_kitchen_ai_quota.sql`, RLS i funkcje
+  migracje w `supabase/migrations` aż do `202610100001_goal_cycles.sql`,
+  RLS i funkcje
   `food-search` oraz `account-delete`.
 - Rejestracja e-mail z potwierdzeniem adresu, minimum hasła 10 znaków,
   redirecty tylko do działającej aplikacji i jej `/reset-password`.
@@ -54,12 +54,12 @@ Po zmianach `.env` uruchom ponownie Vite. Nie dodawaj `.env` do Git.
 
 1. Utwórz projekt Free w wybranym regionie; dla użytkowników z Polski rozważ UE.
 2. W SQL Editor wykonaj po kolei wszystkie pliki z `supabase\migrations`
-   (`202610060001_flexa.sql`, `202610070001_training_plans.sql`, potem
-   `202610080001_kitchen_ai_quota.sql`)
-   albo przez CLI `supabase db push` po połączeniu z projektem.
-   Migrację wdrażaj przed nową wersją aplikacji: aplikacja odczytuje tabelę
-   `training_plans` i kolumnę `profiles.onboarding_completed_at`, a funkcja Pages
-   Smart Kuchni wywołuje `consume_kitchen_ai`.
+   aż do `202610100001_goal_cycles.sql` albo przez CLI `supabase db push`
+   po połączeniu z projektem. Zrób kopię bazy przed migracją. Najpierw zastosuj
+   i zweryfikuj migrację cykli w Supabase, dopiero potem opublikuj frontend:
+   aplikacja odczytuje `goal_cycles` i `profiles.goals_setup_done_at` oraz używa
+   `start_goal_cycle`, `save_flexa_profile` i `restore_goal_cycle_history`.
+   Wcześniejsze migracje tworzą `training_plans` i `consume_kitchen_ai`.
 3. Zostaw email confirmations włączone. Ustaw minimum hasła na 10 znaków.
 4. Auth > URL Configuration: Site URL = faktyczny URL aplikacji; do allowlisty
    dodaj ten URL i `/reset-password` (oraz tylko potrzebne lokalne adresy).
@@ -77,6 +77,14 @@ audytu zgody. Usunięcie auth.users usuwa wszystkie powiązane dane przez CASCAD
 Publiczne API nie ma dostępu do prywatnego budżetu zapytań dostawców.
 `training_plans` przyjmuje dolegliwości i łagodny start tylko z `healthConsent`;
 trigger zapisuje `health_consent_at`, a ograniczenie bazy odrzuca dane zdrowotne bez zgody.
+Istniejącym profilom migracja oznacza konfigurację celów jako ukończoną;
+nowe konta przechodzą z ankiety do ustawienia celów (mogą pominąć krok).
+`goal_cycles` ma RLS i tylko odczyt dla zalogowanego właściciela. Komendy
+zatwierdzania cyklu, edycji bieżącego profilu i przywracania historycznych
+cykli są transakcyjnymi funkcjami: import przyjmuje wyłącznie zakończone
+cykle do konta bez historii, nie uruchamia fazy ani nie zmienia profilu.
+Sprawdź granty/RLS, brak odczytu anonimowego i to, że błędny pomiar startowy
+nie powoduje częściowego zapisu, zanim wdrożysz frontend.
 
 ## Supabase: funkcje
 
@@ -139,7 +147,8 @@ Powtórz potrzebne zmienne dla preview, ale nie kieruj testów produkcyjnymi
 kontami ani plikami. Build nie wymaga USDA ani service_role.
 
 Cloudflare domyślnie obsługuje fallback SPA, gdy nie ma root 404.html.
-Sprawdź bezpośrednie wejścia na `/journal`, `/progress`, `/reset-password`.
+Sprawdź bezpośrednie wejścia na `/goals`, `/meals`, `/progress`, `/reset-password`.
+Stary adres `/journal` przekierowuje do `/meals`, także w demo na GitHub Pages.
 Plik `_headers` obejmuje CSP i uprawnienia kamery. Przy niestandardowej domenie
 API Supabase zmień `connect-src` na jej faktyczny origin; nie rozszerzaj CSP do `*`.
 

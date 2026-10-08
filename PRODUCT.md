@@ -57,17 +57,25 @@ account; it is never presented as synchronized cloud data.
   estimate, and the feature works without AI in the local demo.
 - Open Food Facts is the primary packaged-food source; USDA FoodData Central
   is an optional fallback. Missing nutrient values are not invented.
-- Navigation is five sections (Dzisiaj, Dziennik, Kuchnia, Trening with Plan and
-  Historia views, Postępy) plus a quick-add sheet ("Dodaj") reachable from every
-  screen, a command palette (Ctrl+K) that finds pages, actions and diary entries,
+- Navigation has seven phone positions (Dzisiaj, Cele, Posiłki, Dodaj, Treningi,
+  Kuchnia, Postępy). Treningi includes Plan and Historia; Dodaj opens a quick-add
+  sheet from every screen. Dzisiaj is an agenda, Cele own approved nutrition
+  targets and their history, Posiłki own meal entries, and Postępy own longer-term
+  measurements and movement. A command palette (Ctrl+K) finds pages, actions and diary entries,
   day navigation by swipe, arrow keys and a week strip, and undo toasts instead of
   confirmation dialogs for removing entries. The interface follows the system
   light or dark setting and can be installed as an offline-capable web app (PWA).
+- After the training questionnaire (including skip), adults may propose calorie,
+  macro and water goals using Mifflin–St Jeor and confirm them or set them manually.
+  Each dated nutrition cycle stores an approved snapshot, start and target weight.
+  The latest measurement is current weight; ending a cycle never changes calories
+  automatically. Demo users aged 16–17 can set manual goals only, without phase
+  or calorie suggestions. Age and sex already stored in a training plan may be
+  reused; calculator-only height/activity inputs are not persisted.
 - Diary extras: copy a meal from yesterday, saved meal templates, recipes saved as
-  products, optional workout sets with load and an exercise history, a weekly summary
-  with neutral week-over-week numbers, a 7-day weight trend, optional waist and hip
-  measurements, an orientation-only energy calculator that never stores age, sex or
-  height, JSON backup restore (merge only) and CSV export.
+  products, optional workout sets with load and an exercise history, a 7-day
+  weight trend, optional waist and hip measurements, JSON backup restore
+  (historical cycles only on explicit opt-in into an empty history) and CSV export.
 - GitHub Pages hosts the public landing and setup documentation. Cloudflare
   Pages hosts the application; Supabase provides Postgres, Auth, and functions.
 - An Android app (`android/`, installed from GitHub Releases, not Google Play) is a

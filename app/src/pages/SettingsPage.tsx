@@ -1,5 +1,5 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Calculator, Download, FileSpreadsheet, LogOut, ShieldCheck, Upload } from 'lucide-react'
+import { Download, FileSpreadsheet, LogOut, ShieldCheck, Upload } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { z } from 'zod'
 import { profileSchema } from '../../../shared/domain'
@@ -12,7 +12,6 @@ import { parseBackup, type Backup } from '../lib/backup'
 import { csvExports, csvFormatHint, type CsvExportKind } from '../lib/csv'
 import { useFeedback } from '../components/Feedback'
 import { AndroidAppPanel } from '../components/AndroidAppPanel'
-import { EnergyDrawer } from '../components/EnergyDrawer'
 import { RestoreDrawer } from '../components/RestoreDrawer'
 import { PageHeader } from '../components/Workspace'
 import { Button, Confirm, Drawer, Field, Notice, errorMessage } from '../components/ui'
@@ -28,7 +27,6 @@ export function SettingsPage() {
   const [deletionBusy, setDeletionBusy] = useState(false)
   const [deletionError, setDeletionError] = useState<string | null>(null)
   const [resetting, setResetting] = useState(false)
-  const [estimating, setEstimating] = useState(false)
   const [restoring, setRestoring] = useState<{ backup: Backup; fileName: string } | null>(null)
   const [dataError, setDataError] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -54,15 +52,11 @@ export function SettingsPage() {
     event.preventDefault()
     const values = new FormData(event.currentTarget)
     const parsed = profileSchema.safeParse({
-      displayName: values.get('name'), calorieGoal: Number(values.get('calories')),
-      proteinGoal: Number(values.get('protein')), carbsGoal: Number(values.get('carbs')),
-      fatGoal: Number(values.get('fat')), waterGoal: Number(values.get('water')),
-      weeklyMinutesGoal: Number(values.get('minutes')),
-      targetWeight: String(values.get('weight') ?? '').trim() ? Number(values.get('weight')) : null,
+      ...profile, displayName: values.get('name'), weeklyMinutesGoal: Number(values.get('minutes')),
     })
-    if (!parsed.success) { setError('Sprawdź wpisane cele. Wartości muszą być dodatnie lub zero tam, gdzie cel jest opcjonalny.'); return }
+    if (!parsed.success) { setError('Sprawdź imię i cel aktywności (od 0 do 10 000 minut na tydzień).'); return }
     setError(null)
-    try { await execute({ type: 'profile.save', value: parsed.data }); feedback('Twoje cele zostały zapisane.') }
+    try { await execute({ type: 'profile.save', value: parsed.data }); feedback('Ustawienia konta zostały zapisane.') }
     catch (cause) { setError(errorMessage(cause)) }
   }
   async function deleteAccount(event: FormEvent<HTMLFormElement>) {
@@ -84,23 +78,14 @@ export function SettingsPage() {
     } finally { setDeletionBusy(false) }
   }
   return <>
-    <PageHeader title="Cele i konto" description="Dopasuj dziennik do siebie. Ty wybierasz kierunek." primary="none" />
+    <PageHeader title="Konto i ustawienia" description="Twój profil, prywatność i przenoszenie danych. Cele żywieniowe znajdziesz w osobnej zakładce." primary="none" />
     {error && <Notice tone="error">{error}</Notice>}
     <div className="settings-grid">
-      <section className="panel"><h2>Twój profil i codzienne cele</h2><p>Domyślne wartości są punktem startowym interfejsu, nie indywidualną poradą. W razie potrzeb zdrowotnych skonsultuj cele ze specjalistą.</p>
-        <div className="button-row"><Button variant="ghost" onClick={() => setEstimating(true)}><Calculator size={17} aria-hidden="true" />Oblicz orientacyjne zapotrzebowanie</Button></div>
+      <section className="panel"><h2>Profil i aktywność</h2><p>Imię i tygodniowy cel ruchu ustawisz tutaj. Masę docelową, kalorie i makroskładniki znajdziesz w <Link to="/goals">Celach</Link>.</p>
         <form className="form-stack" key={JSON.stringify(profile)} onSubmit={(event) => { void save(event) }}>
           <Field label="Imię lub pseudonim"><input name="name" required maxLength={60} defaultValue={profile.displayName} /></Field>
-          <div className="form-grid">
-            <Field label="Energia (kcal / dzień)"><input name="calories" type="number" min="500" max="10000" step="1" required defaultValue={profile.calorieGoal} /></Field>
-            <Field label="Woda (ml / dzień)"><input name="water" type="number" min="500" max="6000" step="1" required defaultValue={profile.waterGoal} /></Field>
-            <Field label="Białko (g)"><input name="protein" type="number" min="0" max="500" step="0.1" required defaultValue={profile.proteinGoal} /></Field>
-            <Field label="Węglowodany (g)"><input name="carbs" type="number" min="0" max="1000" step="0.1" required defaultValue={profile.carbsGoal} /></Field>
-            <Field label="Tłuszcze (g)"><input name="fat" type="number" min="0" max="500" step="0.1" required defaultValue={profile.fatGoal} /></Field>
-            <Field label="Aktywność (min / tydzień)" hint="Wpisz 0, jeśli nie chcesz ustawiać celu."><input name="minutes" type="number" min="0" max="10000" step="1" required defaultValue={profile.weeklyMinutesGoal} /></Field>
-            <Field label="Docelowa masa (kg)" hint="Opcjonalnie. Bez automatycznej prognozy ani zaleceń."><input name="weight" type="number" min="20" max="500" step="0.1" defaultValue={profile.targetWeight ?? ''} /></Field>
-          </div>
-          <Button type="submit" busy={pending}>Zapisz cele</Button>
+          <Field label="Aktywność (min / tydzień)" hint="Wpisz 0, jeśli nie chcesz ustawiać celu."><input name="minutes" type="number" min="0" max="10000" step="1" required defaultValue={profile.weeklyMinutesGoal} /></Field>
+          <Button type="submit" busy={pending}>Zapisz ustawienia</Button>
         </form>
       </section>
       <div>
@@ -112,7 +97,7 @@ export function SettingsPage() {
             <Button variant="secondary" onClick={() => fileInput.current?.click()}><Upload size={17} aria-hidden="true" />Przywróć z kopii</Button>
             <input ref={fileInput} className="sr-only" type="file" accept=".json,application/json" tabIndex={-1} aria-hidden="true"
               onChange={(event) => { void readBackup(event) }} /></div>
-          <p className="source-credit">Eksport zawiera pełne załadowane wpisy, produkty, zestawy, pomiary, cele oraz plan treningowy z odpowiedziami z ankiety. Trzymaj ten plik w bezpiecznym miejscu. Przywracanie z kopii tylko dodaje brakujące wpisy — niczego nie usuwa.</p>
+          <p className="source-credit">Eksport zawiera wpisy, produkty, zestawy, pomiary, historię cykli i plan z odpowiedziami. Trzymaj plik w bezpiecznym miejscu. Przywracanie domyślnie tylko dodaje brakujące wpisy; zastąpienie profilu lub planu i przywrócenie zakończonych cykli wymagają osobnego wyboru.</p>
           {dataError && <Notice tone="error">{dataError}</Notice>}
           <div className="data-csv">
             <h3><FileSpreadsheet size={17} aria-hidden="true" />Eksport do arkusza (CSV)</h3>
@@ -123,7 +108,7 @@ export function SettingsPage() {
           <div className="button-row"><Button variant="ghost" onClick={() => { void auth.signOut().catch((cause: unknown) => setError(errorMessage(cause))) }}><LogOut size={16} aria-hidden="true" />{auth.mode === 'demo' ? 'Wyjdź z demo' : 'Wyloguj się'}</Button></div>
           <div className="danger-zone">
             <h3>{auth.mode === 'demo' ? 'Zacznij demo od nowa' : 'Usunięcie konta'}</h3>
-            <p>{auth.mode === 'demo' ? 'Usuniesz wyłącznie przykładowe dane w tej przeglądarce. Dane konta nie zostaną naruszone.' : 'Nieodwracalnie usuniesz konto, posiłki, własne produkty, zestawy, aktywności, wodę, pomiary i plan treningowy. Najpierw możesz zrobić eksport.'}</p>
+            <p>{auth.mode === 'demo' ? 'Usuniesz wyłącznie przykładowe dane w tej przeglądarce. Dane konta nie zostaną naruszone.' : 'Nieodwracalnie usuniesz konto, cele i cykle, posiłki, własne produkty, zestawy, aktywności, wodę, pomiary i plan treningowy. Najpierw możesz zrobić eksport.'}</p>
             <div className="button-row"><Button variant="secondary" onClick={() => {
               setDeletionError(null)
               if (auth.mode === 'demo') setResetting(true)
@@ -152,7 +137,6 @@ export function SettingsPage() {
         <Button variant="danger" type="submit" busy={deletionBusy}>Nieodwracalnie usuń konto</Button>
       </form>
     </Drawer>}
-    {estimating && <EnergyDrawer profile={profile} onClose={() => setEstimating(false)} onApplied={() => setEstimating(false)} />}
     {restoring && <RestoreDrawer backup={restoring.backup} fileName={restoring.fileName} onClose={() => setRestoring(null)} />}
   </>
 }

@@ -2,10 +2,9 @@ import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { useJournal } from '../lib/Journal'
 import { daysEndingAt, dateLabel, shiftDate } from '../lib/dates'
-import { integerFormat, numberFormat, nutritionTotal, workoutLoad } from '../lib/nutrition'
+import { integerFormat, numberFormat, workoutLoad } from '../lib/nutrition'
 import { BarChart, LineChart } from '../components/Charts'
 import { DateControl, PageHeader, useWorkspace } from '../components/Workspace'
-import { WeekPanel } from '../components/WeekSummary'
 import { movingAverage } from '../lib/trend'
 
 export function ProgressPage() {
@@ -15,10 +14,6 @@ export function ProgressPage() {
   if (!data) throw new Error('Journal data is unavailable')
   const start = shiftDate(date, -range + 1)
   const days = daysEndingAt(date, range)
-  const nutrition = days.map((day) => {
-    const meals = data.meals.filter((meal) => meal.date === day)
-    return { date: day, value: meals.length ? nutritionTotal(meals, 'kcal').value : null }
-  })
   const load = days.map((day) => {
     const workouts = data.workouts.filter((workout) => workout.date === day)
     const values = workouts.map(workoutLoad)
@@ -26,8 +21,7 @@ export function ProgressPage() {
   })
   const measurements = data.measurements.filter((measurement) => measurement.date >= start && measurement.date <= date)
     .sort((a, b) => a.date.localeCompare(b.date))
-  const recorded = nutrition.filter((point) => point.value !== null)
-  const average = recorded.length ? recorded.reduce((sum, point) => sum + (point.value ?? 0), 0) / recorded.length : null
+  const workouts = data.workouts.filter((workout) => workout.date >= start && workout.date <= date)
   const weightTrend = movingAverage(data.measurements.filter((measurement) => measurement.date <= date)
     .map((measurement) => ({ date: measurement.date, value: measurement.weightKg }))).filter((point) => point.date >= start)
   const extras = [
@@ -41,15 +35,11 @@ export function ProgressPage() {
     <div className="page-toolbar"><DateControl /><div className="range-selector" aria-label="Okres analizy">
       {[7, 30, 90].map((value) => <button key={value} aria-pressed={range === value} onClick={() => setRange(value)}>{value} dni</button>)}
     </div></div>
-    <WeekPanel data={data} date={date} />
     <div className="overview-strip">
-      <div><small>Dni z zapisem jedzenia</small><strong>{recorded.length} / {range}</strong></div>
-      <div><small>Średnio — zapisane dni</small><strong>{average === null ? '—' : `${integerFormat.format(average)} kcal`}</strong></div>
+      <div><small>Pomiary w okresie</small><strong>{measurements.length}</strong></div>
       <div><small>Ostatni pomiar w okresie</small><strong>{measurements.length ? `${numberFormat.format(measurements.at(-1)?.weightKg ?? 0)} kg` : '—'}</strong></div>
+      <div><small>Aktywność w okresie</small><strong>{integerFormat.format(workouts.reduce((sum, workout) => sum + workout.minutes, 0))} min</strong></div>
     </div>
-    <section className="panel chart-section"><h2>Energia w dzienniku</h2><p>To suma zapisów, nie ocena diety. Dni bez wpisów nie wchodzą do średniej. Przerywana linia oznacza obecny cel.</p>
-      <BarChart points={nutrition} label="Energia w dzienniku" unit="kcal" goal={data.profile.calorieGoal} />
-    </section>
     <div className="settings-grid">
       <section className="panel chart-section"><h2>Historia pomiarów</h2><p>Naturalne wahania są częścią historii. Wykres nie jest diagnozą ani prognozą. Linia przerywana to średnia pomiarów z ostatnich 7 dni — wygładza codzienne wahania.</p>
         <LineChart points={measurements.map((measurement) => ({ date: measurement.date, value: measurement.weightKg }))} label="Masa ciała" average={weightTrend} />

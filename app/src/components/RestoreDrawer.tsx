@@ -16,11 +16,12 @@ export function RestoreDrawer({ backup, fileName, onClose }: { backup: Backup; f
   const feedback = useFeedback()
   const [replaceProfile, setReplaceProfile] = useState(false)
   const [restorePlan, setRestorePlan] = useState(false)
+  const [restoreGoalHistory, setRestoreGoalHistory] = useState(false)
   const [running, setRunning] = useState<ImportPayload | null>(null)
   const [progress, setProgress] = useState<{ saved: number; total: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const preview = useMemo(() => data ? planImport(data, backup.journal, { replaceProfile, restorePlan }) : null,
-    [data, backup, replaceProfile, restorePlan])
+  const preview = useMemo(() => data ? planImport(data, backup.journal, { replaceProfile, restorePlan, restoreGoalHistory }) : null,
+    [data, backup, replaceProfile, restorePlan, restoreGoalHistory])
   if (!preview) return null
   const busy = running !== null
   const exported = backup.exportedAt ? dateLabel(backup.exportedAt.slice(0, 10)) : null
@@ -42,7 +43,7 @@ export function RestoreDrawer({ backup, fileName, onClose }: { backup: Backup; f
   return <Drawer title="Przywróć z kopii" onClose={busy ? () => {} : onClose}>
     <p>
       Plik {fileName}{exported ? `, kopia z ${exported}` : ''}{backup.mode ? ` (${backup.mode === 'cloud' ? 'z konta' : 'z demo'})` : ''}.
-      {' '}Nic nie usuwamy — dodamy tylko wpisy, których jeszcze nie masz.
+      {' '}Nic nie usuwamy — dodamy tylko wpisy, których jeszcze nie masz. Cele i cykle wymagają osobnego wyboru.
       {auth.mode === 'demo' && ' W demo trafią wyłącznie do tej przeglądarki.'}
     </p>
     <div className="restore-table-wrap">
@@ -59,10 +60,17 @@ export function RestoreDrawer({ backup, fileName, onClose }: { backup: Backup; f
     {preview.measurementConflicts > 0 && <Notice>
       {plural(preview.measurementConflicts, ['pomiar', 'pomiary', 'pomiarów'])} z kopii dotyczy dni, w których masz już inny pomiar. Zostawimy Twoje obecne wartości.
     </Notice>}
+    {preview.goalsInFile > 0 && <p className="restore-goals-count">
+      Cykle w kopii: {preview.goalsInFile}. Zakończone, możliwe do przywrócenia: {preview.goalsRestorable}. Wybrane do przywrócenia: {preview.payload.goalCycles.length}.
+    </p>}
+    {preview.goalCycleNote && <Notice>{preview.goalCycleNote}</Notice>}
     <fieldset className="restore-options" disabled={busy}>
       <legend>Dodatkowo</legend>
       <label className="checkbox-label"><input type="checkbox" checked={replaceProfile} onChange={(event) => setReplaceProfile(event.target.checked)} />
-        <span>Zastąp cele i profil wartościami z kopii (imię, energia, makroskładniki, woda, aktywność, docelowa masa).</span></label>
+        <span>Zastąp cele i profil wartościami z kopii (imię, energia, makroskładniki, woda, aktywność, docelowa masa).
+          {data?.goals.cycles.some((cycle) => cycle.status === 'active') && ' Uwaga: jeśli obecny cykl trwa, zmieni to również jego zatwierdzone cele.'}</span></label>
+      {preview.goalsRestorable > 0 && <label className="checkbox-label"><input type="checkbox" checked={restoreGoalHistory} onChange={(event) => setRestoreGoalHistory(event.target.checked)} />
+        <span>Przywróć {preview.goalsRestorable} zakończonych cykli. Nie aktywuje to żadnego cyklu ani nie zmienia bieżących celów.</span></label>}
       {preview.hasPlan && <label className="checkbox-label"><input type="checkbox" checked={restorePlan} onChange={(event) => setRestorePlan(event.target.checked)} />
         <span>Przywróć plan treningowy z kopii. Zastąpi Twój obecny plan.</span></label>}
     </fieldset>
@@ -72,7 +80,7 @@ export function RestoreDrawer({ backup, fileName, onClose }: { backup: Backup; f
       <output aria-live="polite">Zapisano {integerFormat.format(progress.saved)} z {integerFormat.format(progress.total)}.</output>
     </div>}
     {error && <Notice tone="error">{error}</Notice>}
-    {preview.total === 0 && !busy && <Notice tone="success">Wszystkie wpisy z tej kopii już są w Twoim dzienniku.</Notice>}
+    {preview.total === 0 && !busy && <Notice tone="success">Nie ma wybranych wpisów do dodania. Aktywnych cykli nie przywracamy automatycznie.</Notice>}
     <div className="button-row">
       <Button onClick={() => { void start() }} busy={busy} disabled={preview.total === 0}>Dodaj brakujące wpisy</Button>
       <Button variant="secondary" onClick={onClose} disabled={busy}>{preview.total === 0 ? 'Zamknij' : 'Anuluj'}</Button>

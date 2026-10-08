@@ -12,6 +12,7 @@ import { findExercise } from '../lib/training/library'
 import { progressScope, readProgress } from '../lib/training/progress'
 import { workoutSteps } from '../lib/training/steps'
 import { TrainingTabs, useWorkspace } from '../components/Workspace'
+import { WeeklyActivity } from '../components/Summaries'
 import { useFeedback } from '../components/Feedback'
 import { Button, Confirm, EmptyState, Notice, errorMessage } from '../components/ui'
 
@@ -65,6 +66,7 @@ export function PlanPage() {
         Odpowiesz na kilka pytań: cel, miejsce i sprzęt, doświadczenie, dni i czas oraz zdrowie. Potem trening poprowadzi Cię krok po kroku: ćwiczenie, seria, przerwa ze stoperem i film pokazujący technikę.
       </EmptyState>
     </section>
+    <div className="training-week"><WeeklyActivity data={data} date={today()} /></div>
   </>
 
   const saved = readProgress(progressScope(auth.mode, auth.session?.user.id), plan.createdAt)
@@ -98,6 +100,7 @@ export function PlanPage() {
     <div className="plan-days">
       {plan.sessions.map((session, index) => <SessionCard key={session.key} session={session} index={index} plan={plan} resume={resume} />)}
     </div>
+    <div className="training-week"><WeeklyActivity data={data} date={today()} /></div>
     <div className="plan-guidance">
       <section className="panel">
         <h2>Jak robić postępy</h2>

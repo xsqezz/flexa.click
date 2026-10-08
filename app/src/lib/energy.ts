@@ -1,5 +1,3 @@
-import type { Profile } from '../../../shared/domain'
-
 export type Sex = 'female' | 'male'
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very-active'
 export type EnergyGoal = 'maintain' | 'lose' | 'gain'
@@ -69,11 +67,4 @@ export function estimateEnergy(input: EnergyInput): EnergyEstimate {
   const carbs = clamp(Math.round((calories - protein * 4 - fat * 9) / 4), 0, 1000)
   const water = clamp(Math.round(35 * input.weightKg / 50) * 50, 500, 6000)
   return { bmr: Math.round(bmr), maintenance: Math.round(maintenance), calories, protein, fat, carbs, water }
-}
-
-export function goalsFromEstimate(profile: Profile, estimate: EnergyEstimate): Profile {
-  return {
-    ...profile, calorieGoal: estimate.calories, proteinGoal: estimate.protein,
-    carbsGoal: estimate.carbs, fatGoal: estimate.fat, waterGoal: estimate.water,
-  }
 }

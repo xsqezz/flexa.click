@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { profileSchema } from '../../../shared/domain'
-import { energyInputProblem, estimateEnergy, goalsFromEstimate } from './energy'
+import { energyInputProblem, estimateEnergy } from './energy'
 
 describe('energy estimate (Mifflin–St Jeor)', () => {
   it('matches hand-calculated reference values', () => {
@@ -19,12 +19,11 @@ describe('energy estimate (Mifflin–St Jeor)', () => {
     expect(light.carbs).toBeGreaterThanOrEqual(0)
     expect(light.water).toBe(1050)
     for (const estimate of [heavy, light]) {
-      const profile = goalsFromEstimate({
-        displayName: 'Test', calorieGoal: 2000, proteinGoal: 100, carbsGoal: 200, fatGoal: 60,
-        waterGoal: 2000, weeklyMinutesGoal: 150, targetWeight: null,
-      }, estimate)
-      expect(profileSchema.safeParse(profile).success).toBe(true)
-      expect(profile.weeklyMinutesGoal).toBe(150)
+      expect(profileSchema.safeParse({
+        displayName: 'Test', calorieGoal: estimate.calories, proteinGoal: estimate.protein,
+        carbsGoal: estimate.carbs, fatGoal: estimate.fat, waterGoal: estimate.water,
+        weeklyMinutesGoal: 150, targetWeight: null,
+      }).success).toBe(true)
     }
   })
 

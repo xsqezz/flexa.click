@@ -112,7 +112,7 @@ export function JournalProvider({ children }: { children: ReactNode }) {
     execute: async (command) => {
       await flush()
       await runCommand(command)
-      if (command.type === 'profile.save') rememberGoalsReviewed(userId)
+      if (command.type === 'goals.start') rememberGoalsReviewed(userId)
     },
     removeWithUndo,
     refresh: () => { void query.refetch() },

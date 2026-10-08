@@ -1,7 +1,7 @@
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js'
 import {
-  foodSchema, journalSchema, profileSchema, workoutSetSchema,
-  type Food, type Journal, type Meal, type Measurement, type Profile, type Water, type Workout, type WorkoutSet,
+  foodSchema, goalCycleInputSchema, goalCycleSchema, journalSchema, profileSchema, workoutSetSchema,
+  type Food, type GoalCycleInput, type Journal, type Meal, type Measurement, type Profile, type Water, type Workout, type WorkoutSet,
 } from '../../../shared/domain'
 import { needsHealthConsent, trainingPlanSchema, type TrainingPlan, type TrainingState } from '../../../shared/training'
 import type { Database, Json, ProfileRow } from './database.types'
@@ -9,9 +9,13 @@ import { readDemo, writeDemo } from './demo'
 import { isPlanUsable } from './training/generator'
 import { mealSchema, mealTemplateSchema, type MealTemplate } from '../../../shared/domain'
 import { importSize, type ImportPayload } from './backup'
+import { startDemoCycle } from './goals'
+import { today } from './dates'
 
 export type Command =
   | { type: 'profile.save'; value: Profile }
+  | { type: 'goals.start'; id: string; value: GoalCycleInput }
+  | { type: 'goals.skip' }
   | { type: 'meal.add'; value: Omit<Meal, 'id'> }
   | { type: 'meal.delete'; id: string }
   | { type: 'workout.add'; value: Omit<Workout, 'id'> }
@@ -39,8 +43,18 @@ export class DemoRepository implements JournalRepository {
 
   async execute(command: Command): Promise<void> {
     const journal = readDemo()
+    let updated = journal
     switch (command.type) {
-      case 'profile.save': journal.profile = profileSchema.parse(command.value); break
+      case 'profile.save': {
+        journal.profile = profileSchema.parse(command.value)
+        journal.goals.cycles = journal.goals.cycles.map((cycle) => cycle.status === 'active' && cycle.endDate >= today()
+          ? { ...cycle, calorieGoal: journal.profile.calorieGoal, proteinGoal: journal.profile.proteinGoal,
+            carbsGoal: journal.profile.carbsGoal, fatGoal: journal.profile.fatGoal,
+            waterGoal: journal.profile.waterGoal, targetWeightKg: journal.profile.targetWeight } : cycle)
+        break
+      }
+      case 'goals.start': updated = startDemoCycle(journal, command.id, command.value); break
+      case 'goals.skip': journal.goals.setupDone = true; break
       case 'meal.add':
         journal.meals.push({ ...command.value, id: crypto.randomUUID() }); break
       case 'meal.delete':
@@ -80,7 +94,7 @@ export class DemoRepository implements JournalRepository {
         journal.mealTemplates = journal.mealTemplates.filter((item) => item.id !== command.id); break
       case 'journal.import': importIntoDemo(journal, command.value); break
     }
-    writeDemo(journal)
+    writeDemo(updated)
     if (command.type === 'journal.import') command.onProgress?.(importSize(command.value), importSize(command.value))
   }
 }
@@ -97,6 +111,13 @@ function validMeals(meals: Omit<Meal, 'id'>[]): Omit<Meal, 'id'>[] {
 /** One local write; never deletes. Existing measurements win over imported ones from the same day. */
 function importIntoDemo(journal: Journal, value: ImportPayload): void {
   const withId = <T extends object>(item: T) => ({ ...item, id: crypto.randomUUID() })
+  if (value.goalCycles.length) {
+    if (journal.goals.cycles.length) throw new Error('Historia cykli już istnieje. Import nie nadpisuje ani nie uruchamia cykli.')
+    if (value.goalCycles.length > 1000 || value.goalCycles.some((cycle) => cycle.status !== 'completed' || cycle.endDate > today())) {
+      throw new Error('Import dopuszcza wyłącznie zakończone cykle.')
+    }
+    journal.goals.cycles = value.goalCycles.map((cycle) => goalCycleSchema.parse(cycle))
+  }
   if (value.meals.length) journal.meals.push(...validMeals(value.meals).map(withId))
   journal.workouts.push(...value.workouts.filter((workout) => !workout.importHash
     || !journal.workouts.some((item) => item.importHash === workout.importHash)).map(withId))
@@ -115,6 +136,10 @@ function importIntoDemo(journal: Journal, value: ImportPayload): void {
 function result<T>(response: { data: T | null; error: PostgrestError | null }): T {
   if (response.error) {
     if (response.error.code === '23505') throw new Error('Ten wpis już istnieje. Plik mógł zostać wcześniej zaimportowany.')
+    if (response.error.code === 'P0001' && /^(Dla daty początku|Nowy cykl|Nie znaleziono profilu|Wymagane logowanie|Historia cykli|Import dopuszcza|Nieprawidłowa historia)/.test(response.error.message)) {
+      throw new Error(response.error.message, { cause: response.error })
+    }
+    if (response.error.code === '23514') throw new Error('Sprawdź daty, rodzaj i wartości celu. Nie zapisano zmian.', { cause: response.error })
     throw new Error(`Nie udało się zapisać lub odczytać danych (${response.error.code || 'sieć'}). Sprawdź połączenie i konfigurację bazy.`, { cause: response.error })
   }
   if (response.data === null) throw new Error('Serwer nie potwierdził operacji. Odśwież dane przed ponowną próbą.')
@@ -173,7 +198,7 @@ export class SupabaseRepository implements JournalRepository {
     const user = this.userId
     const templates = this.loadTemplates(signal)
     templates.catch(() => {})
-    const [profile, meals, workouts, water, measurements, foods, training] = await Promise.all([
+    const [profile, meals, workouts, water, measurements, foods, training, cycles] = await Promise.all([
       client.from('profiles').select('*').eq('user_id', user).abortSignal(signal).single(),
       readPages((start, end) => client.from('meal_entries').select('*').eq('user_id', user).order('created_at').order('id').range(start, end).abortSignal(signal)),
       readPages((start, end) => client.from('workouts').select('*').eq('user_id', user).order('created_at').order('id').range(start, end).abortSignal(signal)),
@@ -181,11 +206,24 @@ export class SupabaseRepository implements JournalRepository {
       readPages((start, end) => client.from('measurements').select('*').eq('user_id', user).order('created_at').order('id').range(start, end).abortSignal(signal)),
       readPages((start, end) => client.from('custom_foods').select('*').eq('user_id', user).order('created_at').order('id').range(start, end).abortSignal(signal)),
       client.from('training_plans').select('answers, plan').eq('user_id', user).abortSignal(signal).maybeSingle(),
+      readPages((start, end) => client.from('goal_cycles').select('*').eq('user_id', user)
+        .order('start_date', { ascending: false }).order('created_at', { ascending: false })
+        .order('id').range(start, end).abortSignal(signal)),
     ])
     if (training.error) result(training)
     const profileRow = result(profile)
     return journalSchema.parse({
       profile: profileFromRow(profileRow),
+      goals: {
+        setupDone: profileRow.goals_setup_done_at !== null,
+        cycles: cycles.map((row) => ({
+          id: row.id, kind: row.kind, startDate: row.start_date, endDate: row.end_date,
+          startWeightKg: row.start_weight_kg, targetWeightKg: row.target_weight_kg,
+          calorieGoal: row.calorie_goal, proteinGoal: row.protein_goal, carbsGoal: row.carbs_goal,
+          fatGoal: row.fat_goal, waterGoal: row.water_goal, status: row.status,
+          createdAt: row.created_at, completedAt: row.completed_at,
+        })),
+      },
       meals: meals.map((row) => ({
         id: row.id, date: row.date, meal: row.meal, food: foodSchema.parse(row.food), portion: row.portion,
       })),
@@ -237,11 +275,24 @@ export class SupabaseRepository implements JournalRepository {
     let saved = 0
     const step = () => { saved++; onProgress?.(saved, total) }
     try {
+      if (value.goalCycles.length) {
+        const restored = result(await client.rpc('restore_goal_cycle_history', {
+          p_cycles: value.goalCycles.map((cycle) => ({
+            id: cycle.id, kind: cycle.kind, startDate: cycle.startDate, endDate: cycle.endDate,
+            startWeightKg: cycle.startWeightKg, targetWeightKg: cycle.targetWeightKg,
+            calorieGoal: cycle.calorieGoal, proteinGoal: cycle.proteinGoal, carbsGoal: cycle.carbsGoal,
+            fatGoal: cycle.fatGoal, waterGoal: cycle.waterGoal, status: cycle.status,
+            createdAt: cycle.createdAt, completedAt: cycle.completedAt,
+          })),
+        }))
+        if (restored !== value.goalCycles.length) throw new Error('Serwer nie potwierdził całej historii cykli.')
+        for (let index = 0; index < restored; index++) step()
+      }
       await this.insertChunks(value.customFoods.map((food) => ({ user_id, id: food.id, food: foodSchema.parse(food) })),
         (chunk) => client.from('custom_foods').insert(chunk).select('id'), step)
       await this.insertChunks(value.mealTemplates.map((template) => ({ user_id, name: template.name, items: template.items })),
         (chunk) => client.from('meal_templates').insert(chunk).select('id'), step)
-      await this.insertChunks(validMeals(value.meals).map((meal) => ({ user_id, date: meal.date, meal: meal.meal, food: meal.food, portion: meal.portion })),
+      await this.insertChunks((value.meals.length ? validMeals(value.meals) : []).map((meal) => ({ user_id, date: meal.date, meal: meal.meal, food: meal.food, portion: meal.portion })),
         (chunk) => client.from('meal_entries').insert(chunk).select('id'), step)
       await this.insertChunks(value.workouts.map((workout) => ({
         user_id, date: workout.date, name: workout.name, kind: workout.kind, minutes: workout.minutes,
@@ -272,12 +323,27 @@ export class SupabaseRepository implements JournalRepository {
     switch (command.type) {
       case 'profile.save': {
         const profile = profileSchema.parse(command.value)
-        result(await client.from('profiles').update({
-          display_name: profile.displayName, calorie_goal: profile.calorieGoal,
-          protein_goal: profile.proteinGoal, carbs_goal: profile.carbsGoal,
-          fat_goal: profile.fatGoal, water_goal: profile.waterGoal,
-          weekly_minutes_goal: profile.weeklyMinutesGoal, target_weight: profile.targetWeight,
-        }).eq('user_id', user_id).select('user_id').single())
+        result(await client.rpc('save_flexa_profile', {
+          p_display_name: profile.displayName, p_calorie_goal: profile.calorieGoal,
+          p_protein_goal: profile.proteinGoal, p_carbs_goal: profile.carbsGoal,
+          p_fat_goal: profile.fatGoal, p_water_goal: profile.waterGoal,
+          p_weekly_minutes_goal: profile.weeklyMinutesGoal, p_target_weight: profile.targetWeight,
+        }))
+        break
+      }
+      case 'goals.start': {
+        const cycle = goalCycleInputSchema.parse(command.value)
+        result(await client.rpc('start_goal_cycle', {
+          p_id: command.id, p_kind: cycle.kind, p_start_date: cycle.startDate, p_end_date: cycle.endDate,
+          p_start_weight_kg: cycle.startWeightKg, p_target_weight_kg: cycle.targetWeightKg,
+          p_calorie_goal: cycle.calorieGoal, p_protein_goal: cycle.proteinGoal,
+          p_carbs_goal: cycle.carbsGoal, p_fat_goal: cycle.fatGoal, p_water_goal: cycle.waterGoal,
+        }))
+        break
+      }
+      case 'goals.skip': {
+        result(await client.from('profiles').update({ goals_setup_done_at: new Date().toISOString() })
+          .eq('user_id', user_id).is('goals_setup_done_at', null).select('user_id'))
         break
       }
       case 'meal.add':

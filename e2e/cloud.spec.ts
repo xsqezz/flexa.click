@@ -24,8 +24,9 @@ async function fixture(page: Page, failJournal = false, onboarded = true) {
       fat_goal: 65, water_goal: 2500, weekly_minutes_goal: 180, target_weight: null,
       consent_version: '2026-10-06', consented_at: '2026-10-06T10:00:00Z',
       onboarding_completed_at: onboarded ? '2026-10-06T10:00:00Z' : null,
+      goals_setup_done_at: onboarded ? '2026-10-06T10:00:00Z' : null,
     }],
-    meal_entries: [], workouts: [], water_entries: [], measurements: [], custom_foods: [], training_plans: [], meal_templates: [],
+    goal_cycles: [], meal_entries: [], workouts: [], water_entries: [], measurements: [], custom_foods: [], training_plans: [], meal_templates: [],
   }
   await page.routeWebSocket('ws://127.0.0.1:54321/**', (socket) => socket.close())
   await page.route('http://127.0.0.1:54321/**', async (route) => {
@@ -57,6 +58,63 @@ async function fixture(page: Page, failJournal = false, onboarded = true) {
     }
     if (url.pathname === '/functions/v1/account-delete') {
       await respond(body.password === 'wrong-password' ? { error: 'Hasło jest niepoprawne. Konto nie zostało usunięte.' } : { deleted: true }, body.password === 'wrong-password' ? 401 : 200)
+      return
+    }
+    if (url.pathname === '/rest/v1/rpc/start_goal_cycle') {
+      if (rows.goal_cycles.some((cycle) => cycle.id === body.p_id)) { await respond(body.p_id); return }
+      const day = String(body.p_start_date)
+      const measurement = rows.measurements.find((row) => row.date === day)
+      if (measurement && measurement.weight_kg !== body.p_start_weight_kg) {
+        await respond({ code: 'P0001', message: 'Dla daty początku jest już inny pomiar.' }, 400)
+        return
+      }
+      if (!measurement) rows.measurements.push({ id: randomUUID(), user_id: userId, date: day, weight_kg: body.p_start_weight_kg })
+      for (const cycle of rows.goal_cycles.filter((row) => row.status === 'active')) {
+        cycle.status = 'completed'; cycle.completed_at = new Date().toISOString()
+        cycle.end_date = day
+      }
+      rows.goal_cycles.push({
+        id: body.p_id, user_id: userId, kind: body.p_kind, start_date: day, end_date: body.p_end_date,
+        start_weight_kg: body.p_start_weight_kg, target_weight_kg: body.p_target_weight_kg,
+        calorie_goal: body.p_calorie_goal, protein_goal: body.p_protein_goal, carbs_goal: body.p_carbs_goal,
+        fat_goal: body.p_fat_goal, water_goal: body.p_water_goal, status: 'active', completed_at: null, created_at: new Date().toISOString(),
+      })
+      Object.assign(rows.profiles[0], {
+        calorie_goal: body.p_calorie_goal, protein_goal: body.p_protein_goal, carbs_goal: body.p_carbs_goal,
+        fat_goal: body.p_fat_goal, water_goal: body.p_water_goal, target_weight: body.p_target_weight_kg,
+        goals_setup_done_at: new Date().toISOString(),
+      })
+      await respond(body.p_id)
+      return
+    }
+    if (url.pathname === '/rest/v1/rpc/save_flexa_profile') {
+      Object.assign(rows.profiles[0], {
+        display_name: body.p_display_name, calorie_goal: body.p_calorie_goal,
+        protein_goal: body.p_protein_goal, carbs_goal: body.p_carbs_goal, fat_goal: body.p_fat_goal,
+        water_goal: body.p_water_goal, weekly_minutes_goal: body.p_weekly_minutes_goal, target_weight: body.p_target_weight,
+      })
+      for (const cycle of rows.goal_cycles.filter((row) => row.status === 'active')) Object.assign(cycle, {
+        calorie_goal: body.p_calorie_goal, protein_goal: body.p_protein_goal, carbs_goal: body.p_carbs_goal,
+        fat_goal: body.p_fat_goal, water_goal: body.p_water_goal, target_weight_kg: body.p_target_weight,
+      })
+      await respond(true)
+      return
+    }
+    if (url.pathname === '/rest/v1/rpc/restore_goal_cycle_history') {
+      const cycles = body.p_cycles
+      if (!Array.isArray(cycles) || rows.goal_cycles.length) {
+        await respond({ code: 'P0001', message: 'Historia cykli już istnieje.' }, 400)
+        return
+      }
+      rows.goal_cycles = cycles.map((cycle: Row) => ({
+        id: cycle.id, user_id: userId, kind: cycle.kind, status: 'completed',
+        start_date: cycle.startDate, end_date: cycle.endDate,
+        start_weight_kg: cycle.startWeightKg, target_weight_kg: cycle.targetWeightKg,
+        calorie_goal: cycle.calorieGoal, protein_goal: cycle.proteinGoal, carbs_goal: cycle.carbsGoal,
+        fat_goal: cycle.fatGoal, water_goal: cycle.waterGoal,
+        created_at: cycle.createdAt, completed_at: cycle.completedAt,
+      }))
+      await respond(cycles.length)
       return
     }
     const table = url.pathname.split('/').at(-1) ?? ''
@@ -104,7 +162,7 @@ async function login(page: Page) {
 async function openSettings(page: Page) {
   const link = page.locator('nav:visible a[href="/settings"]')
   if (await link.count() > 0) await link.click()
-  else await page.getByRole('link', { name: /^Konto:/ }).click()
+  else await page.getByRole('link', { name: /^Konto i ustawienia:/ }).click()
 }
 
 test('registration sends consent metadata and waits for actual email confirmation', async ({ page }) => {
@@ -128,6 +186,7 @@ test('real SDK login, cloud write/reload, required unit and function error', asy
   await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
   await expect(page.getByText('Cloud test', { exact: false })).toBeVisible()
   await expect(page.getByText(/Przykładowe dane/)).toHaveCount(0)
+  await page.locator('nav:visible a[href="/meals"]').first().click()
   await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
   let dialog = page.getByRole('dialog')
   await dialog.getByLabel('Nazwa produktu', { exact: true }).fill('Produkt chmurowy')
@@ -221,6 +280,22 @@ test('a new account answers the questionnaire step by step and gets a saved plan
   await expect(page.getByRole('heading', { name: 'Sprawdź odpowiedzi', exact: true })).toBeVisible()
   await expect(page.getByText('poniedziałek, piątek · 30 min')).toBeVisible()
   await page.getByRole('button', { name: 'Utwórz mój plan' }).click()
+  await expect(page.getByRole('heading', { name: 'Ustal swoje cele', exact: true })).toBeVisible()
+  await page.getByRole('radio', { name: /^Utrzymanie/ }).check()
+  await page.getByRole('button', { name: 'Oblicz propozycję' }).click()
+  await expect(page.getByText('54 lat z ankiety treningowej')).toBeVisible()
+  await page.getByRole('button', { name: 'Ukryj kalkulator' }).click()
+  await page.getByLabel('Masa na początku (kg)').fill('75')
+  await page.getByLabel('Masa docelowa (kg)').fill('73')
+  await page.getByLabel('Koniec', { exact: true }).fill('2100-01-01')
+  await page.getByRole('checkbox', { name: /Sprawdziłem/ }).check()
+  expect(mocked.rows.goal_cycles).toHaveLength(0)
+  await page.getByRole('button', { name: 'Zatwierdź cele i rozpocznij cykl' }).click()
+  await expect(page.getByRole('heading', { name: 'Cele', exact: true })).toBeVisible()
+  expect(mocked.rows.goal_cycles).toMatchObject([{ kind: 'maintenance', start_weight_kg: 75, target_weight_kg: 73, calorie_goal: 2200 }])
+  expect(mocked.rows.measurements).toMatchObject([{ weight_kg: 75 }])
+  expect(mocked.rows.profiles[0].goals_setup_done_at).toEqual(expect.any(String))
+  await page.locator('nav:visible a[href="/plan"]').first().click()
   await expect(page.getByRole('heading', { name: 'Twój plan treningowy', exact: true })).toBeVisible()
   const saved = mocked.rows.training_plans[0]
   expect(saved.answers).toMatchObject({ age: 54, goal: 'posture', weekdays: [0, 4], minutes: 30, limitations: ['lower-back'], healthConsent: true })
@@ -240,8 +315,11 @@ test('the questionnaire can be skipped and opened later from the Plan tab', asyn
   const mocked = await fixture(page, false, false)
   await login(page)
   await page.getByRole('button', { name: 'Pomiń na razie' }).click()
+  await expect(page.getByRole('heading', { name: 'Ustal swoje cele', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Pomiń na razie' }).click()
   await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
   expect(mocked.rows.profiles[0].onboarding_completed_at).toEqual(expect.any(String))
+  expect(mocked.rows.profiles[0].goals_setup_done_at).toEqual(expect.any(String))
   await expect(page.getByText(/Nie masz jeszcze planu treningowego/)).toBeVisible()
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
@@ -250,6 +328,28 @@ test('the questionnaire can be skipped and opened later from the Plan tab', asyn
   await expect(page.getByRole('heading', { name: 'Kilka słów o Tobie', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Anuluj' }).first().click()
   await expect(page.getByRole('heading', { name: 'Plan treningowy', exact: true })).toBeVisible()
+})
+
+test('an adult can skip training and explicitly approve manual nutrition goals', async ({ page }) => {
+  const mocked = await fixture(page, false, false)
+  await login(page)
+  await page.getByRole('button', { name: 'Pomiń na razie' }).click()
+  await expect(page.getByRole('heading', { name: 'Ustal swoje cele', exact: true })).toBeVisible()
+  await page.getByLabel('Wiek (lata)').fill('29')
+  await expect(page.getByRole('button', { name: 'Oblicz propozycję' })).toHaveCount(0)
+  await page.getByLabel('Masa na początku (kg)').fill('70')
+  await page.getByLabel('Koniec', { exact: true }).fill('2100-01-01')
+  await page.getByLabel('Energia (kcal / dzień)').fill('2300')
+  await page.getByRole('button', { name: 'Zatwierdź cele i rozpocznij cykl' }).click()
+  await expect(page.getByRole('alert')).toContainText('Zaznacz potwierdzenie')
+  expect(mocked.rows.goal_cycles).toHaveLength(0)
+  await page.getByRole('checkbox', { name: /Sprawdziłem/ }).check()
+  await page.getByRole('button', { name: 'Zatwierdź cele i rozpocznij cykl' }).click()
+  await expect(page.getByRole('heading', { name: 'Cele', exact: true })).toBeVisible()
+  expect(mocked.rows.goal_cycles).toMatchObject([{ kind: 'manual', calorie_goal: 2300 }])
+  expect(mocked.rows.training_plans).toHaveLength(0)
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Cele', exact: true })).toBeVisible()
 })
 
 const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
@@ -410,6 +510,7 @@ test('cloud meal copy, templates, backup restore and calculated goals use the ac
   mocked.rows.meal_entries.push({ id: randomUUID(), user_id: userId, created_at: '2026-10-01T08:00:00Z', date: warsawDay(-1), meal: 'breakfast', food, portion: 80 })
   await login(page)
   await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
+  await page.locator('nav:visible a[href="/meals"]').first().click()
   await page.getByRole('button', { name: 'Kopiuj z wczoraj: Śniadanie (1 pozycja)' }).click()
   await expect.poll(() => mocked.rows.meal_entries.length).toBe(2)
   expect(mocked.calls.some((call) => call.path.endsWith('/meal_entries') && Array.isArray(call.body))).toBe(true)
@@ -454,17 +555,23 @@ test('cloud meal copy, templates, backup restore and calculated goals use the ac
   expect(mocked.rows.custom_foods[0].id).toMatch(/^[0-9a-f-]{36}$/)
   expect(mocked.rows.profiles[0].display_name).toBe('Cloud test')
 
-  await page.getByRole('button', { name: 'Oblicz orientacyjne zapotrzebowanie' }).click()
-  dialog = page.getByRole('dialog', { name: 'Orientacyjne zapotrzebowanie' })
-  await dialog.getByText('Mężczyzna', { exact: true }).click()
-  await dialog.getByLabel('Wiek (lata)', { exact: true }).fill('40')
-  await dialog.getByLabel('Wzrost (cm)', { exact: true }).fill('180')
-  await dialog.getByLabel('Masa ciała (kg)', { exact: true }).fill('80')
-  await dialog.getByRole('radio', { name: /^Niska/ }).check()
-  await dialog.getByRole('radio', { name: /^Powolna redukcja/ }).check()
-  await dialog.getByRole('button', { name: 'Oblicz', exact: true }).click()
-  await dialog.getByRole('button', { name: 'Ustaw jako moje cele' }).click()
-  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page.goto(`${origin}/goals/new`)
+  await page.getByLabel('Wiek (lata)').fill('40')
+  await page.getByRole('radio', { name: /^Redukcja/ }).check()
+  await page.getByLabel('Masa na początku (kg)').fill('80')
+  await page.getByLabel('Koniec', { exact: true }).fill('2100-01-01')
+  await page.getByRole('button', { name: 'Oblicz propozycję' }).click()
+  await page.getByText('Mężczyzna', { exact: true }).click()
+  await page.getByLabel('Wzrost (cm)', { exact: true }).fill('180')
+  await page.getByRole('radio', { name: /^Niska/ }).check()
+  await page.getByRole('button', { name: 'Policz orientacyjnie' }).click()
+  await expect(page.locator('.goals-proposal')).toContainText('1870')
+  expect(mocked.rows.profiles[0].calorie_goal).toBe(2200)
+  await page.getByRole('button', { name: 'Przenieś propozycję do pól' }).click()
+  await page.getByRole('checkbox', { name: /Sprawdziłem/ }).check()
+  await page.getByRole('button', { name: 'Zatwierdź cele i rozpocznij cykl' }).click()
+  await expect(page.getByRole('heading', { name: 'Cele', exact: true })).toBeVisible()
   expect(mocked.rows.profiles[0]).toMatchObject({ calorie_goal: 1870, protein_goal: 128, fat_goal: 52, carbs_goal: 223, water_goal: 2800, weekly_minutes_goal: 180 })
+  expect(mocked.rows.goal_cycles).toMatchObject([{ kind: 'reduction', calorie_goal: 1870 }])
   expect(JSON.stringify(mocked.calls)).not.toMatch(/"age"|height/)
 })

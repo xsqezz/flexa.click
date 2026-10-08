@@ -1,13 +1,13 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, HashRouter, Link, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/Auth'
-import { JournalProvider } from './lib/Journal'
+import { JournalProvider, useJournal } from './lib/Journal'
 import { FeedbackProvider } from './components/Feedback'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Workspace } from './components/Workspace'
 import { AuthPage } from './pages/AuthPage'
 import { Dashboard } from './pages/Dashboard'
-import { JournalPage } from './pages/JournalPage'
+import { MealsPage } from './pages/MealsPage'
 import { WorkoutsPage } from './pages/WorkoutsPage'
 import { ExerciseHistoryPage } from './pages/ExerciseHistoryPage'
 import { ProgressPage } from './pages/ProgressPage'
@@ -16,6 +16,7 @@ import { InformationPage } from './pages/InformationPage'
 import { AboutPage } from './pages/AboutPage'
 import { PlanPage } from './pages/PlanPage'
 import { PlanWizard } from './pages/PlanWizard'
+import { GoalsPage, GoalsSetupPage, NewGoalCyclePage } from './pages/GoalsPage'
 import { WorkoutPlayer } from './pages/WorkoutPlayer'
 import { Brand, Skeleton } from './components/ui'
 
@@ -29,6 +30,16 @@ function SessionGate() {
 
 function JournalShell() {
   return <JournalProvider><Outlet /></JournalProvider>
+}
+
+function AccountSetupGate() {
+  const auth = useAuth()
+  const { data } = useJournal()
+  if (auth.mode === 'cloud' && data) {
+    if (!data.training.onboardingDone && !data.training.plan) return <Navigate to="/start" replace />
+    if (!data.goals.setupDone) return <Navigate to="/goals/setup" replace />
+  }
+  return <Outlet />
 }
 
 function ScrollToTop() {
@@ -60,18 +71,24 @@ export default function App() {
       <Route element={<SessionGate />}>
         <Route element={<JournalShell />}>
           <Route path="/start" element={<PlanWizard mode="onboarding" />} />
+          <Route path="/goals/setup" element={<GoalsSetupPage />} />
           <Route path="/plan/new" element={<PlanWizard mode="edit" />} />
           <Route path="/plan/:sessionKey" element={<WorkoutPlayer />} />
-          <Route element={<Workspace />}>
-            <Route index element={<Dashboard />} />
-            <Route path="/journal" element={<JournalPage />} />
-            <Route path="/kitchen" element={<Suspense fallback={<Skeleton />}><KitchenPage /></Suspense>} />
-            <Route path="/plan" element={<PlanPage />} />
-            <Route path="/workouts" element={<WorkoutsPage />} />
-            <Route path="/workouts/exercises" element={<ExerciseHistoryPage />} />
-            <Route path="/workouts/exercises/:exercise" element={<ExerciseHistoryPage />} />
-            <Route path="/progress" element={<ProgressPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
+          <Route element={<AccountSetupGate />}>
+            <Route element={<Workspace />}>
+              <Route index element={<Dashboard />} />
+              <Route path="/goals" element={<GoalsPage />} />
+              <Route path="/goals/new" element={<NewGoalCyclePage />} />
+              <Route path="/meals" element={<MealsPage />} />
+              <Route path="/journal" element={<Navigate to="/meals" replace />} />
+              <Route path="/kitchen" element={<Suspense fallback={<Skeleton />}><KitchenPage /></Suspense>} />
+              <Route path="/plan" element={<PlanPage />} />
+              <Route path="/workouts" element={<WorkoutsPage />} />
+              <Route path="/workouts/exercises" element={<ExerciseHistoryPage />} />
+              <Route path="/workouts/exercises/:exercise" element={<ExerciseHistoryPage />} />
+              <Route path="/progress" element={<ProgressPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
           </Route>
         </Route>
       </Route>

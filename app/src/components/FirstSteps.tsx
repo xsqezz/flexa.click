@@ -30,7 +30,7 @@ export function FirstSteps() {
   const [state, setState] = useState(() => (user ? readState(user) : {}))
   if (auth.mode !== 'cloud' || !user || !data || state.hidden) return null
   const steps = [
-    { done: Boolean(state.goals), label: 'Sprawdź swoje cele kalorii i makro', action: <Link to="/settings">Ustaw cele</Link> },
+    { done: Boolean(state.goals || data.goals.cycles.length), label: 'Sprawdź swoje cele kalorii i makro', action: <Link to="/goals">Ustaw cele</Link> },
     { done: data.meals.length > 0, label: 'Zapisz pierwszy posiłek', action: <button type="button" className="text-link" onClick={() => openMeal()}>Wybierz produkt</button> },
     { done: data.water.length > 0, label: 'Dodaj szklankę wody', action: <button type="button" className="text-link" onClick={openQuickAdd}>Otwórz „Dodaj”</button> },
     { done: Boolean(data.training.plan), label: 'Ułóż plan treningowy', action: <Link to="/plan/new">Ułóż plan</Link> },

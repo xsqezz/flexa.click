@@ -1,10 +1,11 @@
 import { z } from 'zod'
 import {
   journalSchema,
-  type Food, type Journal, type Meal, type MealTemplate, type Measurement, type Profile, type Water, type Workout,
+  type Food, type GoalCycle, type Journal, type Meal, type MealTemplate, type Measurement, type Profile, type Water, type Workout,
 } from '../../../shared/domain'
 import { needsHealthConsent, type TrainingPlan } from '../../../shared/training'
 import { EXPORT_FORMAT } from './export'
+import { today } from './dates'
 import { isUuid, stableUuid } from './ids'
 import { isPlanUsable } from './training/generator'
 
@@ -23,6 +24,7 @@ export type ImportPayload = {
   measurements: Omit<Measurement, 'id'>[]
   customFoods: Food[]
   mealTemplates: Omit<MealTemplate, 'id'>[]
+  goalCycles: GoalCycle[]
   profile: Profile | null
   plan: TrainingPlan | null
 }
@@ -43,6 +45,9 @@ export type ImportPreview = {
   /** Why the plan from the file will not be restored, if it will not. */
   planNote: string | null
   hasPlan: boolean
+  goalsInFile: number
+  goalsRestorable: number
+  goalCycleNote: string | null
   total: number
 }
 
@@ -57,7 +62,7 @@ const envelopeSchema = z.object({
 const issuePath = (path: readonly PropertyKey[]) => {
   const labels: Record<string, string> = {
     meals: 'posiłki', workouts: 'treningi', water: 'woda', measurements: 'pomiary', customFoods: 'własne produkty',
-    mealTemplates: 'zestawy', profile: 'profil', training: 'plan treningowy',
+    mealTemplates: 'zestawy', profile: 'profil', training: 'plan treningowy', goals: 'cele i cykle',
   }
   const [section, index] = path
   const name = labels[String(section)] ?? String(section ?? 'plik')
@@ -113,7 +118,7 @@ export function importedFoodId(id: string): string {
   return isUuid(id) ? id : stableUuid(`food:${id}`)
 }
 
-export type ImportOptions = { replaceProfile: boolean; restorePlan: boolean }
+export type ImportOptions = { replaceProfile: boolean; restorePlan: boolean; restoreGoalHistory?: boolean }
 
 /** Pure merge plan: what to add so that nothing existing is deleted or overwritten (except opted-in profile/plan). */
 export function planImport(existing: Journal, backup: Journal, options: ImportOptions): ImportPreview {
@@ -167,11 +172,20 @@ export function planImport(existing: Journal, backup: Journal, options: ImportOp
     else restoredPlan = plan
   }
 
+  const restorable = backup.goals.cycles.filter((cycle) => cycle.status === 'completed' && cycle.endDate <= today())
+  const goalsInFile = backup.goals.cycles.length
+  const goalsRestorable = existing.goals.cycles.length ? 0 : restorable.length
+  const goalCycles = options.restoreGoalHistory && goalsRestorable
+    ? restorable.map((cycle) => ({ ...cycle, id: crypto.randomUUID() })) : []
+  const goalNotes: string[] = []
+  if (goalsInFile > restorable.length) goalNotes.push('Aktywnych lub przyszłych cykli z kopii nie uruchamiamy ani nie przywracamy. Nowy cykl zatwierdź w Celach.')
+  if (restorable.length && existing.goals.cycles.length) goalNotes.push('Masz już historię cykli. Nie mieszamy jej z historią z kopii, by nie nadpisać bieżącego celu ani dat.')
+
   const count = (inFile: number, added: number): ImportCount => ({ inFile, added, present: inFile - added })
   const payload: ImportPayload = {
     meals: meals.map(withoutId), workouts: workouts.map(withoutId), water: water.map(withoutId),
     measurements: measurements.map(withoutId), customFoods, mealTemplates: mealTemplates.map(withoutId),
-    profile: options.replaceProfile ? backup.profile : null, plan: restoredPlan,
+    goalCycles, profile: options.replaceProfile ? backup.profile : null, plan: restoredPlan,
   }
   return {
     payload,
@@ -186,6 +200,9 @@ export function planImport(existing: Journal, backup: Journal, options: ImportOp
     measurementConflicts,
     planNote,
     hasPlan: plan !== null,
+    goalsInFile,
+    goalsRestorable,
+    goalCycleNote: goalNotes.join(' ') || null,
     total: importSize(payload),
   }
 }
@@ -194,4 +211,5 @@ export function planImport(existing: Journal, backup: Journal, options: ImportOp
 export function importSize(payload: ImportPayload): number {
   return payload.meals.length + payload.workouts.length + payload.water.length + payload.measurements.length
     + payload.customFoods.length + payload.mealTemplates.length + (payload.profile ? 1 : 0) + (payload.plan ? 1 : 0)
+    + payload.goalCycles.length
 }
