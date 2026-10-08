@@ -53,6 +53,13 @@ wymagają konta, zgody na wysłanie zdjęcia i mają dzienne limity na konto (mi
 `202610080001_kitchen_ai_quota.sql`). Zdjęć nie zapisujemy; AI nigdy nie pisze przepisu ani nie
 liczy makro.
 
+**Aplikacja na Androida:** `android/` to powłoka Kotlin z `WebView`, która otwiera działającą stronę (zmiany
+w aplikacji są więc widoczne od razu) i sama proponuje aktualizację, gdy w GitHub Releases pojawi się nowszy APK:
+okno „Zaktualizuj”, pobranie, weryfikacja SHA-256 i podpisu, systemowe potwierdzenie instalacji. Pobranie:
+[flexa.apk](https://github.com/xsqezz/flexa.click/releases/latest/download/flexa.apk). Nową wersję wydaje się poleceniem
+`npm run android:release -- 1.0.1 --notes "Zmiana 1|Zmiana 2"`; APK buduje i podpisuje GitHub Actions.
+Szczegóły oraz ostrzeżenie o kopii zapasowej klucza podpisującego: [docs/ANDROID.md](docs/ANDROID.md).
+
 **Podłączone środowisko:** Cloudflare Pages, Supabase Auth/Postgres/Edge Functions
 i SMTP Brevo. Rejestracja wymaga potwierdzenia adresu, a hasło ma co najmniej
 10 znaków. Plan Brevo Free ma 300 maili dziennie, wspólnie dla aplikacji
@@ -82,9 +89,11 @@ po stronie funkcji Supabase.
 | `functions` | Cloudflare Pages Functions (rozpoznawanie zdjęć i obraz potrawy w Workers AI) |
 | `supabase` | Migracje, RLS, auth profile, limity API, funkcje |
 | `site` | Statyczny landing i publiczne informacje wdrożeniowe |
+| `android` | Aplikacja na Androida: powłoka WebView z samoaktualizacją (Kotlin, Gradle) |
 | `docs` | Research, źródła, koszty, instrukcja konfiguracji |
 
-Instrukcje: [wdrożenie](docs/DEPLOYMENT.md), [research i zasoby](docs/RESEARCH.md).
+Instrukcje: [wdrożenie](docs/DEPLOYMENT.md), [aplikacja na Androida](docs/ANDROID.md),
+[research i zasoby](docs/RESEARCH.md).
 GitHub Actions publikuje landing i demo (`npm run build:pages`); aplikację z kontami buduje integracja
 Cloudflare Pages z tego samego repozytorium.
 
@@ -95,6 +104,7 @@ npm run build:site
 npm run check:edge
 npm test
 npm run test:e2e
+npm run test:android-scripts
 ```
 
 API Stravy jest wyłączone z uwagi na jego aktualny regulamin. Nie ma szacowania kalorii

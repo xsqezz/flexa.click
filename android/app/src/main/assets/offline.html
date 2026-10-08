@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flexa — brak połączenia</title>
+  <style>
+    :root { color: #20352b; background: #f5f7f6; font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; box-sizing: border-box; line-height: 1.65; }
+    main { max-width: 22rem; text-align: center; }
+    .mark { width: 72px; height: 72px; margin: 0 auto 20px; }
+    h1 { font-size: 1.6rem; font-weight: 650; line-height: 1.22; letter-spacing: -.035em; margin: 0 0 10px; }
+    p { margin: 0 0 22px; color: #617068; }
+    button { font: inherit; font-size: .875rem; font-weight: 600; line-height: 1.4; min-height: 44px; padding: 10px 16px; border: 0; border-radius: 9px; background: #276043; color: #fff; }
+    button:active { background: #1d4933; }
+    button:focus-visible { outline: 3px solid #336fac; outline-offset: 2px; }
+    small { display: block; margin-top: 18px; font-size: .875rem; color: #617068; }
+  </style>
+</head>
+<body>
+  <main>
+    <svg class="mark" viewBox="0 0 36 36" role="img" aria-label="Flexa"><rect width="36" height="36" rx="11" fill="#276043"/><path d="M11 26V11h16l-3 5H16v3h7l-3 5h-4v2z" fill="#fff"/></svg>
+    <h1>Brak połączenia z internetem</h1>
+    <p>Flexa potrzebuje sieci, żeby wczytać Twój dziennik. Sprawdź Wi‑Fi albo dane komórkowe i spróbuj ponownie.</p>
+    <button id="retry" type="button">Spróbuj ponownie</button>
+    <small>Gdy połączenie wróci, wczytam stronę automatycznie.</small>
+  </main>
+  <script>
+    var retry = {{RETRY_URL}};
+    document.getElementById('retry').addEventListener('click', function () { location.href = retry; });
+  </script>
+</body>
+</html>

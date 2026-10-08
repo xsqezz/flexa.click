@@ -17,7 +17,10 @@
     "test": "npm run test --workspace app",
     "test:e2e": "playwright test",
     "preview": "npm run preview --workspace app",
-    "preview:site": "node scripts/serve-site.mjs"
+    "preview:site": "node scripts/serve-site.mjs",
+    "test:android-scripts": "node --test scripts/android.test.mjs",
+    "android:release": "node scripts/android-release.mjs",
+    "android:signing": "node scripts/android-signing.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

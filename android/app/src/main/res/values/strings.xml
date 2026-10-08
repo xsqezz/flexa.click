@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Flexa</string>
+
+    <string name="update_title">Dostępna aktualizacja Flexa</string>
+    <string name="update_message">Wersja %1$s jest już dostępna. Masz wersję %2$s.</string>
+    <string name="update_message_mandatory">Ta wersja Flexa nie jest już obsługiwana. Zaktualizuj ją do wersji %1$s, żeby korzystać z aplikacji.</string>
+    <string name="update_whats_new">Co nowego:</string>
+    <string name="update_size">Rozmiar pobierania: %1$s</string>
+    <string name="update_action_install">Zaktualizuj</string>
+    <string name="update_action_later">Później</string>
+    <string name="update_action_close_app">Zamknij aplikację</string>
+    <string name="update_action_cancel">Anuluj</string>
+    <string name="update_action_retry">Spróbuj ponownie</string>
+    <string name="update_action_manual">Pobierz ręcznie</string>
+    <string name="update_action_settings">Otwórz ustawienia</string>
+    <string name="update_action_ok">OK</string>
+    <string name="update_checking">Sprawdzam aktualizacje…</string>
+    <string name="update_up_to_date">Masz najnowszą wersję Flexa (%1$s).</string>
+    <string name="update_check_failed">Nie udało się sprawdzić aktualizacji. Sprawdź połączenie z internetem i spróbuj ponownie.</string>
+    <string name="update_needs_newer_android">Nowa wersja Flexa wymaga nowszego Androida, więc na tym urządzeniu zostaje wersja %1$s.</string>
+    <string name="update_busy">Aktualizacja jest już w toku.</string>
+    <string name="update_permission_title">Zezwól na instalację</string>
+    <string name="update_permission_message">Android wymaga jednorazowej zgody, żeby Flexa mogła zainstalować własną aktualizację. Na następnym ekranie włącz „Zezwalaj z tego źródła”, a potem wróć do aplikacji — dokończę aktualizację.</string>
+    <string name="update_permission_denied">Bez tej zgody nie mogę zainstalować aktualizacji.</string>
+    <string name="update_downloading">Pobieranie aktualizacji…</string>
+    <string name="update_download_progress">%1$s z %2$s</string>
+    <string name="update_download_failed">Nie udało się pobrać aktualizacji. Sprawdź połączenie z internetem i spróbuj ponownie.</string>
+    <string name="update_verify_failed">Pobrany plik jest uszkodzony albo nie pochodzi od Flexa, więc go nie zainstaluję. Spróbuj ponownie za chwilę.</string>
+    <string name="update_wrong_signature">Pobrana wersja ma inny podpis niż zainstalowana, więc Android nie pozwoli jej zaktualizować. Pobierz aplikację ręcznie i zainstaluj ją ponownie.</string>
+    <string name="update_confirm_hint">Potwierdź instalację w oknie Androida. Po aktualizacji Android zamknie Flexa, więc otwórz ją ponownie.</string>
+    <string name="update_install_failed">Android nie zainstalował aktualizacji. %1$s</string>
+    <string name="update_failed_generic">Spróbuj ponownie za chwilę.</string>
+    <string name="update_failed_storage">Na urządzeniu brakuje miejsca.</string>
+    <string name="update_failed_blocked">Instalację zablokował system (np. Google Play Protect albo zasady urządzenia).</string>
+    <string name="update_failed_incompatible">Pobrana wersja ma inny podpis niż zainstalowana. Pobierz aplikację ręcznie i zainstaluj ją ponownie.</string>
+
+    <string name="save_done">Zapisano plik.</string>
+    <string name="save_failed">Nie udało się zapisać pliku.</string>
+    <string name="download_unsupported">Tego pliku nie da się pobrać w aplikacji.</string>
+    <string name="cannot_open_link">Nie znaleziono aplikacji, która otworzy ten link.</string>
+</resources>

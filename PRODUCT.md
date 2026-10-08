@@ -59,6 +59,11 @@ account; it is never presented as synchronized cloud data.
   is an optional fallback. Missing nutrient values are not invented.
 - GitHub Pages hosts the public landing and setup documentation. Cloudflare
   Pages hosts the application; Supabase provides Postgres, Auth, and functions.
+- An Android app (`android/`, installed from GitHub Releases, not Google Play) is a
+  thin WebView shell around the live application, so web releases reach it
+  instantly; it adds a native updater that offers newer APKs with a one-tap
+  "Zaktualizuj", verifying the checksum and the signing certificate before the
+  system installer confirms. It adds no analytics, ads, or push notifications.
 - All application features are free for users. Infrastructure free tiers,
   external APIs, and domain registration still have costs or quotas.
 - Accounts and all private records are isolated by database authorization.

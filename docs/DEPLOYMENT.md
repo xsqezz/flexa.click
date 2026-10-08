@@ -200,6 +200,23 @@ npm run build:pages
 Zmiany samych repo variables wymagają ręcznego ponownego workflow.
 Nie dodawaj sekretów ani danych użytkowników do statycznego landingu.
 
+## Aplikacja na Androida
+
+Szczegóły i procedury: [ANDROID.md](ANDROID.md). Aplikacja to powłoka `WebView` otwierająca adres z
+`android/app/build.gradle.kts` (domyślnie `https://flexa-click.pages.dev`, nadpisanie `-Pflexa.appUrl=...`),
+więc wdrożenie strony jest od razu widoczne w aplikacji. Nowy APK jest potrzebny tylko po zmianie w `android/`.
+
+- Wydanie: `npm run android:release -- X.Y.Z --notes "Zmiana 1|Zmiana 2"`. Tag `android-vX.Y.Z` uruchamia
+  `.github/workflows/android.yml`: testy i lint, podpisany APK, `update.json` i GitHub Release oznaczony jako najnowszy.
+  Aplikacje czytają `releases/latest/download/update.json`, więc to wydanie musi pozostać „latest”.
+- Sekrety repozytorium: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`,
+  `ANDROID_KEY_PASSWORD` (ustawia je `npm run android:signing -- github`). Klucz leży poza repozytorium w
+  `~/.flexa/android-signing/`; jego utrata uniemożliwia aktualizacje zainstalowanych aplikacji, więc zrób kopię zapasową.
+- Aplikacja Cloudflare publikuje `/.well-known/assetlinks.json` z odciskiem klucza. Landing i Ustawienia linkują do
+  `releases/latest/download/flexa.apk`; adres przycisku na landingu można zmienić zmienną `FLEXA_ANDROID_URL` (https).
+- Adres aplikacji jest zapisany w APK: przeniesienie na `app.flexa.click` wymaga nowego wydania Androida z nowym `appUrl`.
+  Starsze aplikacje nadal otwierają `flexa-click.pages.dev`, dopóki ten adres działa.
+
 ## flexa.click i app.flexa.click
 
 Zakup/odnowienie domeny nie jest darmowe i nie zostało wykonane przez ten kod.
@@ -212,6 +229,7 @@ przejęcia niezajętej konfiguracji.
   i zastosuj wskazany rekord CNAME. Nie wpisuj wymyślonego pages.dev.
 - Włącz HTTPS po propagacji DNS; nigdy nie obchodź ostrzeżeń certyfikatu.
 - Zaktualizuj redirecty Auth, ALLOWED_ORIGINS, SMTP oraz link aplikacji w landingu.
+- Zaktualizuj `appUrl` w aplikacji na Androida i wydaj nową wersję (zob. „Aplikacja na Androida”).
 - Custom Domain Supabase nie jest wymagany; jego płatnego add-onu nie potrzebujemy.
 
 ## Walidacja i start publiczny

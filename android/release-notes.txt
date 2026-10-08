@@ -1,0 +1,2 @@
+Pierwsza wersja aplikacji Flexa na Androida.
+Aplikacja sama sprawdza, czy jest nowsza wersja, i pozwala ją zainstalować jednym dotknięciem.
