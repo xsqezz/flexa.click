@@ -119,12 +119,14 @@ jobs:
       - name: Sprawdź podpis APK
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk flexa.apk
-          apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
+          apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          test -x "$apksigner" || apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
           test -n "$apksigner"
           "$apksigner" verify --verbose --print-certs flexa.apk | tee apksigner.txt
           grep -q 'APK Signature Scheme v2): true' apksigner.txt
           grep -q 'APK Signature Scheme v3): true' apksigner.txt
-          actual="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' apksigner.txt | tr 'A-F' 'a-f')"
+          # Starsze narzędzia piszą „Signer #1 certificate SHA-256 digest”, nowsze „V3.0 Signer: certificate SHA-256 digest”.
+          actual="$(sed -n -E 's/^.*Signer.*certificate SHA-256 digest: ([0-9A-Fa-f]{64}).*$/\1/p' apksigner.txt | tr 'A-F' 'a-f' | sort -u)"
           expected="$(tr -d ': \r\n' < android/signing-fingerprint.txt | tr 'A-F' 'a-f')"
           if [ -z "$actual" ] || [ "$actual" != "$expected" ]; then
             echo "::error::Odcisk certyfikatu APK (${actual}) różni się od android/signing-fingerprint.txt (${expected}). Aktualizacje zainstalowanych aplikacji by nie przeszły."
