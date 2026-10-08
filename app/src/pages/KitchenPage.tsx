@@ -100,11 +100,12 @@ function PhotoPanel({ aiReady, onFound }: { aiReady: boolean | null; onFound: (i
         {remembered
           ? <p className="kitchen-note">Zgoda na wysyłanie zdjęć do rozpoznania jest zapisana na tym urządzeniu. <button type="button" className="text-link" onClick={() => { rememberPhotoConsent(false); setRemembered(false); setConsent(false) }}>Cofnij zgodę</button></p>
           : <label className="checkbox-label"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
-            <span>Rozumiem, że zdjęcie zostanie pomniejszone, pozbawione danych EXIF (np. lokalizacji) i wysłane do Cloudflare Workers AI wyłącznie w celu rozpoznania produktów. Flexa go nie zapisuje.</span></label>}
+            <span>Rozumiem, że zdjęcie (w całości i, gdy jest duże, także jako cztery powiększone fragmenty) zostanie pomniejszone, pozbawione danych EXIF (np. lokalizacji) i wysłane do Cloudflare Workers AI wyłącznie w celu rozpoznania produktów. Flexa go nie zapisuje.</span></label>}
         <div className="button-row">
           <Button onClick={() => { void recognize() }} busy={busy === 'working'}><Sparkles size={17} aria-hidden="true" />Rozpoznaj produkty</Button>
           <Button variant="ghost" onClick={() => setPhoto(null)} disabled={busy === 'working'}>Usuń zdjęcie</Button>
         </div>
+        {busy === 'working' && <p className="kitchen-note" role="status">Analizuję zdjęcie — zwykle kilka sekund, czasem dłużej.</p>}
       </div>
     </div>}
     {error && <Notice tone="error">{error}</Notice>}

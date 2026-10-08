@@ -261,4 +261,15 @@ describe('helpers', () => {
     expect(prompt).toContain('feta')
     expect(prompt.length).toBeLessThan(600)
   })
+
+  it('draws the right carrier for wraps, toasts and sandwiches', () => {
+    const wrap = dishImagePrompt('wrap', ['tortilla', 'chicken-breast', 'lettuce'])
+    expect(wrap).toContain('a tortilla wrap filled with chicken breast and lettuce, cut in half')
+    const toast = dishImagePrompt('wrap', ['bread-wheat', 'ham', 'cheese-yellow'])
+    expect(toast).toContain('a hot toasted sandwich filled with')
+    expect(toast).not.toMatch(/white bread|tortilla/)
+    expect(dishImagePrompt('wrap', ['egg', 'tomato'])).toContain('a sandwich filled with')
+    expect(dishImagePrompt('wrap', ['tortilla'])).toContain('filled with fresh ingredients')
+    expect(dishImagePrompt('skillet', ['tortilla', 'egg'])).toContain('tortilla wrap')
+  })
 })

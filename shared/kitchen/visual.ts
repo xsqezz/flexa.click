@@ -11,14 +11,18 @@ const styleHints: Record<DishStyle, string> = {
   lemon: 'with a squeeze of lemon and fresh herbs', curry: 'in a golden curry sauce', mustard: 'with a honey mustard glaze', pesto: 'tossed with green pesto',
 }
 
-const formatScenes: Record<DishFormat, (items: string) => string> = {
+const carriers = new Set(['tortilla', 'bread-wheat', 'bread-whole', 'bread-roll'])
+
+const formatScenes: Record<DishFormat, (items: string, ids: readonly string[]) => string> = {
   skillet: (items) => `a pan-fried dish of ${items}, freshly cooked in a skillet`,
   bake: (items) => `roasted ${items} with golden crispy edges on a baking tray`,
   onepot: (items) => `a hearty one-pot meal with ${items} in a bowl`,
   eggs: (items) => `a fluffy egg dish with ${items} on a plate`,
   soup: (items) => `a creamy soup made of ${items} in a ceramic bowl`,
   salad: (items) => `a fresh colourful salad with ${items} in a bowl`,
-  wrap: (items) => `a wrap or sandwich filled with ${items}, cut in half`,
+  wrap: (items, ids) => ids.includes('tortilla') ? `a tortilla wrap filled with ${items}, cut in half`
+    : ids.some((id) => carriers.has(id)) ? `a hot toasted sandwich filled with ${items}, cut in half`
+      : `a sandwich filled with ${items}, cut in half`,
   oats: (items) => `a bowl of warm porridge topped with ${items}`,
   smoothie: (items) => `a thick smoothie made of ${items} in a tall glass`,
   pancakes: (items) => `a stack of small pancakes with ${items}`,
@@ -28,8 +32,10 @@ export const maxPromptIngredients = 8
 
 /** Builds the image prompt only from known identifiers, so no user-written text reaches the model. */
 export function dishImagePrompt(format: DishFormat, ingredientIds: readonly string[], style?: DishStyle): string {
-  const names = ingredientIds.slice(0, maxPromptIngredients).map((id) => getIngredient(id).en)
+  const used = ingredientIds.slice(0, maxPromptIngredients)
+  const shown = format === 'wrap' ? used.filter((id) => !carriers.has(id)) : used
+  const names = shown.map((id) => getIngredient(id).en)
   const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0] ?? 'fresh ingredients'
   const hint = style ? `, ${styleHints[style]}` : ''
-  return `Professional food photography of ${formatScenes[format](list)}${hint}. Served on a ceramic plate on a wooden table, natural window light, shallow depth of field, appetizing, vibrant colours, top-down 45 degree angle, no text, no people, no hands.`
+  return `Professional food photography of ${formatScenes[format](list, used)}${hint}. Served on a ceramic plate on a wooden table, natural window light, shallow depth of field, appetizing, vibrant colours, top-down 45 degree angle, no text, no people, no hands.`
 }
