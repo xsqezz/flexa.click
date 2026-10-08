@@ -1,4 +1,4 @@
-import { ArrowUpRight, ClipboardList, Footprints, Sparkles } from 'lucide-react'
+import { ArrowUpRight, ChefHat, ClipboardList, Footprints, Sparkles } from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
 import { weekdayNames } from '../../../shared/training'
 import { useAuth } from '../lib/Auth'
@@ -47,6 +47,7 @@ export function Dashboard() {
         <section className="panel meal-panel">
           <SectionHeading title="Twoje posiłki" to="/journal">Cały dziennik</SectionHeading>
           <MealList date={date} />
+          <p className="inline-note"><ChefHat size={17} aria-hidden="true" /><span>Nie wiesz, co zjeść? <Link to="/kitchen">Zrób przepis z tego, co masz w domu</Link></span></p>
         </section>
         <section className="panel activity-preview">
           <SectionHeading title="Twoja aktywność" to="/workouts">Wszystkie treningi</SectionHeading>

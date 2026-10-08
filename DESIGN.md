@@ -159,8 +159,19 @@ at least 44px height. Preserve units, required-state validation and error messag
 
 **Navigation.** Named line-icon links use muted ink at rest and pale green with
 pine text when active. On phones keep all six primary destinations (Dzisiaj,
-Dziennik, Plan, Treningi, Postępy, Konto) available in the bottom bar; items share
-the width equally and use short labels.
+Dziennik, Kuchnia, Plan, Treningi, Postępy) available in the bottom bar; items share
+the width equally and use short labels. Account settings stay reachable from the
+44px avatar in the top bar.
+
+**Smart Kuchnia.** A flat panel under the page header with a three-step strip
+(Produkty, Preferencje, Przepis) whose current step is pale green with a pine
+numeral. Products are 44px toggle chips with emoji; selection adds a pine double
+border and a check, never color alone, and groups collapse as native disclosures.
+The optional photo area is a quiet tinted block with an explicit consent checkbox
+before the first upload. The recipe is a two-column layout on desktop (picture, four
+macro tiles and ingredients beside numbered steps) that stacks on phones. The dish
+picture is always labelled as an AI illustration; without one, an emoji plate stands in.
+Swaps and "Dodaj do dziennika" open in the standard right-hand drawer.
 
 **Questionnaire.** The first-run "Zanim zaczniesz" flow and plan editing use a
 standalone centered card (740px max) with the brand, a thin progress track and

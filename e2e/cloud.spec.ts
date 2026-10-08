@@ -94,6 +94,12 @@ async function login(page: Page) {
   await page.getByRole('button', { name: 'Zaloguj się', exact: true }).click()
 }
 
+async function openSettings(page: Page) {
+  const link = page.locator('nav:visible a[href="/settings"]')
+  if (await link.count() > 0) await link.click()
+  else await page.getByRole('link', { name: 'Otwórz ustawienia konta' }).click()
+}
+
 test('registration sends consent metadata and waits for actual email confirmation', async ({ page }) => {
   const mocked = await fixture(page)
   await page.goto(`${origin}/signup`)
@@ -153,7 +159,7 @@ test('password recovery/update and account deletion have real error and confirma
   await page.getByRole('button', { name: 'Zapisz hasło' }).click()
   await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
   expect(mocked.calls.find((call) => call.path.endsWith('/user'))?.body.password).toBe('test-new-password')
-  await page.locator('nav:visible a[href="/settings"]').click()
+  await openSettings(page)
   await page.getByRole('button', { name: 'Usuń konto i dane' }).click()
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Aktualne hasło', { exact: true }).fill('wrong-password')
@@ -237,4 +243,80 @@ test('the questionnaire can be skipped and opened later from the Plan tab', asyn
   await expect(page.getByRole('heading', { name: 'Kilka słów o Tobie', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Anuluj' }).first().click()
   await expect(page.getByRole('heading', { name: 'Plan treningowy', exact: true })).toBeVisible()
+})
+
+const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
+
+test('Smart Kuchnia recognises products from a photo after consent and shows an AI picture of the dish', async ({ page }) => {
+  await fixture(page)
+  const authorizations: string[] = []
+  const sent: unknown[] = []
+  const images: unknown[] = []
+  await page.route('**/api/kitchen/status', (route) => route.fulfill({ json: { available: true, limits: { vision: 12, image: 30 } } }))
+  await page.route('**/api/kitchen/vision', async (route) => {
+    authorizations.push(route.request().headers().authorization ?? '')
+    sent.push(route.request().postDataJSON())
+    await route.fulfill({ json: { items: ['chicken-breast', 'broccoli', 'rice-white'], unknown: ['kolendra'], seen: ['pierś z kurczaka', 'brokuł', 'ryż biały', 'kolendra'] } })
+  })
+  await page.route('**/api/kitchen/image', async (route) => {
+    images.push(route.request().postDataJSON())
+    await route.fulfill({ contentType: 'image/png', body: tinyPng })
+  })
+  await login(page)
+  await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
+  await page.locator('nav:visible a[href="/kitchen"]').click()
+  await expect(page.getByRole('heading', { name: 'Zdjęcie lodówki lub produktów' })).toBeVisible()
+  await page.locator('input[type=file]').nth(1).setInputFiles({ name: 'lodowka.png', mimeType: 'image/png', buffer: tinyPng })
+  await expect(page.getByAltText('Podgląd wybranego zdjęcia produktów')).toBeVisible()
+  await page.getByRole('button', { name: 'Rozpoznaj produkty' }).click()
+  await expect(page.getByRole('alert')).toContainText('zgodę')
+  expect(sent).toHaveLength(0)
+  await page.getByRole('checkbox', { name: /zostanie pomniejszone, pozbawione danych EXIF/ }).check()
+  await page.getByRole('button', { name: 'Rozpoznaj produkty' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Widzę na zdjęciu' })).toContainText('pierś z kurczaka, brokuł, ryż biały')
+  await expect(page.getByText(/Nie mam w bazie: kolendra/)).toBeVisible()
+  expect(authorizations).toHaveLength(1)
+  expect(authorizations[0]).toMatch(/^Bearer \S+\.\S+\.\S+$/)
+  expect(sent[0]).toMatchObject({ image: expect.stringMatching(/^\/9j\//) })
+  await expect(page.getByRole('group', { name: 'Wybrane produkty' }).getByRole('button')).toHaveCount(3)
+  await page.getByRole('button', { name: 'Dalej: preferencje' }).click()
+  await page.getByRole('button', { name: 'Pokaż przepis' }).click()
+  await expect(page.getByRole('heading', { level: 3 }).first()).toContainText(/kurczaka/i)
+  await expect(page.getByRole('img', { name: /^Poglądowe zdjęcie potrawy wygenerowane przez AI: / })).toBeVisible()
+  await expect(page.getByText(/Poglądowe zdjęcie wygenerowane przez AI/)).toBeVisible()
+  expect(images[0]).toMatchObject({ format: expect.any(String), ingredients: expect.arrayContaining(['chicken-breast']) })
+  expect(JSON.stringify(images[0])).not.toMatch(/lodowka|base64/)
+})
+
+test('Smart Kuchnia falls back to manual selection and an ingredient picture when AI is unavailable or fails', async ({ page }) => {
+  await fixture(page)
+  await page.route('**/api/kitchen/status', (route) => route.fulfill({ json: { available: true, limits: { vision: 12, image: 30 } } }))
+  await page.route('**/api/kitchen/vision', (route) => route.fulfill({ status: 429, json: { code: 'quota', error: 'Dzienny limit zdjęć i obrazów AI został wykorzystany. Wróć jutro albo wybierz produkty ręcznie.' } }))
+  await page.route('**/api/kitchen/image', (route) => route.fulfill({ status: 503, json: { code: 'unavailable', error: 'Nie udało się wygenerować zdjęcia. Spróbuj ponownie za chwilę.' } }))
+  await login(page)
+  await page.locator('nav:visible a[href="/kitchen"]').click()
+  await page.locator('input[type=file]').nth(1).setInputFiles({ name: 'lodowka.png', mimeType: 'image/png', buffer: tinyPng })
+  await page.getByRole('checkbox', { name: /zostanie pomniejszone/ }).check()
+  await page.getByRole('button', { name: 'Rozpoznaj produkty' }).click()
+  await expect(page.getByRole('alert')).toContainText('Dzienny limit')
+  const search = page.getByRole('searchbox', { name: 'Szukaj produktu' })
+  for (const [query, name] of [['jajka', 'Jajka'], ['pomidor', 'Pomidor'], ['ser żółty', 'Ser żółty']] as const) {
+    await search.fill(query)
+    await page.getByRole('button', { name, exact: true }).click()
+  }
+  await page.getByRole('button', { name: 'Dalej: preferencje' }).click()
+  await page.getByRole('button', { name: 'Pokaż przepis' }).click()
+  await expect(page.getByRole('heading', { level: 3 }).first()).toBeVisible()
+  await expect(page.getByText(/Nie udało się wygenerować zdjęcia\. Spróbuj ponownie za chwilę\. Pokazuję ilustrację składników\./)).toBeVisible()
+  await expect(page.getByRole('img', { name: /^Ilustracja składników/ })).toBeVisible()
+})
+
+test('Smart Kuchnia hides photo recognition when the AI service is not configured', async ({ page }) => {
+  await fixture(page)
+  await page.route('**/api/kitchen/status', (route) => route.fulfill({ json: { available: false, limits: { vision: 12, image: 30 } } }))
+  await login(page)
+  await page.locator('nav:visible a[href="/kitchen"]').click()
+  await expect(page.getByText(/Rozpoznawanie ze zdjęcia jest chwilowo niedostępne/)).toBeVisible()
+  await expect(page.locator('input[type=file]')).toHaveCount(0)
+  await expect(page.getByRole('searchbox', { name: 'Szukaj produktu' })).toBeVisible()
 })

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, HashRouter, Link, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/Auth'
 import { JournalProvider } from './lib/Journal'
@@ -16,6 +16,8 @@ import { PlanPage } from './pages/PlanPage'
 import { PlanWizard } from './pages/PlanWizard'
 import { WorkoutPlayer } from './pages/WorkoutPlayer'
 import { Brand, Skeleton } from './components/ui'
+
+const KitchenPage = lazy(() => import('./pages/KitchenPage').then((module) => ({ default: module.KitchenPage })))
 
 function SessionGate() {
   const auth = useAuth()
@@ -60,6 +62,7 @@ export default function App() {
           <Route element={<Workspace />}>
             <Route index element={<Dashboard />} />
             <Route path="/journal" element={<JournalPage />} />
+            <Route path="/kitchen" element={<Suspense fallback={<Skeleton />}><KitchenPage /></Suspense>} />
             <Route path="/plan" element={<PlanPage />} />
             <Route path="/workouts" element={<WorkoutsPage />} />
             <Route path="/progress" element={<ProgressPage />} />

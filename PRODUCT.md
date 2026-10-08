@@ -46,6 +46,15 @@ account; it is never presented as synchronized cloud data.
   action, automatic rest countdowns, timers for timed work, resumable local
   progress, and click-to-load YouTube technique videos (privacy-enhanced embed,
   IDs verified through oEmbed) with a search link where no video is curated yet.
+- "Smart Kuchnia" cooks from what the user has: chosen products (or, with an
+  account and explicit consent, a fridge photo whose recognised product list the
+  user confirms), three short questions (time, equipment, dislikes/allergies/mood),
+  then a recipe with ingredients, equipment-aware steps and per-serving macros,
+  ingredient swaps and a one-tap diary entry. A deterministic in-browser engine
+  and ingredient database write every recipe and compute every macro; Cloudflare
+  Workers AI only lists products visible in a photo and draws an illustrative dish
+  picture, within per-account daily limits. Photos are not stored, nutrition is an
+  estimate, and the feature works without AI in the local demo.
 - Open Food Facts is the primary packaged-food source; USDA FoodData Central
   is an optional fallback. Missing nutrient values are not invented.
 - GitHub Pages hosts the public landing and setup documentation. Cloudflare
@@ -58,7 +67,8 @@ account; it is never presented as synchronized cloud data.
   part of the product, not optional extras.
 - Strava API use is conditional on its agreement and explicit approval.
   It is disabled by default; own GPX/TCX files are the independent import path.
-- Social feeds, leaderboards, medical advice, photo-calorie AI, live GPS
+- Social feeds, leaderboards, medical advice, photo-calorie AI (estimating calories
+  of a finished plate; the Smart Kuchnia photo only recognises raw products), live GPS
   background recording, and native Apple Health / Health Connect integrations
   are not part of this first version.
 

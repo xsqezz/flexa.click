@@ -31,7 +31,9 @@ async function journal(page: Page) {
 }
 
 async function navigate(page: Page, route: string) {
-  await page.locator(`nav:visible a[href="${route}"]`).click()
+  const link = page.locator(`nav:visible a[href="${route}"]`)
+  if (route === '/settings' && await link.count() === 0) await page.getByRole('link', { name: 'Otwórz ustawienia konta' }).click()
+  else await link.click()
 }
 
 async function accessible(page: Page) {
@@ -342,7 +344,7 @@ test('all main pages, dialog, privacy and landing are accessible without overflo
   await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
   await accessible(page)
   await page.keyboard.press('Escape')
-  for (const route of ['/journal', '/plan', '/workouts', '/progress', '/settings']) {
+  for (const route of ['/journal', '/kitchen', '/plan', '/workouts', '/progress', '/settings']) {
     await navigate(page, route)
     await expect(page.locator('main h1')).toBeVisible()
     await accessible(page)
@@ -399,4 +401,97 @@ test('chart labels retain their physical size and fit at every supported viewpor
       })
     }))).toBe(true)
   }
+})
+
+async function chooseProducts(page: Page, products: readonly (readonly [string, string])[]) {
+  const search = page.getByRole('searchbox', { name: 'Szukaj produktu' })
+  for (const [query, name] of products) {
+    await search.fill(query)
+    await page.getByRole('button', { name, exact: true }).click()
+  }
+  await search.fill('')
+}
+
+test('Smart Kuchnia builds a recipe from chosen products, swaps an ingredient and logs the dish', async ({ page }) => {
+  await openDemo(page)
+  await navigate(page, '/kitchen')
+  await expect(page.getByRole('heading', { name: 'Smart Kuchnia', level: 1 })).toBeVisible()
+  await expect(page.getByText(/Rozpoznawanie produktów ze zdjęcia działa po zalogowaniu/)).toBeVisible()
+  const next = page.getByRole('button', { name: 'Dalej: preferencje' })
+  await expect(next).toBeDisabled()
+  await chooseProducts(page, [['kurczak', 'Pierś z kurczaka'], ['brokuł', 'Brokuł'], ['ryż', 'Ryż biały'], ['cebul', 'Cebula'], ['czosnek', 'Czosnek']])
+  const owned = page.getByRole('group', { name: 'Wybrane produkty' }).getByRole('button')
+  await expect(owned).toHaveCount(5)
+  await accessible(page)
+  await next.click()
+  await expect(page.getByRole('heading', { name: 'Kilka szybkich pytań', level: 2 })).toBeVisible()
+  await page.getByRole('button', { name: '45 min', exact: true }).click()
+  await page.getByRole('radio', { name: /^Dużo białka/ }).check()
+  await accessible(page)
+  await page.getByRole('button', { name: 'Pokaż przepis' }).click()
+  const title = page.getByRole('heading', { level: 3 }).first()
+  await expect(title).toContainText(/kurczaka/i)
+  await expect(page.locator('.kitchen-macros dd').first()).toHaveText(/^\d[\d\s\u00a0]*kcal$/)
+  await expect(page.locator('.kitchen-steps li')).not.toHaveCount(0)
+  await expect(page.getByText(/szacunkowe — liczone z surowych składników/)).toBeVisible()
+  await expect(page.getByText(/Ilustracja składników/)).toBeVisible()
+  await accessible(page)
+  await page.getByRole('button', { name: 'Zamień składnik: pierś z kurczaka' }).click()
+  const swap = page.getByRole('dialog')
+  await expect(swap.getByRole('heading', { name: 'Zamień: pierś z kurczaka' })).toBeVisible()
+  await accessible(page)
+  await swap.locator('.kitchen-swaps button').first().click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Zamień składnik: pierś z kurczaka' })).toHaveCount(0)
+  await expect(title).not.toContainText(/pierś z kurczaka/i)
+  const recipeTitle = (await title.innerText()).trim()
+  const before = (await journal(page)).meals.length
+  await page.getByRole('button', { name: 'Dodaj do dziennika', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: 'Dodaj do dziennika' })).toBeVisible()
+  await accessible(page)
+  await dialog.getByLabel('Posiłek', { exact: true }).selectOption('dinner')
+  await dialog.getByLabel('Ile porcji zjadłeś?').fill('0')
+  await dialog.getByRole('button', { name: 'Dodaj do dziennika' }).click()
+  await expect(dialog.getByRole('alert')).toContainText('od 0,5 do 4')
+  await dialog.getByLabel('Ile porcji zjadłeś?').fill('1,5')
+  await dialog.getByRole('button', { name: 'Dodaj do dziennika' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  const meals = (await journal(page)).meals
+  expect(meals).toHaveLength(before + 1)
+  expect(meals.at(-1)).toMatchObject({ meal: 'dinner', food: { name: recipeTitle, brand: 'Flexa Smart Kuchnia', source: 'custom' } })
+  await page.getByRole('button', { name: 'Inny przepis', exact: false }).click()
+  await expect(title).not.toHaveText(recipeTitle)
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Co masz w domu?', level: 2 })).toBeVisible()
+  await expect(owned).toHaveCount(5)
+})
+
+test('Smart Kuchnia respects what the user does not eat and explains when nothing fits', async ({ page }) => {
+  await openDemo(page)
+  await navigate(page, '/kitchen')
+  await chooseProducts(page, [['kurczak', 'Pierś z kurczaka'], ['brokuł', 'Brokuł'], ['ryż brąz', 'Ryż brązowy']])
+  await page.getByRole('button', { name: 'Dalej: preferencje' }).click()
+  await page.getByRole('button', { name: '15 min', exact: true }).click()
+  await page.getByRole('button', { name: 'Mięso', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Mięso', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: 'Garnek', exact: true }).click()
+  await page.getByRole('button', { name: 'Patelnia', exact: true }).click()
+  await expect(page.getByText('Wybierz przynajmniej jedno urządzenie')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Pokaż przepis' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Patelnia', exact: true }).click()
+  await page.getByRole('button', { name: 'Pokaż przepis' }).click()
+  await expect(page.getByRole('status').filter({ hasText: /^W 15 minut nie zmieszczę żadnego dania/ })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 3 }).first()).not.toContainText(/kurczaka/i)
+  await expect(page.locator('.kitchen-ingredient', { hasText: /Pierś z kurczaka/ })).toHaveCount(0)
+  await accessible(page)
+  await page.getByRole('button', { name: 'Zmień preferencje' }).click()
+  await page.getByRole('button', { name: 'Wstecz' }).click()
+  await page.getByRole('button', { name: 'Wyczyść listę' }).click()
+  await chooseProducts(page, [['brokuł', 'Brokuł']])
+  await page.getByRole('button', { name: 'Dalej: preferencje' }).click()
+  await page.getByRole('button', { name: 'Pokaż przepis' }).click()
+  await expect(page.getByText(/nie umiem jeszcze ułożyć pełnego dania/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Zmień produkty' })).toBeVisible()
+  await accessible(page)
 })

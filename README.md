@@ -40,6 +40,19 @@ po odświeżeniu i zapis do dziennika. Filmy instruktażowe z YouTube ładują s
 po kliknięciu (youtube-nocookie.com); ID filmów sprawdzamy przez oEmbed, a dla ćwiczeń
 bez sprawdzonego filmu jest link do wyszukiwania.
 
+**Smart Kuchnia:** zakładka „Kuchnia” układa przepis z tego, co masz w domu. Wybierasz produkty
+(lub — po zalogowaniu — robisz zdjęcie lodówki i zatwierdzasz rozpoznaną listę), odpowiadasz na trzy
+pytania (czas, sprzęt, czego nie lubisz/alergie/ochota, a także liczba osób i wielkość porcji) i dostajesz
+przepis: nazwę, czas i sprzęt, listę składników z gramaturą, kroki dopasowane do patelni, garnka,
+piekarnika, air fryera, mikrofalówki czy blendera, oraz makroskładniki na porcję (kcal, białko, tłuszcze,
+węglowodany). Składnik można zamienić, a przepis zapisać w dzienniku jako posiłek. Przepisy i makro
+układa deterministyczny silnik w przeglądarce (`app/src/lib/kitchen`, baza ok. 170 składników w
+`shared/kitchen`), więc działa bez kluczy i także w demo. Tylko rozpoznanie produktów ze zdjęcia i
+poglądowy obraz potrawy używają Cloudflare Workers AI przez funkcję Pages (`functions/api/kitchen`);
+wymagają konta, zgody na wysłanie zdjęcia i mają dzienne limity na konto (migracja
+`202610080001_kitchen_ai_quota.sql`). Zdjęć nie zapisujemy; AI nigdy nie pisze przepisu ani nie
+liczy makro.
+
 **Podłączone środowisko:** Cloudflare Pages, Supabase Auth/Postgres/Edge Functions
 i SMTP Brevo. Rejestracja wymaga potwierdzenia adresu, a hasło ma co najmniej
 10 znaków. Plan Brevo Free ma 300 maili dziennie, wspólnie dla aplikacji
@@ -65,7 +78,8 @@ po stronie funkcji Supabase.
 | Katalog | Zawartość |
 | --- | --- |
 | `app` | React / TypeScript / Vite, prywatna aplikacja |
-| `shared` | Walidowane modele żywienia, aktywności i planu treningowego |
+| `shared` | Walidowane modele żywienia, aktywności, planu treningowego oraz baza i logika AI Smart Kuchni |
+| `functions` | Cloudflare Pages Functions (rozpoznawanie zdjęć i obraz potrawy w Workers AI) |
 | `supabase` | Migracje, RLS, auth profile, limity API, funkcje |
 | `site` | Statyczny landing i publiczne informacje wdrożeniowe |
 | `docs` | Research, źródła, koszty, instrukcja konfiguracji |
@@ -83,7 +97,8 @@ npm test
 npm run test:e2e
 ```
 
-API Stravy jest wyłączone z uwagi na jego aktualny regulamin. Nie ma zdjęciowego
-AI, rankingów, map ani natywnego Apple Health / Health Connect w tej wersji.
+API Stravy jest wyłączone z uwagi na jego aktualny regulamin. Nie ma szacowania kalorii
+gotowego posiłku ze zdjęcia talerza (zdjęcie w Smart Kuchni tylko rozpoznaje produkty),
+rankingów, map ani natywnego Apple Health / Health Connect w tej wersji.
 „Darmowe funkcje” nie oznacza darmowej domeny, nieograniczonej infrastruktury
 ani gwarantowanej kompletności danych produktów. Flexa nie daje porad medycznych.

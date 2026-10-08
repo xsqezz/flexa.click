@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { Activity, CalendarDays, ChartNoAxesCombined, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, Cloud, CloudOff, LogOut, Plus, Settings2, Utensils } from 'lucide-react'
+import { Activity, CalendarDays, ChartNoAxesCombined, ChefHat, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, Cloud, CloudOff, LogOut, Plus, Settings2, Utensils } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import type { MealKind } from '../../../shared/domain'
 import { useAuth } from '../lib/Auth'
@@ -20,6 +20,7 @@ const WorkspaceContext = createContext<WorkspaceValue | null>(null)
 const navigation = [
   { to: '/', label: 'Dzisiaj', short: 'Dzisiaj', Icon: CalendarDays },
   { to: '/journal', label: 'Dziennik', short: 'Dziennik', Icon: Utensils },
+  { to: '/kitchen', label: 'Smart Kuchnia', short: 'Kuchnia', Icon: ChefHat },
   { to: '/plan', label: 'Plan treningowy', short: 'Plan', Icon: ClipboardList },
   { to: '/workouts', label: 'Treningi', short: 'Treningi', Icon: Activity },
   { to: '/progress', label: 'Postępy', short: 'Postępy', Icon: ChartNoAxesCombined },
@@ -94,7 +95,6 @@ export function Workspace() {
       </div>
       <nav className="mobile-nav" aria-label="Menu mobilne">
         {navigation.map(({ to, short, Icon }) => <NavLink key={to} to={to} end><Icon size={21} aria-hidden="true" />{short}</NavLink>)}
-        <NavLink to="/settings"><Settings2 size={21} aria-hidden="true" />Konto</NavLink>
       </nav>
     </div>
     {meal && <MealDrawer date={date} initialMeal={meal} onClose={() => setMeal(null)} />}

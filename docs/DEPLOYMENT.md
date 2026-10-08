@@ -12,7 +12,8 @@ Konfiguracja z 7 października 2026:
 - Aplikacja: `https://flexa-click.pages.dev`, Cloudflare Pages z gałęzi `main`,
   Node 24, `npm run build`, katalog wynikowy `app/dist`.
 - Osobny projekt Supabase `Flexa`: Frankfurt (`eu-central-1`), migracje
-  `202610060001_flexa.sql` i `202610070001_training_plans.sql`, RLS i funkcje
+  `202610060001_flexa.sql`, `202610070001_training_plans.sql` i
+  `202610080001_kitchen_ai_quota.sql`, RLS i funkcje
   `food-search` oraz `account-delete`.
 - Rejestracja e-mail z potwierdzeniem adresu, minimum hasła 10 znaków,
   redirecty tylko do działającej aplikacji i jej `/reset-password`.
@@ -53,10 +54,12 @@ Po zmianach `.env` uruchom ponownie Vite. Nie dodawaj `.env` do Git.
 
 1. Utwórz projekt Free w wybranym regionie; dla użytkowników z Polski rozważ UE.
 2. W SQL Editor wykonaj po kolei wszystkie pliki z `supabase\migrations`
-   (`202610060001_flexa.sql`, potem `202610070001_training_plans.sql`)
+   (`202610060001_flexa.sql`, `202610070001_training_plans.sql`, potem
+   `202610080001_kitchen_ai_quota.sql`)
    albo przez CLI `supabase db push` po połączeniu z projektem.
    Migrację wdrażaj przed nową wersją aplikacji: aplikacja odczytuje tabelę
-   `training_plans` i kolumnę `profiles.onboarding_completed_at`.
+   `training_plans` i kolumnę `profiles.onboarding_completed_at`, a funkcja Pages
+   Smart Kuchni wywołuje `consume_kitchen_ai`.
 3. Zostaw email confirmations włączone. Ustaw minimum hasła na 10 znaków.
 4. Auth > URL Configuration: Site URL = faktyczny URL aplikacji; do allowlisty
    dodaj ten URL i `/reset-password` (oraz tylko potrzebne lokalne adresy).
@@ -139,6 +142,27 @@ Cloudflare domyślnie obsługuje fallback SPA, gdy nie ma root 404.html.
 Sprawdź bezpośrednie wejścia na `/journal`, `/progress`, `/reset-password`.
 Plik `_headers` obejmuje CSP i uprawnienia kamery. Przy niestandardowej domenie
 API Supabase zmień `connect-src` na jej faktyczny origin; nie rozszerzaj CSP do `*`.
+
+### Smart Kuchnia: Workers AI
+
+Rozpoznawanie produktów ze zdjęcia i poglądowy obraz potrawy działają w funkcji Pages
+`functions/api/kitchen/[action].ts` (Pages Functions są wdrażane razem z aplikacją, gdy katalog
+główny projektu to repozytorium). Reszta Smart Kuchni — przepisy, makro, zamienniki — działa
+w przeglądarce i nie wymaga żadnej konfiguracji.
+
+1. Cloudflare Pages > projekt > Settings > Bindings > Add > **Workers AI**, nazwa zmiennej `AI`
+   (dla Production, a jeśli testujesz też Preview, osobno dla niego). Zmiana wymaga ponownego wdrożenia.
+2. Funkcja korzysta z tych samych zmiennych co build (`VITE_SUPABASE_URL`,
+   `VITE_SUPABASE_PUBLISHABLE_KEY`) odczytanych w czasie działania — ustaw je jako zmienne
+   środowiska Pages dla Production (nie jako „build only”). Nie używa klucza service_role:
+   tożsamość i dzienny limit sprawdza funkcja `consume_kitchen_ai` z tokenem zalogowanego użytkownika.
+3. Workers AI ma na planie Workers Free 10 000 neuronów dziennie bez rozliczania nadwyżki; po
+   przekroczeniu żądania kończą się błędem, a aplikacja wraca do ręcznego wyboru produktów i
+   ilustracji składników. Limity per konto (12 zdjęć i 30 obrazów dziennie) ustawia `aiLimits`
+   w `shared/kitchen/ai.ts`. Nie przechodź na plan płatny bez uzgodnienia.
+4. Weryfikacja: `GET /api/kitchen/status` zwraca `{"available":true,...}`; bez bindingu lub zmiennych
+   `available` jest `false` i interfejs ukrywa przesyłanie zdjęć. Obraz i zdjęcie są zwracane
+   użytkownikowi, nie zapisywane.
 
 ## Landing i pełne demo: GitHub Pages
 

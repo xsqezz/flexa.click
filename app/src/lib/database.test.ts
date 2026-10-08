@@ -151,3 +151,49 @@ describe('provider rate limits', () => {
     await expect(database.query("select public.consume_api_budget('test', 2, 60)")).rejects.toThrow('permission denied')
   })
 })
+
+describe('kitchen AI daily quota', () => {
+  const consume = async (kind: string, limit: number) =>
+    (await database.query<{ allowed: boolean }>('select public.consume_kitchen_ai($1, $2) as allowed', [kind, limit])).rows[0].allowed
+  const rejectsInside = async (run: () => Promise<unknown>, message: string) => {
+    await database.exec('savepoint attempt')
+    await expect(run()).rejects.toThrow(message)
+    await database.exec('rollback to savepoint attempt')
+  }
+
+  it('allows the daily limit, then denies — separately for each kind and each account', async () => {
+    await asUser(alice)
+    expect(await consume('vision', 2)).toBe(true)
+    expect(await consume('vision', 2)).toBe(true)
+    expect(await consume('vision', 2)).toBe(false)
+    expect(await consume('vision', 2)).toBe(false)
+    expect(await consume('image', 2)).toBe(true)
+    await asUser(bob)
+    expect(await consume('vision', 2)).toBe(true)
+  })
+
+  it('requires a signed-in user and valid parameters, and keeps the counters private', async () => {
+    await database.exec("reset role; select set_config('request.jwt.claim.sub', '', false); set role authenticated;")
+    await rejectsInside(() => consume('vision', 2), 'Wymagane logowanie')
+    await database.exec('reset role; set role anon;')
+    await rejectsInside(() => consume('vision', 2), 'permission denied')
+    await asUser(alice)
+    await rejectsInside(() => consume('video', 2), 'Nieprawidłowe parametry')
+    await rejectsInside(() => consume('vision', 0), 'Nieprawidłowe parametry')
+    await rejectsInside(() => consume('vision', 999), 'Nieprawidłowe parametry')
+    await rejectsInside(() => database.query('select * from private.kitchen_ai_usage'), 'permission denied')
+  })
+
+  it('forgets old usage and removes it together with the account', async () => {
+    await database.exec('reset role')
+    await database.query("insert into private.kitchen_ai_usage(user_id, kind, day, uses) values ($1, 'vision', (now() at time zone 'utc')::date - 30, 5)", [alice])
+    await asUser(alice)
+    expect(await consume('vision', 5)).toBe(true)
+    await database.exec('reset role')
+    const stale = await database.query("select * from private.kitchen_ai_usage where day < (now() at time zone 'utc')::date - 7")
+    expect(stale.rows).toHaveLength(0)
+    expect((await database.query('select * from private.kitchen_ai_usage where user_id = $1', [alice])).rows).toHaveLength(1)
+    await database.query('delete from auth.users where id = $1', [alice])
+    expect((await database.query('select * from private.kitchen_ai_usage where user_id = $1', [alice])).rows).toHaveLength(0)
+  })
+})
