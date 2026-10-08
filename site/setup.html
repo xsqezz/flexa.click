@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="pl">
-<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="description" content="Źródła produktów, darmowe usługi i instrukcja uruchomienia Flexa."/><title>Flexa — źródła i uruchomienie</title><link rel="icon" href="favicon.svg"/><link rel="stylesheet" href="styles.css"/></head>
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="description" content="Źródła produktów, darmowe usługi i instrukcja uruchomienia Flexa."/><title>Flexa — źródła i uruchomienie</title><link rel="canonical" href="{{SITE_BASE}}setup.html"/><link rel="icon" href="favicon.svg"/><link rel="stylesheet" href="styles.css"/></head>
 <body>
   <header class="site-header"><a class="brand" href="./"><img src="favicon.svg" width="36" height="36" alt=""/>flexa<span>.</span></a><a class="secondary-link" href="./">Wróć do Flexa</a></header>
   <main class="guide">
@@ -19,7 +19,7 @@
     <div class="table-scroll"><table><thead><tr><th>Potrzeba</th><th>Gdzie</th><th>Bezpłatny start i ograniczenia</th></tr></thead><tbody>
       <tr><td>Frontend aplikacji</td><td><a href="https://developers.cloudflare.com/pages/">Cloudflare Pages</a></td><td>Free: 500 buildów/miesiąc, do 20 000 plików. Bez funkcji serwerowych Cloudflare w tym projekcie.</td></tr>
       <tr><td>Konta i baza</td><td><a href="https://supabase.com/pricing">Supabase</a></td><td>Free: 500 MB bazy, 50 000 MAU, 5 GB egress. Usypianie po tygodniu bezczynności; brak automatycznych backupów Free.</td></tr>
-      <tr><td>E-maile kont</td><td><a href="https://resend.com/pricing">Resend SMTP</a></td><td>Free: 3000/miesiąc, 100/dzień. Wymaga weryfikacji domeny. Wbudowana poczta Supabase nie jest produkcyjnym rozwiązaniem.</td></tr>
+      <tr><td>E-maile kont</td><td><a href="https://www.brevo.com/pricing/">Brevo SMTP</a></td><td>Free: 300 e-maili dziennie, wspólnie dla wszystkich usług na koncie. Wbudowana poczta Supabase nie jest produkcyjnym rozwiązaniem.</td></tr>
       <tr><td>Skaner</td><td><a href="https://developer.mozilla.org/en-US/docs/Web/API/BarcodeDetector">BarcodeDetector</a> + <a href="https://github.com/zxing-js/browser">ZXing</a></td><td>Lokalny odczyt kamery, HTTPS i zgoda użytkownika. Wpisywanie kodu jest zawsze dostępne.</td></tr>
       <tr><td>Domena i DNS</td><td>Twój rejestrator + opcjonalnie Cloudflare DNS</td><td>DNS/TLS można mieć bezpłatnie. Zakup i odnowienie flexa.click nie są darmowe.</td></tr>
       <tr><td>Kopie i kontrola zużycia</td><td>Eksport JSON, pg_dump / Supabase CLI, panele dostawców</td><td>Backup wymaga bezpiecznego miejsca przechowywania. Nie publikuj danych użytkowników w repozytorium ani artefaktach Actions.</td></tr>

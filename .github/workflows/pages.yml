@@ -2,7 +2,7 @@ name: Flexa — GitHub Pages
 on:
   push:
     branches: [main]
-    paths: [site/**, app/**, shared/**, scripts/build-site.mjs, package.json, package-lock.json, .github/workflows/pages.yml]
+    paths: [site/**, app/**, shared/**, scripts/build-site.mjs, scripts/lib/**, package.json, package-lock.json, .github/workflows/pages.yml]
   workflow_dispatch:
 
 permissions:

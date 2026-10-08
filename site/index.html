@@ -4,10 +4,31 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#276043" />
-  <meta name="description" content="Flexa łączy jedzenie, treningi i postępy w jednym darmowym dzienniku. Bez abonamentu, z Twoimi danymi pod kontrolą." />
+  <meta name="description" content="{{SITE_DESCRIPTION}}" />
   <title>Flexa — jedzenie, ruch, Twój rytm</title>
+  <link rel="canonical" href="{{SITE_BASE}}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Flexa" />
+  <meta property="og:locale" content="pl_PL" />
+  <meta property="og:title" content="Flexa — jedzenie, ruch, Twój rytm" />
+  <meta property="og:description" content="{{SITE_DESCRIPTION}}" />
+  <meta property="og:url" content="{{SITE_BASE}}" />
+  <meta property="og:image" content="{{SITE_BASE}}og-image.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Flexa: Jedzenie. Ruch. Twój rytm. Darmowy dziennik jedzenia, treningów i postępów." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Flexa — jedzenie, ruch, Twój rytm" />
+  <meta name="twitter:description" content="{{SITE_DESCRIPTION}}" />
+  <meta name="twitter:image" content="{{SITE_BASE}}og-image.png" />
+  <meta name="twitter:image:alt" content="Flexa: Jedzenie. Ruch. Twój rytm. Darmowy dziennik jedzenia, treningów i postępów." />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="styles.css" />
+  <script src="site.js"></script>
+  <script type="application/ld+json">
+{{JSON_LD}}
+  </script>
 </head>
 <body>
   <!-- THESIS: Show one daily planning board that connects nutrition and movement, not a list of premium promises.
@@ -18,8 +39,19 @@
   <a class="skip-link" href="#main">Przejdź do treści</a>
   <header class="site-header">
     <a class="brand" href="./" aria-label="Flexa — strona główna"><img src="favicon.svg" width="36" height="36" alt="" />flexa<span>.</span></a>
-    <nav aria-label="Menu strony"><a href="#how">Jak to działa</a><a href="#android">Android</a><a href="setup.html">Źródła i wdrożenie</a></nav>
-    <a class="button button-small" href="{{APP_URL}}">{{APP_CTA}}</a>
+    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="site-menu" hidden><span class="menu-icon" aria-hidden="true"></span>Menu</button>
+    <div class="site-menu" id="site-menu">
+      <nav class="site-nav" aria-label="Menu strony">
+        <ul>
+          <li><a href="#features">Funkcje</a></li>
+          <li><a href="#how">Jak to działa</a></li>
+          <li><a href="#android">Android</a></li>
+          <li><a href="#faq">Pytania</a></li>
+          <li><a href="setup.html">Źródła</a></li>
+        </ul>
+      </nav>
+      <div class="header-actions"><a class="button button-small button-secondary" href="{{DEMO_URL}}"{{DEMO_CTA_HIDDEN}}>Wypróbuj demo</a><a class="button button-small" href="{{APP_URL}}">{{APP_CTA}}</a></div>
+    </div>
   </header>
   <main id="main">
     <section class="hero">
@@ -42,30 +74,123 @@
         <div class="board-bottom"><div><span class="board-symbol" aria-hidden="true">↗</span><div><strong>Bieg w parku</strong><span>6,2 km · 38 min</span></div></div><div class="board-water"><strong>1,5 <small>/ 2,5 l</small></strong><span>Twoja woda</span></div></div>
       </figure>
     </section>
-    <section class="intro" id="how">
+    <section class="intro">
       <h2>Mniej przełączania.<br />Więcej miejsca na życie.</h2>
       <p>Rytm dnia nie kończy się na liczbie kalorii ani na ostatnim kilometrze. Flexa łączy te zapisy, żeby łatwiej zobaczyć całość.</p>
     </section>
-    <section class="feature-ledger" aria-label="Funkcje Flexa">
+    <section class="feature-ledger" id="features" aria-label="Funkcje Flexa">
       <article><div class="feature-title"><h3>Jedzenie bez zgadywania.</h3><span aria-hidden="true">↗</span></div><p>Wyszukaj produkt, zeskanuj kod albo przepisz etykietę. Wybierz porcję i własne cele kalorii oraz makro. Brakujące dane pozostają jawne.</p><span class="feature-detail">Open Food Facts + opcjonalnie USDA</span></article>
       <article><div class="feature-title"><h3>Ruch w Twoim tempie.</h3><span aria-hidden="true">↗</span></div><p>Dodaj trening ręcznie lub zaimportuj własne GPX/TCX. Zobacz czas, dystans, tempo i prosty wskaźnik odczuwalnego wysiłku.</p><span class="feature-detail">Bez obowiązkowej integracji i rankingu</span></article>
+      <article><div class="feature-title"><h3>Trening krok po kroku.</h3><span aria-hidden="true">↗</span></div><p>Odpowiedz na kilka pytań, a Flexa ułoży tygodniowy plan na siłownię albo do domu. W trakcie treningu prowadzi jedno ćwiczenie naraz, odlicza przerwy i pokazuje filmy z techniką.</p><span class="feature-detail">Plan z reguł w przeglądarce, bez AI. To ogólne wskazówki, nie porada medyczna</span></article>
+      <article><div class="feature-title"><h3>Smart Kuchnia.</h3><span aria-hidden="true">↗</span></div><p>Wybierz produkty, które masz w domu, odpowiedz na trzy krótkie pytania i dostań przepis z krokami pod Twój sprzęt oraz makro na porcję. Jednym dotknięciem zapiszesz go w dzienniku.</p><span class="feature-detail">Makro to szacunek. Działa także w demo</span></article>
       <article><div class="feature-title"><h3>Postęp, nie presja.</h3><span aria-hidden="true">↗</span></div><p>Przeglądaj dziennik, nawodnienie i historię pomiarów. Analizy, korzystanie na komputerze i eksport nie wymagają dopłaty.</p><span class="feature-detail">Twoje dane są prywatne i przenośne</span></article>
+      <article><div class="feature-title"><h3>Flexa na Androida.</h3><span aria-hidden="true">↗</span></div><p>Aplikacja instalowana z pliku APK sama sprawdza, czy jest nowsza wersja, i proponuje aktualizację jednym dotknięciem. <a href="#android">Zobacz, jak zainstalować</a>.</p><span class="feature-detail">Bez reklam i analityki. Przypomnienia tylko lokalnie na telefonie</span></article>
+    </section>
+    <section class="screens-section" id="screens" aria-labelledby="screens-title">
+      <h2 id="screens-title" class="sr-only">Jak wygląda Flexa</h2>
+      <div class="screens" tabindex="0" role="region" aria-label="Zrzuty ekranu aplikacji (przewijany rząd)">
+        <figure><img src="screens/dzisiaj.jpg" width="780" height="1688" loading="lazy" alt="Ekran „Dzisiaj” w telefonie: energia i makro, posiłki dnia, aktywność i woda, a na dole pasek z przyciskiem Dodaj." /><figcaption>Dzisiaj: energia, makro, posiłki i woda.</figcaption></figure>
+        <figure><img src="screens/dziennik.jpg" width="780" height="1688" loading="lazy" alt="Ekran „Dziennik”: pasek dni tygodnia z sumą kalorii i lista posiłków wybranego dnia." /><figcaption>Dziennik: cały tydzień i posiłki dnia.</figcaption></figure>
+        <figure><img src="screens/trening.jpg" width="780" height="1688" loading="lazy" alt="Ekran „Trening”: przełącznik Plan i Historia, tydzień treningowy i pierwszy dzień planu z przyciskiem Rozpocznij trening." /><figcaption>Trening: plan tygodnia i prowadzenie krok po kroku.</figcaption></figure>
+        <figure><img src="screens/postepy.jpg" width="780" height="1688" loading="lazy" alt="Ekran „Postępy”: podsumowanie tygodnia z porównaniem do poprzedniego, a niżej wykresy." /><figcaption>Postępy: tydzień w liczbach, bez ocen.</figcaption></figure>
+      </div>
+      <p class="screens-note">Zrzuty ekranu z trybu demo: dane w nim są przykładowe.</p>
+    </section>
+    <section class="how-section" id="how" aria-labelledby="how-title">
+      <div>
+        <h2 id="how-title">Jak to działa.</h2>
+        <p>Trzy kroki, bez karty płatniczej i bez obowiązkowych integracji.</p>
+      </div>
+      <ol class="steps">
+        <li><div><strong>Zacznij bez zobowiązań.</strong>Otwórz demo bez konta albo załóż darmowe konto, żeby mieć dziennik na każdym urządzeniu.</div></li>
+        <li><div><strong>Ustaw swoje cele.</strong>Wybierz cele kalorii, makro i wody. Jeśli chcesz, odpowiedz na kilka pytań, a Flexa ułoży tygodniowy plan treningowy.</div></li>
+        <li><div><strong>Zapisuj dzień po swojemu.</strong>Posiłki, treningi, wodę i pomiary dodasz w kilka chwil. Postępy z 7, 30 i 90 dni zobaczysz w analizach.</div></li>
+      </ol>
     </section>
     <section class="free-section">
       <div><h2>Nie ma tutaj<br />wersji „premium”.</h2><p>Funkcje Flexa są darmowe dla użytkowników. Bez zamkniętych wykresów, reklam i płatnego przycisku eksportu.</p></div>
       <div class="honest-note"><h3>Darmowe nie znaczy bez ograniczeń.</h3><p>Bazy produktów są niepełne, infrastruktura ma limity, a domena wymaga utrzymania. Nie obiecujemy dostępu do płatnych danych Stravy ani „AI”, którego aplikacja nie ma.</p><a href="setup.html">Zobacz źródła, koszty i granice tej wersji →</a></div>
     </section>
-    <section class="android-section" id="android">
-      <div>
-        <h2>Flexa na Androida.</h2>
-        <p>Zainstaluj aplikację bez sklepu. Sama sprawdza, czy jest nowsza wersja, i proponuje aktualizację jednym dotknięciem.</p>
-        <a class="button" href="{{ANDROID_URL}}">Pobierz Flexa (.apk) <span aria-hidden="true">↓</span></a>
+    <section class="install-section" id="android" aria-labelledby="install-title">
+      <div class="install-intro">
+        <h2 id="install-title">Flexa na Androida.</h2>
+        <p>Na Androidzie zainstalujesz aplikację bez sklepu. Na iPhonie, iPadzie i komputerze dodasz Flexa z przeglądarki.</p>
       </div>
-      <ol class="android-steps">
-        <li><div><strong>Pobierz plik.</strong>Dotknij przycisku i zapisz plik APK na telefonie.</div></li>
-        <li><div><strong>Zezwól na instalację.</strong>Gdy Android zapyta, pozwól przeglądarce instalować z tego źródła.</div></li>
-        <li><div><strong>Otwórz i zainstaluj.</strong>Dotknij pobranego pliku, a potem „Zainstaluj”. Wymaga Androida 8.0 lub nowszego.</div></li>
-      </ol>
+      <div class="install-options" data-install-options>
+        <article class="install-option" data-platform="android" aria-labelledby="install-android-title">
+          <h3 id="install-android-title">Android</h3>
+          <div class="install-body" data-apk-only>
+            <p>Aplikacja sama sprawdza, czy jest nowsza wersja, i proponuje aktualizację jednym dotknięciem.</p>
+            <a class="button" href="{{ANDROID_URL}}">Pobierz Flexa (.apk) <span aria-hidden="true">↓</span></a>
+            <ol class="steps">
+              <li><div><strong>Pobierz plik.</strong>Dotknij przycisku i zapisz plik APK na telefonie.</div></li>
+              <li><div><strong>Zezwól na instalację.</strong>Gdy Android zapyta, pozwól przeglądarce instalować z tego źródła.</div></li>
+              <li><div><strong>Otwórz i zainstaluj.</strong>Dotknij pobranego pliku, a potem „Zainstaluj”. Wymaga Androida 8.0 lub nowszego.</div></li>
+            </ol>
+            <figure class="qr">{{ANDROID_QR}}<figcaption>Jesteś przy komputerze? Zeskanuj kod aparatem telefonu z Androidem, żeby pobrać plik.</figcaption></figure>
+          </div>
+          <p class="install-in-app" data-in-app hidden>Masz już aplikację Flexa. Gdy pojawi się nowsza wersja, aplikacja sama zaproponuje aktualizację.</p>
+        </article>
+        <article class="install-option" data-platform="ios" aria-labelledby="install-ios-title">
+          <h3 id="install-ios-title">iPhone i iPad</h3>
+          <div class="install-body">
+            <p>Flexa działa w przeglądarce. Dodaj ją do ekranu początkowego, żeby otwierać ją jak aplikację.</p>
+            <ol class="steps">
+              <li><div><strong>Otwórz Flexa w Safari.</strong><a href="{{APP_URL}}">{{APP_CTA}}</a></div></li>
+              <li><div><strong>Dotknij „Udostępnij”.</strong>To ikona kwadratu ze strzałką w górę.</div></li>
+              <li><div><strong>Wybierz „Do ekranu początkowego”.</strong>Potwierdź przyciskiem „Dodaj”.</div></li>
+            </ol>
+          </div>
+        </article>
+        <article class="install-option" data-platform="desktop" aria-labelledby="install-desktop-title">
+          <h3 id="install-desktop-title">Komputer</h3>
+          <div class="install-body">
+            <p>Na dużym ekranie Flexa działa w przeglądarce, z tymi samymi funkcjami i bez dopłat.</p>
+            <ol class="steps">
+              <li><div><strong>Otwórz Flexa w Chrome lub Edge.</strong><a href="{{APP_URL}}">{{APP_CTA}}</a></div></li>
+              <li><div><strong>Zainstaluj z paska adresu.</strong>Kliknij ikonę instalacji po prawej stronie paska adresu i wybierz „Zainstaluj”.</div></li>
+              <li><div><strong>Chcesz Flexa w telefonie?</strong>Zeskanuj kod QR z części „Android” aparatem telefonu.</div></li>
+            </ol>
+          </div>
+        </article>
+      </div>
+    </section>
+    <section class="faq-section" id="faq" aria-labelledby="faq-title">
+      <div>
+        <h2 id="faq-title">Pytania.</h2>
+        <p>Krótko i konkretnie. Szczegóły techniczne i limity usług opisujemy w <a href="setup.html">źródłach i instrukcji uruchomienia</a>.</p>
+      </div>
+      <div class="faq-list">
+        <details>
+          <summary>Czy Flexa jest darmowa?</summary>
+          <div class="faq-answer"><p>Tak. Wszystkie funkcje są darmowe: analizy, eksport danych i korzystanie na komputerze nie wymagają abonamentu. Nie ma wersji „premium” ani reklam. Darmowe nie znaczy bez ograniczeń: usługi, z których korzysta Flexa, mają limity, a domena kosztuje.</p></div>
+        </details>
+        <details>
+          <summary>Gdzie są moje dane?</summary>
+          <div class="faq-answer"><p>Dane konta trzymamy w prywatnej bazie Supabase w regionie Frankfurt. Każde konto widzi tylko swoje zapisy. Demo zapisuje przykładowe dane wyłącznie w Twojej przeglądarce, bez konta i synchronizacji. W ustawieniach w każdej chwili pobierzesz eksport JSON albo usuniesz konto razem z danymi. Zdjęć ze Smart Kuchni nie zapisujemy.</p></div>
+        </details>
+        <details>
+          <summary>Czy muszę zakładać konto?</summary>
+          <div class="faq-answer"><p>Nie. Demo działa od razu, bez rejestracji, i zapisuje zmiany tylko na tym urządzeniu. Konto przyda się, gdy chcesz mieć dziennik na kilku urządzeniach albo skorzystać ze zdjęcia lodówki w Smart Kuchni. <a href="{{DEMO_URL}}">Wypróbuj demo</a></p></div>
+        </details>
+        <details>
+          <summary>Czy jest aplikacja na telefon?</summary>
+          <div class="faq-answer"><p>Tak, na Androida 8.0 lub nowszego. Instalujesz ją z pliku APK z GitHuba, bez Google Play, a nowsze wersje aplikacja proponuje sama. Na iPhonie i iPadzie otwórz Flexa w Safari i wybierz „Udostępnij”, a potem „Do ekranu początkowego”. <a href="#android">Zobacz instrukcję instalacji</a></p></div>
+        </details>
+        <details>
+          <summary>Czego Flexa nie robi?</summary>
+          <div class="faq-answer"><ul>
+            <li>Nie udziela porad medycznych. Plan treningowy to ogólne wskazówki.</li>
+            <li>Nie łączy się z API Stravy. Treningi możesz zaimportować z własnych plików GPX/TCX.</li>
+            <li>Nie szacuje kalorii ze zdjęcia talerza. Zdjęcie w Smart Kuchni służy tylko do rozpoznania produktów.</li>
+            <li>Nie ma rankingów ani publicznego feedu. Twoje postępy porównujesz tylko ze sobą.</li>
+          </ul></div>
+        </details>
+        <details>
+          <summary>Skąd są dane produktów?</summary>
+          <div class="faq-answer"><p>Głównie z Open Food Facts, otwartej bazy tworzonej przez społeczność i udostępnianej na licencji ODbL. Gdy właściciel instancji to skonfiguruje, wyszukiwanie korzysta też z USDA FoodData Central. Dane bywają niepełne: brakujących wartości nie zgadujemy, a własny produkt dodasz z etykiety.</p></div>
+        </details>
+      </div>
     </section>
     <section class="closing"><h2>Zacznij od swojego dnia.</h2><p>Jedzenie. Trochę ruchu. Jeden mały krok.</p><a class="button" href="{{APP_URL}}">{{APP_CTA}} <span aria-hidden="true">↗</span></a></section>
   </main>
