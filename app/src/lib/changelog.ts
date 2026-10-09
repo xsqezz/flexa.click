@@ -18,7 +18,7 @@ export const changelog: ChangelogEntry[] = [
     title: 'Nowy wygląd i nawigacja',
     points: [
       'Zakładki: Cele, Posiłki, Kuchnia, Dodaj, Treningi, Ruch i Postępy. Dzisiaj zastąpiły Cele.',
-      'Zaokrąglone kafelki, pastelowe kolory i łagodne animacje; tryb ciemny dopasowany do całości.',
+      'Zaokrąglone kafelki, pastelowe kolory i łagodne animacje. Flexa ma teraz jeden, jasny motyw (bez trybu ciemnego).',
     ],
   },
   {

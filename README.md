@@ -77,7 +77,7 @@ liczy makro.
 **Nawigacja i wygoda:** siedem pozycji: Cele · Posiłki · Kuchnia · Dodaj · Treningi · Ruch · Postępy (jedzenie po lewej, ruch po prawej). Cele to ekran startowy: bilans, historia energii i „Zacznij tu”; Posiłki służą wpisywaniu jedzenia, Treningi prowadzą plan, Ruch zbiera zapisane aktywności, a Postępy pokazują długoterminowe pomiary i aktywność. Przycisk „Dodaj”
 na każdym ekranie (posiłek, skan kodu, woda, trening, pomiar), wyszukiwarka Ctrl+K (strony, akcje, wpisy), zmiana dnia przesunięciem
 palca, strzałkami lub paskiem tygodnia, „Cofnij” po usunięciu wpisu, lista „Zacznij tu” dla nowych kont, strona „O Flexa” ze
-skrótami klawiszowymi, ciemny motyw według ustawień systemu i instalacja jako aplikacja (PWA) z działaniem offline.
+skrótami klawiszowymi, jeden, jasny motyw i instalacja jako aplikacja (PWA) z działaniem offline.
 
 **Planowanie i trend:** Cele pokazują podsumowanie cyklu (zmiana masy, średnie kcal, dni z wpisami) i, gdy trend wagi z ostatnich 14 dni odbiega od założeń cyklu, *propozycję* małej korekty kalorii (`app/src/lib/adaptive.ts`: regresja liniowa wagi, krok 100–200 kcal, dolny limit 1200/1500 kcal, bez osób poniżej 18 lat, zatwierdzana przez użytkownika jako nowy cykl). Plan tygodnia (`/meals/plan`) układa się z zapisanych zestawów, a lista zakupów (`/kitchen/shopping`) zbiera brakujące składniki z przepisów; obie funkcje oraz zapamiętane porcje Skanu zostają w `localStorage` urządzenia, osobno dla konta. Częste produkty są na górze listy dodawania posiłku, a historia ćwiczeń pokazuje rekordy i spokojne podpowiedzi progresji.
 

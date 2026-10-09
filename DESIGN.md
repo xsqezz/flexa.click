@@ -192,10 +192,8 @@ of consumed versus historically approved kcal, distinguishing no entry from zero
 8 seconds; the deletion is written only when the toast goes away. Confirmation
 drawers are reserved for destructive account-level actions.
 
-**Dark theme.** Follows the system setting. `app/src/theme-dark.css` is generated from
-`styles.css` by `scripts/build-dark-theme.mjs` (OKLab: light fills darken, dark text
-lightens, hue stays); regenerate it after changing colors. Pine becomes `#7cc59a` for
-text and borders, while filled buttons use `#2f7650` so white text keeps 4.5:1.
+**Light only.** Flexa has a single light theme on purpose (pastel tiles, soft shadows); there is no dark
+mode and `color-scheme` is fixed to `light`, so the app looks the same whatever the system setting is.
 
 **Smart Kuchnia.** A flat panel under the page header with a three-step strip
 (Produkty, Preferencje, Przepis) whose current step is pale green with a pine
