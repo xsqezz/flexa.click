@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ANDROID_APK_URL, ANDROID_CERT_SHA256, androidAppVersion, canSaveNatively, checkAppUpdate, getReminders, openNotificationSettings,
-  remindersSupported, saveFileNatively, saveJsonNatively, setReminders, type ReminderSettings,
+  mealRemindersSupported, remindersSupported, saveFileNatively, saveJsonNatively, setReminders, type ReminderSettings,
 } from './native'
 
 function userAgent(value: string) {
@@ -231,5 +231,40 @@ describe('Android release identity', () => {
   it('downloads the APK from this repository releases', () => {
     expect(ANDROID_APK_URL).toBe('https://github.com/xsqezz/flexa.click/releases/latest/download/flexa.apk')
     expect(ANDROID_CERT_SHA256).toMatch(/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/)
+  })
+})
+
+describe('meal reminders (app 1.2.0+)', () => {
+  const APP_1_2 = 'Mozilla/5.0 (Linux; Android 16) Chrome/133.0 Mobile Safari/537.36 FlexaAndroid/1.2.0'
+  const withMeals: ReminderSettings = { ...settings, meals: { enabled: true, times: ['08:30', '13:30', '19:00'] } }
+
+  it('are supported only from version 1.2.0', () => {
+    mockApp((message) => stateFor(message))
+    expect(mealRemindersSupported()).toBe(false)
+    userAgent(APP_1_2)
+    expect(mealRemindersSupported()).toBe(true)
+  })
+
+  it('are sent to a 1.2.0 app and read back from its state', async () => {
+    const sent = mockApp((message) => ({ ...stateFor(message), meals: message.meals }))
+    userAgent(APP_1_2)
+    const state = await setReminders(withMeals)
+    expect(sent[0]!.meals).toEqual({ enabled: true, times: ['08:30', '13:30', '19:00'] })
+    expect(state.meals).toEqual({ enabled: true, times: ['08:30', '13:30', '19:00'] })
+  })
+
+  it('are left out for an older app, which rejects unknown fields', async () => {
+    const sent = mockApp((message) => stateFor(message))
+    await setReminders(withMeals)
+    expect(sent[0]).not.toHaveProperty('meals')
+  })
+
+  it('refuse unordered, empty or duplicate times before anything is sent', async () => {
+    const sent = mockApp((message) => stateFor(message))
+    userAgent(APP_1_2)
+    for (const times of [['19:00', '08:30'], ['08:30', '08:30'], [] as string[]]) {
+      await expect(setReminders({ ...settings, meals: { enabled: true, times } })).rejects.toThrow()
+    }
+    expect(sent).toHaveLength(0)
   })
 })

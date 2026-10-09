@@ -25,7 +25,7 @@ val appVersionName: String = setting("flexa.versionName") ?: versionProperties.g
 val appVersionCode: Int = (setting("flexa.versionCode") ?: versionProperties.getProperty("VERSION_CODE")).toInt()
 
 val repository = setting("flexa.repository") ?: "xsqezz/flexa.click"
-val appUrl = (setting("flexa.appUrl") ?: "https://flexa-click.pages.dev").trimEnd('/')
+val appUrl = (setting("flexa.appUrl") ?: "https://app.flexa.best").trimEnd('/')
 val updateManifestUrl = setting("flexa.updateManifestUrl")
     ?: "https://github.com/$repository/releases/latest/download/update.json"
 val updateUrlPrefix = setting("flexa.updateUrlPrefix")
@@ -48,10 +48,13 @@ android {
         buildConfigField("String", "UPDATE_URL_PREFIX", "\"$updateUrlPrefix\"")
         buildConfigField("String", "DOWNLOAD_PAGE_URL", "\"$downloadPageUrl\"")
         manifestPlaceholders["appHost"] = URI(appUrl).host
+        // Static shortcuts need the real package name of each build variant.
+        resValue("string", "shortcut_package", "click.flexa.app")
     }
 
     buildFeatures {
         buildConfig = true
+        resValues = true
     }
 
     androidResources {
@@ -80,6 +83,7 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            resValue("string", "shortcut_package", "click.flexa.app.debug")
             versionNameSuffix = "-debug"
         }
         release {

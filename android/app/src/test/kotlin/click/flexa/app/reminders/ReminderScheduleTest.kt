@@ -162,4 +162,33 @@ class ReminderScheduleTest {
         assertEquals("reminders.error", error.getString("type"))
         assertEquals("r-2", error.getString("id"))
     }
+
+    private fun meals(vararg times: String, enabled: Boolean = true) =
+        ReminderSettings.Meals(enabled, times.map { LocalTime.parse(it) })
+
+    @Test
+    fun `next meal reminder is the following time of day`() {
+        val plan = meals("08:30", "13:30", "19:00")
+        assertEquals(at("2026-10-08T13:30"), ReminderSchedule.nextMeals(plan, at("2026-10-08T09:00")))
+        assertEquals(at("2026-10-08T19:00"), ReminderSchedule.nextMeals(plan, at("2026-10-08T13:30")))
+    }
+
+    @Test
+    fun `meal reminders roll over to the next morning`() {
+        assertEquals(at("2026-10-09T08:30"), ReminderSchedule.nextMeals(meals("08:30", "19:00"), at("2026-10-08T20:00")))
+    }
+
+    @Test
+    fun `disabled or empty meal reminders never fire`() {
+        assertNull(ReminderSchedule.nextMeals(meals("08:30", enabled = false), at("2026-10-08T07:00")))
+        assertNull(ReminderSchedule.nextMeals(meals(), at("2026-10-08T07:00")))
+    }
+
+    @Test
+    fun `meal reminders open the meals page`() {
+        assertEquals("/meals", ReminderKind.MEALS.path)
+        assertEquals(ReminderKind.MEALS, ReminderKind.fromKey("meals"))
+        val settings = ReminderSettings.DEFAULT.copy(meals = meals("12:00"))
+        assertEquals(at("2026-10-08T12:00"), ReminderSchedule.next(ReminderKind.MEALS, settings, at("2026-10-08T08:00")))
+    }
 }

@@ -95,4 +95,47 @@ class ReminderSettingsTest {
         assertNull(ReminderSettings.parse(training(), "water"))
         assertNull(ReminderSettings.parse(null, water()))
     }
+
+    private fun meals(vararg changes: Pair<String, Any?>) = JSONObject()
+        .put("enabled", true).put("times", JSONArray(listOf("08:30", "13:30", "19:00")))
+        .also { json -> changes.forEach { (key, value) -> if (value == null) json.remove(key) else json.put(key, value) } }
+
+    @Test
+    fun `settings without meals keep the disabled default`() {
+        val settings = ReminderSettings.parse(training(), water())!!
+        assertEquals(ReminderSettings.Meals.DEFAULT, settings.meals)
+        assertEquals(false, settings.meals.enabled)
+    }
+
+    @Test
+    fun `parses and round-trips meal reminders`() {
+        val settings = ReminderSettings.parse(training(), water(), meals())!!
+        assertEquals(listOf(LocalTime.of(8, 30), LocalTime.of(13, 30), LocalTime.of(19, 0)), settings.meals.times)
+        assertEquals(true, settings.anyEnabled)
+        assertEquals(settings, ReminderSettings.fromJson(settings.toJson().toString()))
+    }
+
+    @Test
+    fun `reads settings stored before meal reminders existed`() {
+        val old = JSONObject().put("training", training()).put("water", water()).toString()
+        assertEquals(ReminderSettings.Meals.DEFAULT, ReminderSettings.fromJson(old)!!.meals)
+    }
+
+    @Test
+    fun `rejects wrong meal values`() {
+        val bad = listOf(
+            meals("enabled" to "true"),
+            meals("times" to JSONArray()),
+            meals("times" to JSONArray(listOf("13:30", "08:30"))),
+            meals("times" to JSONArray(listOf("08:30", "08:30"))),
+            meals("times" to JSONArray(listOf("8:30"))),
+            meals("times" to JSONArray(listOf("08:30", "09:30", "10:30", "11:30", "12:30", "13:30", "14:30"))),
+            meals("times" to "08:30"),
+            meals("extra" to 1),
+            meals("times" to null),
+        )
+        bad.forEach { assertNull(it.toString(), ReminderSettings.parse(training(), water(), it)) }
+        assertNull(ReminderSettings.parse(training(), water(), "meals"))
+        assertNotNull(ReminderSettings.parse(training(), water(), meals("enabled" to false, "times" to JSONArray())))
+    }
 }

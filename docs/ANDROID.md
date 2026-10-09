@@ -1,7 +1,7 @@
 # Flexa na Androida
 
 Aplikacja na Androida to cienka powłoka (Kotlin, `WebView`), która otwiera działającą stronę
-`https://flexa-click.pages.dev`, plus własny mechanizm aktualizacji. Dzięki temu:
+`https://app.flexa.best`, plus własny mechanizm aktualizacji. Dzięki temu:
 
 - **zmiany w samej aplikacji (ekrany, przepisy, plan treningowy, poprawki) są widoczne od razu** po wdrożeniu
   strony, bez nowego APK i bez instalowania czegokolwiek;
@@ -95,7 +95,7 @@ cd android
 npm run test:android-scripts                              # testy skryptów wydawniczych (z katalogu głównego)
 ```
 
-Parametry do testów (`-P...`): `flexa.appUrl` (domyślnie `https://flexa-click.pages.dev`), `flexa.updateManifestUrl`,
+Parametry do testów (`-P...`): `flexa.appUrl` (domyślnie `https://app.flexa.best`; do wersji 1.1.0 był to `flexa-click.pages.dev`), `flexa.updateManifestUrl`,
 `flexa.updateUrlPrefix`, `flexa.versionName`, `flexa.versionCode`, `flexa.repository`.
 Wersja `debug` instaluje się obok produkcyjnej i dopuszcza nieszyfrowany ruch HTTP wyłącznie do `10.0.2.2` i `localhost`.
 
@@ -136,6 +136,17 @@ okna zainstaluje się wersja 1.0.1 (`adb shell dumpsys package click.flexa.app.d
   o zgodę dopiero, gdy włączysz przypomnienie), `RECEIVE_BOOT_COMPLETED` (przywrócenie przypomnień po restarcie
   telefonu). Bez reklam, analityki i zewnętrznych bibliotek śledzących;
   kopie zapasowe Androida są wyłączone (`allowBackup=false`). Szczegóły: strona „Prywatność” w aplikacji.
+
+## Przypomnienia o posiłkach i skróty (od wersji 1.2.0)
+
+- Trzeci rodzaj przypomnień: `meals` (`{ "enabled": true, "times": ["08:30", "13:30", "19:00"] }`, od 1 do 6 godzin, ściśle rosnąco).
+  Powiadomienie „Posiłki” otwiera `/meals`; kanał „Przypomnienia o posiłkach”. Pole `meals` jest opcjonalne w `reminders.set`
+  i `reminders.state`: aplikacje do 1.1.0 odrzucają nieznane pola, dlatego strona wysyła je tylko do wersji 1.2.0+ (`mealRemindersSupported`).
+- Skróty na ikonie (długie przytrzymanie): „Skan posiłku” (`/meals/scan`), „Posiłki” (`/meals`) i „Trening” (`/plan`), zdefiniowane w
+  `res/xml/shortcuts.xml`; nazwa pakietu wariantu debug jest podstawiana przez `resValue shortcut_package`.
+- Adres aplikacji to `https://app.flexa.best` (wcześniej `flexa-click.pages.dev`). Inny origin oznacza osobny zapis WebView,
+  więc po aktualizacji z 1.1.0 trzeba zalogować się ponownie; konta i dane w chmurze zostają. Dane trybu demo z 1.1.0 zostają
+  pod starym adresem — wyeksportuj je przed aktualizacją, jeśli są ważne.
 
 ## Przypomnienia (od wersji 1.1.0)
 

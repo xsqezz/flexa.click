@@ -50,6 +50,16 @@
     <string name="reminder_training_session" tools:ignore="Typos">Dziś w planie trening: %1$s · ok. %2$d min</string>
     <string name="reminder_training_title">Dziś w planie trening: %1$s</string>
     <string name="reminder_training_generic">Dziś dzień treningowy w Twoim planie</string>
+    <string name="shortcut_scan_short">Skan posiłku</string>
+    <string name="shortcut_scan_long">Skan posiłku ze zdjęcia</string>
+    <string name="shortcut_meals_short">Posiłki</string>
+    <string name="shortcut_meals_long">Dodaj posiłek</string>
+    <string name="shortcut_training_short">Trening</string>
+    <string name="shortcut_training_long">Dzisiejszy trening</string>
+    <string name="reminder_channel_meals">Przypomnienia o posiłkach</string>
+    <string name="reminder_channel_meals_description">O wybranych porach dnia, żeby zapisać jedzenie.</string>
+    <string name="reminder_meals_heading">Posiłki</string>
+    <string name="reminder_meals_text">Zapisz, co jesz. Skan ze zdjęcia robi to w kilka sekund.</string>
     <string name="reminder_water_heading">Woda</string>
     <string name="reminder_water_text">Może szklanka wody? Dopisz ją w Flexa, kiedy Ci wygodnie.</string>
 </resources>

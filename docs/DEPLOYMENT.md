@@ -9,7 +9,7 @@ Nie publikuj całej aplikacji z logowaniem i dziennikami na GitHub Pages.
 
 Środowisko uruchomione 7 października 2026, rozszerzone o cele i cykle:
 
-- Aplikacja: `https://flexa-click.pages.dev`, Cloudflare Pages z gałęzi `main`,
+- Aplikacja: `https://app.flexa.best` (także `https://flexa-click.pages.dev`), Cloudflare Pages z gałęzi `main`,
   Node 24, `npm run build`, katalog wynikowy `app/dist`.
 - Osobny projekt Supabase `Flexa`: Frankfurt (`eu-central-1`), migracje
   migracje w `supabase/migrations` aż do `202610100001_goal_cycles.sql`,
@@ -231,7 +231,7 @@ Nie dodawaj sekretów ani danych użytkowników do statycznego landingu.
 ## Aplikacja na Androida
 
 Szczegóły i procedury: [ANDROID.md](ANDROID.md). Aplikacja to powłoka `WebView` otwierająca adres z
-`android/app/build.gradle.kts` (domyślnie `https://flexa-click.pages.dev`, nadpisanie `-Pflexa.appUrl=...`),
+`android/app/build.gradle.kts` (domyślnie `https://app.flexa.best`, nadpisanie `-Pflexa.appUrl=...`),
 więc wdrożenie strony jest od razu widoczne w aplikacji. Nowy APK jest potrzebny tylko po zmianie w `android/`.
 
 - Wydanie: `npm run android:release -- X.Y.Z --notes "Zmiana 1|Zmiana 2"`. Tag `android-vX.Y.Z` uruchamia
@@ -243,7 +243,7 @@ więc wdrożenie strony jest od razu widoczne w aplikacji. Nowy APK jest potrzeb
 - Aplikacja Cloudflare publikuje `/.well-known/assetlinks.json` z odciskiem klucza. Landing i Ustawienia linkują do
   `releases/latest/download/flexa.apk`; adres przycisku na landingu można zmienić zmienną `FLEXA_ANDROID_URL` (https).
 - Adres aplikacji jest zapisany w APK: przeniesienie na `app.flexa.best` wymaga nowego wydania Androida z nowym `appUrl`.
-  Starsze aplikacje nadal otwierają `flexa-click.pages.dev`, dopóki ten adres działa.
+  Aplikacje do 1.1.0 nadal otwierają `flexa-click.pages.dev`, dopóki ten adres działa; od 1.2.0 domyślny adres to `app.flexa.best`.
 
 ## flexa.best i app.flexa.best
 

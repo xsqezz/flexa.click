@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { weekdayNames, weekdayShort } from '../../../shared/training'
 import { useJournal } from '../lib/Journal'
 import {
-  ANDROID_APK_URL, androidAppVersion, checkAppUpdate, getReminders, openNotificationSettings, remindersSupported, setReminders,
+  ANDROID_APK_URL, androidAppVersion, checkAppUpdate, getReminders, mealRemindersSupported, openNotificationSettings, remindersSupported, setReminders,
   type NotificationPermission, type ReminderSettings,
 } from '../lib/native'
 import { sessionShortName } from '../lib/training/format'
@@ -43,13 +43,17 @@ const intervals = [
   { value: 3, label: 'co 3 godziny' }, { value: 4, label: 'co 4 godziny' },
 ] as const
 
+const defaultMeals = { enabled: false, times: ['08:30', '13:30', '19:00'] }
 const defaults: ReminderSettings = {
   training: { enabled: false, time: '18:00', weekdays: [] },
   water: { enabled: false, from: '09:00', to: '21:00', everyHours: 2 },
+  meals: defaultMeals,
 }
 
+const mealSlotLabels = ['Śniadanie', 'Obiad', 'Kolacja'] as const
+
 const sameDays = (a: readonly number[], b: readonly number[]) => a.length === b.length && [...a].sort().every((day, index) => day === [...b].sort()[index])
-const settingsOf = ({ training, water }: ReminderSettings): ReminderSettings => ({ training, water })
+const settingsOf = ({ training, water, meals }: ReminderSettings): ReminderSettings => ({ training, water, meals: meals ?? defaultMeals })
 
 /** Opt-in reminders shown as Android notifications. Settings live in the app on this phone, not in the journal. */
 function RemindersPanel() {
@@ -65,6 +69,7 @@ function RemindersPanel() {
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
 
+  const mealsAvailable = mealRemindersSupported()
   const plan = data?.training.plan ?? null
   const planDays = plan ? plan.sessions.map((session) => session.weekday).sort((a, b) => a - b) : null
 
@@ -89,7 +94,7 @@ function RemindersPanel() {
   }, [])
 
   function update<K extends keyof ReminderSettings>(key: K, value: Partial<ReminderSettings[K]>) {
-    setForm((current) => ({ ...current, [key]: { ...current[key], ...value } }))
+    setForm((current) => ({ ...current, [key]: { ...(current[key] ?? defaults[key]), ...value } }))
   }
 
   function toggleDay(day: number) {
@@ -110,18 +115,22 @@ function RemindersPanel() {
       : { enabled: form.training.enabled, time: form.training.time, weekdays: form.training.weekdays }
     if (training.enabled && training.weekdays.length === 0) { setError('Wybierz co najmniej jeden dzień treningowy.'); return }
     if (form.water.enabled && form.water.from >= form.water.to) { setError('Godzina „do” musi być późniejsza niż godzina „od”.'); return }
+    const meals = form.meals ?? defaultMeals
+    if (mealsAvailable && meals.enabled && meals.times.some((time, index) => index > 0 && meals.times[index - 1]! >= time)) {
+      setError('Godziny przypomnień o posiłkach muszą rosnąć: śniadanie, obiad, kolacja.'); return
+    }
     setError(null); setBusy(true)
     try {
-      const state = await setReminders({ training, water: form.water })
+      const state = await setReminders({ training, water: form.water, ...(mealsAvailable ? { meals } : {}) })
       const settings = settingsOf(state)
       setStored(settings); setPermission(state.permission)
-      if (!settings.training.enabled && !settings.water.enabled) feedback('Przypomnienia są wyłączone.')
+      if (!settings.training.enabled && !settings.water.enabled && !settings.meals?.enabled) feedback('Przypomnienia są wyłączone.')
       else if (state.permission === 'granted') feedback('Przypomnienia zapisane. Pojawią się jako powiadomienia Flexa.')
     } catch (cause) { setError(errorMessage(cause)) }
     finally { setBusy(false) }
   }
 
-  const anyEnabled = Boolean(stored && (stored.training.enabled || stored.water.enabled))
+  const anyEnabled = Boolean(stored && (stored.training.enabled || stored.water.enabled || stored.meals?.enabled))
   const planChanged = Boolean(stored?.training.enabled && planDays && !sameDays(stored.training.weekdays, planDays))
 
   return <section className="panel" aria-labelledby={headingId}><h2 id={headingId}>Przypomnienia</h2>
@@ -167,6 +176,16 @@ function RemindersPanel() {
           </select></Field>
         </>}
       </div>
+      {mealsAvailable ? <div className="reminder-group">
+        <label className="checkbox-label"><input type="checkbox" checked={form.meals?.enabled ?? false}
+          onChange={(event) => update('meals', { enabled: event.target.checked })} />
+          <span><strong>Przypomnienie o posiłkach</strong><br />O wybranych porach dnia, żeby zapisać jedzenie.</span></label>
+        {form.meals?.enabled && <div className="form-grid">
+          {mealSlotLabels.map((label, index) => <Field key={label} label={label}><input type="time" step={60} required
+            value={form.meals?.times[index] ?? defaultMeals.times[index]}
+            onChange={(event) => update('meals', { times: mealSlotLabels.map((_, slot) => slot === index ? event.target.value : form.meals?.times[slot] ?? defaultMeals.times[slot]!) })} /></Field>)}
+        </div>}
+      </div> : <p className="reminder-days"><BellRing size={17} aria-hidden="true" /> Zaktualizuj aplikację do wersji 1.2.0, aby włączyć przypomnienia o posiłkach.</p>}
       {error && <Notice tone="error">{error}</Notice>}
       {anyEnabled && permission === 'denied' && <Notice tone="error">
         <p>Android blokuje powiadomienia Flexa, więc przypomnienia się nie pojawią. Włącz je w ustawieniach telefonu: Ustawienia → Aplikacje → Flexa → Powiadomienia.</p>

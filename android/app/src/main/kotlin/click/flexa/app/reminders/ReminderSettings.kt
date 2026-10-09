@@ -9,7 +9,7 @@ import java.util.Locale
  * Reminder settings chosen in the web UI (Ustawienia → Aplikacja na Androida). They are stored only on this device.
  * Weekdays use the web convention: 0 = Monday … 6 = Sunday.
  */
-data class ReminderSettings(val training: Training, val water: Water) {
+data class ReminderSettings(val training: Training, val water: Water, val meals: Meals = Meals.DEFAULT) {
 
     data class Training(
         val enabled: Boolean,
@@ -25,7 +25,15 @@ data class ReminderSettings(val training: Training, val water: Water) {
 
     data class Water(val enabled: Boolean, val from: LocalTime, val to: LocalTime, val everyHours: Int)
 
-    val anyEnabled: Boolean get() = training.enabled || water.enabled
+    /** Times of day (ascending, unique) at which to remind about logging a meal. */
+    data class Meals(val enabled: Boolean, val times: List<LocalTime>) {
+        companion object {
+            const val MAX_TIMES = 6
+            val DEFAULT = Meals(enabled = false, times = listOf(LocalTime.of(8, 30), LocalTime.of(13, 30), LocalTime.of(19, 0)))
+        }
+    }
+
+    val anyEnabled: Boolean get() = training.enabled || water.enabled || meals.enabled
 
     fun toJson(): JSONObject = JSONObject()
         .put("training", JSONObject().apply {
@@ -44,6 +52,9 @@ data class ReminderSettings(val training: Training, val water: Water) {
             .put("from", formatTime(water.from))
             .put("to", formatTime(water.to))
             .put("everyHours", water.everyHours))
+        .put("meals", JSONObject()
+            .put("enabled", meals.enabled)
+            .put("times", JSONArray(meals.times.map { formatTime(it) })))
 
     companion object {
         const val MAX_TEXT_CHARS = 120
@@ -60,23 +71,31 @@ data class ReminderSettings(val training: Training, val water: Water) {
         private val TRAINING_KEYS = setOf("enabled", "time", "weekdays", "title", "sessions")
         private val SESSION_KEYS = setOf("weekday", "name", "minutes")
         private val WATER_KEYS = setOf("enabled", "from", "to", "everyHours")
+        private val MEALS_KEYS = setOf("enabled", "times")
 
         fun formatTime(time: LocalTime): String = String.format(Locale.ROOT, "%02d:%02d", time.hour, time.minute)
 
         fun keys(json: JSONObject): Set<String> = json.keys().asSequence().toSet()
 
         /** Strict parser: any unknown key, wrong type or out-of-range value rejects the whole settings object. */
-        fun parse(training: Any?, water: Any?): ReminderSettings? {
+        fun parse(training: Any?, water: Any?, meals: Any? = null): ReminderSettings? {
             val t = parseTraining(training as? JSONObject ?: return null) ?: return null
             val w = parseWater(water as? JSONObject ?: return null) ?: return null
-            return ReminderSettings(t, w)
+            // Pages and settings saved before meal reminders existed have no "meals" key: they keep the disabled default.
+            val m = when (meals) {
+                null, JSONObject.NULL -> Meals.DEFAULT
+                is JSONObject -> parseMeals(meals) ?: return null
+                else -> return null
+            }
+            return ReminderSettings(t, w, m)
         }
 
         fun fromJson(raw: String?): ReminderSettings? {
             if (raw == null) return null
             val json = try { JSONObject(raw) } catch (_: Exception) { return null }
-            if (keys(json) != setOf("training", "water")) return null
-            return parse(json.opt("training"), json.opt("water"))
+            val known = keys(json)
+            if (!known.containsAll(setOf("training", "water")) || !setOf("training", "water", "meals").containsAll(known)) return null
+            return parse(json.opt("training"), json.opt("water"), json.opt("meals"))
         }
 
         private fun parseTraining(json: JSONObject): Training? {
@@ -121,6 +140,17 @@ data class ReminderSettings(val training: Training, val water: Water) {
             if (!from.isBefore(to)) return null
             val every = int(json.opt("everyHours"))?.takeIf { it in MIN_EVERY_HOURS..MAX_EVERY_HOURS } ?: return null
             return Water(enabled, from, to, every)
+        }
+
+        private fun parseMeals(json: JSONObject): Meals? {
+            if (keys(json) != MEALS_KEYS) return null
+            val enabled = json.opt("enabled") as? Boolean ?: return null
+            val raw = json.opt("times") as? JSONArray ?: return null
+            if (raw.length() > Meals.MAX_TIMES) return null
+            val times = (0 until raw.length()).map { time(raw.opt(it)) ?: return null }
+            if (times.zipWithNext().any { (a, b) -> !a.isBefore(b) }) return null
+            if (enabled && times.isEmpty()) return null
+            return Meals(enabled, times)
         }
 
         private fun time(raw: Any?): LocalTime? {

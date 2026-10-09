@@ -8,6 +8,7 @@ import java.time.ZonedDateTime
 enum class ReminderKind(val key: String, val path: String) {
     TRAINING("training", "/plan"),
     WATER("water", "/"),
+    MEALS("meals", "/meals"),
     ;
 
     companion object {
@@ -27,6 +28,20 @@ object ReminderSchedule {
     fun next(kind: ReminderKind, settings: ReminderSettings, now: ZonedDateTime): ZonedDateTime? = when (kind) {
         ReminderKind.TRAINING -> nextTraining(settings.training, now)
         ReminderKind.WATER -> nextWater(settings.water, now)
+        ReminderKind.MEALS -> nextMeals(settings.meals, now)
+    }
+
+    fun nextMeals(meals: ReminderSettings.Meals, now: ZonedDateTime): ZonedDateTime? {
+        if (!meals.enabled || meals.times.isEmpty()) return null
+        val today = now.toLocalDate()
+        for (offset in 0L..2L) {
+            val date = today.plusDays(offset)
+            for (slot in meals.times) {
+                val at = ZonedDateTime.of(date, slot, now.zone)
+                if (at.isAfter(now)) return at
+            }
+        }
+        return null
     }
 
     fun nextTraining(training: ReminderSettings.Training, now: ZonedDateTime): ZonedDateTime? {

@@ -17,6 +17,7 @@ class ReminderReceiver : BroadcastReceiver() {
         val enabled = when (kind) {
             ReminderKind.TRAINING -> settings.training.enabled
             ReminderKind.WATER -> settings.water.enabled
+            ReminderKind.MEALS -> settings.meals.enabled
         }
         if (enabled && ReminderSchedule.shouldNotify(slot, System.currentTimeMillis(), store.lastNotified(kind))) {
             store.markNotified(kind, slot)

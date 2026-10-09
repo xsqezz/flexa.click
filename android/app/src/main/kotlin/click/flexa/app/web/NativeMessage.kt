@@ -22,7 +22,7 @@ sealed interface NativeMessage {
         private const val DEFAULT_BASE_NAME = "flexa-eksport"
         private val EXTENSIONS = mapOf(MIME_JSON to "json", MIME_CSV to "csv")
         private val GET_KEYS = setOf("type", "id")
-        private val SET_KEYS = setOf("type", "id", "training", "water")
+        private val SET_KEYS = setOf("type", "id", "training", "water", "meals")
 
         fun parse(raw: String?): NativeMessage? {
             if (raw == null || raw.length > MAX_MESSAGE_CHARS) return null
@@ -42,7 +42,7 @@ sealed interface NativeMessage {
                 "reminders.set" -> {
                     if (!SET_KEYS.containsAll(ReminderSettings.keys(json))) return null
                     val id = (requestId(json) ?: return null).ifEmpty { null }
-                    val settings = ReminderSettings.parse(json.opt("training"), json.opt("water"))
+                    val settings = ReminderSettings.parse(json.opt("training"), json.opt("water"), json.opt("meals"))
                     if (settings == null) InvalidReminders(id) else SetReminders(id, settings)
                 }
                 "reminders.open-settings" -> if (ReminderSettings.keys(json) == setOf("type")) OpenNotificationSettings else null

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="scan"
+        android:enabled="true"
+        android:icon="@drawable/ic_notification"
+        android:shortcutShortLabel="@string/shortcut_scan_short"
+        android:shortcutLongLabel="@string/shortcut_scan_long">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetClass="click.flexa.app.MainActivity"
+            android:targetPackage="@string/shortcut_package">
+            <extra android:name="click.flexa.app.extra.PATH" android:value="/meals/scan" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="meals"
+        android:enabled="true"
+        android:icon="@drawable/ic_notification"
+        android:shortcutShortLabel="@string/shortcut_meals_short"
+        android:shortcutLongLabel="@string/shortcut_meals_long">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetClass="click.flexa.app.MainActivity"
+            android:targetPackage="@string/shortcut_package">
+            <extra android:name="click.flexa.app.extra.PATH" android:value="/meals" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="training"
+        android:enabled="true"
+        android:icon="@drawable/ic_notification"
+        android:shortcutShortLabel="@string/shortcut_training_short"
+        android:shortcutLongLabel="@string/shortcut_training_long">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetClass="click.flexa.app.MainActivity"
+            android:targetPackage="@string/shortcut_package">
+            <extra android:name="click.flexa.app.extra.PATH" android:value="/plan" />
+        </intent>
+    </shortcut>
+</shortcuts>

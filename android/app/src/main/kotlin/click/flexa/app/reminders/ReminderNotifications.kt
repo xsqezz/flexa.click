@@ -21,6 +21,7 @@ object ReminderNotifications {
 
     const val CHANNEL_TRAINING = "reminders.training"
     const val CHANNEL_WATER = "reminders.water"
+    const val CHANNEL_MEALS = "reminders.meals"
 
     fun createChannels(context: Context) {
         NotificationManagerCompat.from(context).createNotificationChannelsCompat(
@@ -32,6 +33,10 @@ object ReminderNotifications {
                 NotificationChannelCompat.Builder(CHANNEL_WATER, NotificationManagerCompat.IMPORTANCE_DEFAULT)
                     .setName(context.getString(R.string.reminder_channel_water))
                     .setDescription(context.getString(R.string.reminder_channel_water_description))
+                    .build(),
+                NotificationChannelCompat.Builder(CHANNEL_MEALS, NotificationManagerCompat.IMPORTANCE_DEFAULT)
+                    .setName(context.getString(R.string.reminder_channel_meals))
+                    .setDescription(context.getString(R.string.reminder_channel_meals_description))
                     .build(),
             ),
         )
@@ -49,6 +54,7 @@ object ReminderNotifications {
         val needed = buildList {
             if (settings.training.enabled) add(CHANNEL_TRAINING)
             if (settings.water.enabled) add(CHANNEL_WATER)
+            if (settings.meals.enabled) add(CHANNEL_MEALS)
         }
         val blocked = needed.any { manager.getNotificationChannelCompat(it)?.importance == NotificationManagerCompat.IMPORTANCE_NONE }
         return if (blocked) "denied" else "granted"
@@ -77,6 +83,10 @@ object ReminderNotifications {
                 .setContentTitle(context.getString(R.string.reminder_water_heading))
                 .setContentText(context.getString(R.string.reminder_water_text))
                 .setTimeoutAfter(Duration.ofHours(settings.water.everyHours.toLong()).toMillis())
+            ReminderKind.MEALS -> NotificationCompat.Builder(context, CHANNEL_MEALS)
+                .setContentTitle(context.getString(R.string.reminder_meals_heading))
+                .setContentText(context.getString(R.string.reminder_meals_text))
+                .setTimeoutAfter(Duration.ofHours(2).toMillis())
         }
         val notification = builder
             .setSmallIcon(R.drawable.ic_notification)

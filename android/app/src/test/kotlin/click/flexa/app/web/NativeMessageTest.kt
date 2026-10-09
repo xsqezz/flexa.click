@@ -108,4 +108,17 @@ class NativeMessageTest {
         assertNull(NativeMessage.parse(message("reminders.set", "training" to training(), "water" to water(), "exact" to true)))
         assertNull(NativeMessage.parse(message("reminders.open-settings", "url" to "https://evil.example")))
     }
+
+    @Test
+    fun `accepts optional meal reminders and rejects malformed ones`() {
+        val meals = JSONObject().put("enabled", true).put("times", JSONArray(listOf("08:30", "19:00")))
+        val ok = NativeMessage.parse(message("reminders.set", "id" to "m1", "training" to training(), "water" to water(), "meals" to meals))
+        assertTrue(ok is NativeMessage.SetReminders)
+        assertEquals(listOf(java.time.LocalTime.of(8, 30), java.time.LocalTime.of(19, 0)), (ok as NativeMessage.SetReminders).settings.meals.times)
+        val bad = JSONObject().put("enabled", true).put("times", JSONArray(listOf("19:00", "08:30")))
+        assertEquals(
+            NativeMessage.InvalidReminders("m1"),
+            NativeMessage.parse(message("reminders.set", "id" to "m1", "training" to training(), "water" to water(), "meals" to bad)),
+        )
+    }
 }

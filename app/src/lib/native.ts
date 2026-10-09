@@ -91,6 +91,12 @@ export const reminderSettingsSchema = z.strictObject({
   water: z.strictObject({
     enabled: z.boolean(), from: timeSchema, to: timeSchema, everyHours: z.number().int().min(1).max(4),
   }).refine((water) => water.from < water.to),
+  /** Od aplikacji 1.2.0: godziny przypomnień o zapisaniu posiłku (rosnąco, bez powtórzeń). */
+  meals: z.strictObject({
+    enabled: z.boolean(),
+    times: z.array(timeSchema).max(6),
+  }).refine((meals) => meals.times.every((time, index) => index === 0 || meals.times[index - 1]! < time))
+    .refine((meals) => !meals.enabled || meals.times.length > 0).optional(),
 })
 export type ReminderSettings = z.infer<typeof reminderSettingsSchema>
 export type NotificationPermission = 'granted' | 'denied' | 'default'
@@ -100,6 +106,7 @@ const replySchema = z.discriminatedUnion('type', [
   z.strictObject({
     type: z.literal('reminders.state'), id: z.string().optional(),
     training: reminderSettingsSchema.shape.training, water: reminderSettingsSchema.shape.water,
+    meals: reminderSettingsSchema.shape.meals,
     permission: z.enum(['granted', 'denied', 'default']), supported: z.literal(true),
   }),
   z.strictObject({ type: z.literal('reminders.error'), id: z.string().optional(), reason: z.string() }),
@@ -114,6 +121,11 @@ export class NativeReplyError extends Error {}
 /** Czy ta wersja aplikacji obsługuje przypomnienia (od 1.1.0). */
 export function remindersSupported(): boolean {
   return bridge() !== null && appAtLeast(1, 1)
+}
+
+/** Czy ta wersja aplikacji obsługuje przypomnienia o posiłkach (od 1.2.0). */
+export function mealRemindersSupported(): boolean {
+  return bridge() !== null && appAtLeast(1, 2)
 }
 
 const pending = new Map<string, (reply: unknown) => void>()
@@ -155,8 +167,8 @@ function request(message: Record<string, unknown>, timeoutMs: number): Promise<R
       if (!reply.success) reject(new NativeReplyError('Aplikacja odpowiedziała w nieznanym formacie. Zaktualizuj ją i spróbuj ponownie.'))
       else if (reply.data.type === 'reminders.error') reject(new NativeReplyError('Aplikacja nie przyjęła tych ustawień. Sprawdź godziny i dni.'))
       else {
-        const { training, water, permission, supported } = reply.data
-        resolve({ training, water, permission, supported })
+        const { training, water, meals, permission, supported } = reply.data
+        resolve({ training, water, ...(meals ? { meals } : {}), permission, supported })
       }
     })
     native.postMessage(JSON.stringify({ ...message, id }))
@@ -173,7 +185,9 @@ export async function getReminders(timeoutMs = REMINDERS_GET_TIMEOUT_MS): Promis
 export async function setReminders(settings: ReminderSettings, timeoutMs = REMINDERS_SET_TIMEOUT_MS): Promise<ReminderState> {
   const parsed = reminderSettingsSchema.safeParse(settings)
   if (!parsed.success) throw new NativeReplyError('Sprawdź godziny i dni przypomnień.')
-  return request({ type: 'reminders.set', ...parsed.data }, timeoutMs)
+  // Starsza aplikacja odrzuca nieznane pola, więc przypomnienia o posiłkach wysyłamy tylko do 1.2.0+.
+  const { meals, ...rest } = parsed.data
+  return request({ type: 'reminders.set', ...rest, ...(meals && mealRemindersSupported() ? { meals } : {}) }, timeoutMs)
 }
 
 /** Otwiera systemowe ustawienia powiadomień Flexa (gdy zgoda została odrzucona). */
