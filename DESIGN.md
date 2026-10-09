@@ -170,7 +170,9 @@ and "Szukaj" (Ctrl+K) opens the command palette beside it.
 **Screen ownership.** Dzisiaj is a lightweight agenda without duplicated food
 ledger or calorie summary. Cele own confirmed daily kcal, macros, hydration,
 weight and dated cycle history; Posiłki own meal entry and copying, with the
-week strip but no second target panel. Treningi own the plan, its workout player,
+week strip but no second target panel. "Skan posiłku" (`/meals/scan`) belongs to
+Posiłki: a photo only proposes catalogue items; kcal and macros are shown as ranges
+and nothing is saved until the user confirms. Treningi own the plan, its workout player,
 logged sessions and weekly movement. Postępy own weight trends and longer-term
 activity charts, not another daily food dashboard. The goals setup reuses the
 plan's age and sex when available and shows an editable estimate before an

@@ -32,7 +32,7 @@ export function kitchenAiAvailable(): Promise<boolean> {
   return availability
 }
 
-async function failure(response: Response): Promise<KitchenAiError> {
+export async function failure(response: Response): Promise<KitchenAiError> {
   const body = await response.json().catch(() => null) as { error?: unknown; code?: unknown } | null
   const message = typeof body?.error === 'string' ? body.error : 'Nie udało się połączyć z usługą AI. Spróbuj ponownie za chwilę.'
   return new KitchenAiError(message, typeof body?.code === 'string' ? body.code : `http-${response.status}`)
@@ -68,8 +68,8 @@ function cropAreas(width: number, height: number): Area[] {
 
 export type PreparedPhoto = { images: string[]; preview: string }
 
-/** Shrinks the photo and re-encodes it as JPEG, which also drops EXIF data such as the location. The first image is the whole photo, the rest are zoomed crops. */
-export async function preparePhoto(file: File): Promise<PreparedPhoto> {
+/** Shrinks the photo and re-encodes it as JPEG, which also drops EXIF data such as the location. The first image is the whole photo, the rest are zoomed crops (unless `crops` is off). */
+export async function preparePhoto(file: File, options: { crops?: boolean } = {}): Promise<PreparedPhoto> {
   let bitmap: ImageBitmap
   try { bitmap = await createImageBitmap(file) }
   catch { throw new KitchenAiError('Nie udało się odczytać zdjęcia. Spróbuj zrobić je ponownie lub wybierz plik JPEG albo PNG.', 'unreadable') }
@@ -79,7 +79,7 @@ export async function preparePhoto(file: File): Promise<PreparedPhoto> {
       const blob = await renderJpeg(bitmap, whole, side, quality)
       if (!blob || blob.size > maxBytes) continue
       const images = [await toBase64(blob)]
-      for (const area of cropAreas(bitmap.width, bitmap.height)) {
+      for (const area of options.crops === false ? [] : cropAreas(bitmap.width, bitmap.height)) {
         const crop = await renderJpeg(bitmap, area, 896, 0.8)
         if (crop && crop.size <= maxCropBytes) images.push(await toBase64(crop))
       }

@@ -44,7 +44,7 @@ export function mealForHour(hour: number): MealKind {
   return 'snack'
 }
 
-const DATED_ROUTES = ['/', '/goals', '/meals', '/workouts', '/progress']
+const DATED_ROUTES = ['/', '/goals', '/meals', '/meals/scan', '/workouts', '/progress']
 const SWIPE_ROUTES = ['/', '/goals', '/meals']
 
 function isTyping(target: EventTarget | null): boolean {

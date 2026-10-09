@@ -146,6 +146,11 @@
   .goals-estimator { background: #1a1f19; }
   .goals-proposal { border: 1px solid #3d4e43; }
   .goals-confirm { background: #1d231a; }
+  .scan-size span { border: 1px solid #404f47; background: #18211c; }
+  .scan-size input:checked + span { background: #1d2819; box-shadow: inset 0 0 0 1px #2f7650; color: #92c5a2; }
+  .scan-field input, .scan-meal select { border: 1px solid #404f47; background: #18211c; }
+  .scan-total .scan-range { color: #98b997; }
+  .scan-confidence { color: #98b997; }
   .chart-svg line[stroke="#e4eae5"] { stroke: #2c3a32; }
   .chart-svg polyline[stroke="#326b49"] { stroke: #7cc59a; }
   .chart-svg circle[fill="#326b49"] { fill: #7cc59a; }

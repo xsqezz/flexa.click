@@ -178,6 +178,14 @@ w przeglądarce i nie wymaga żadnej konfiguracji.
 5. Weryfikacja: `GET /api/kitchen/status` zwraca `{"available":true,...}`; bez bindingu lub zmiennych
    `available` jest `false` i interfejs ukrywa przesyłanie zdjęć. Obraz i zdjęcie są zwracane
    użytkownikowi, nie zapisywane.
+6. **Skan posiłku** (`POST /api/meal/plate`, `functions/api/meal/[action].ts`) używa tego samego
+   bindingu `AI`, tych samych modeli wizyjnych i tego samego dziennego budżetu `vision`
+   (12 zdjęć na konto, wspólnie ze zdjęciem lodówki) — nie wymaga nowej migracji ani konfiguracji.
+   Jedno żądanie to najwyżej dwa zdjęcia (całość i drugie ujęcie; bez wycinków), czyli 1–2 wywołania modelu.
+   Model dostaje zamknięty katalog `shared/meal-scan/catalog.ts` i zwraca wyłącznie identyfikatory pozycji,
+   rozmiar i liczbę sztuk; kalorie liczy `shared/meal-scan/estimate.ts` w przeglądarce. Wartości katalogu
+   to uśrednione dane tabelaryczne — przy dodawaniu pozycji zachowaj spójność energii z makroskładnikami
+   (pilnuje tego test w `app/src/lib/scan/scan.test.ts`).
 
 ## Landing i pełne demo: GitHub Pages
 

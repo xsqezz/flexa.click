@@ -3,7 +3,7 @@ import { ingredientsById, isNonIngredientName, matchIngredientName, normalizeNam
 import type { Ingredient } from './types.ts'
 import { dishFormats, dishImagePrompt, dishStyles, maxPromptIngredients } from './visual.ts'
 
-/** Daily per-account limits keep the free Workers AI allocation fair for everyone. */
+/** Daily per-account limits keep the free Workers AI allocation fair for everyone. Fridge photos and plate scans share the `vision` budget. */
 export const aiLimits = { vision: 12, image: 30 } as const
 export const maxPhotoBytes = 1_800_000
 /** One overview plus four zoomed crops: small items on crowded shelves are only found on the crops. */
@@ -23,15 +23,15 @@ const modelTimeoutMs = 30_000
 export type AiBinding = { run(model: string, input: unknown): Promise<unknown> }
 export type KitchenDeps = { ai?: AiBinding; supabaseUrl?: string; supabaseKey?: string; fetch?: typeof fetch }
 
-type ErrorCode = 'unauthorized' | 'quota' | 'bad_request' | 'too_large' | 'unavailable' | 'not_found' | 'method'
+export type ErrorCode = 'unauthorized' | 'quota' | 'bad_request' | 'too_large' | 'unavailable' | 'not_found' | 'method'
 
 const baseHeaders = { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' }
 
-function json(status: number, body: unknown): Response {
+export function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...baseHeaders, 'content-type': 'application/json; charset=utf-8' } })
 }
 
-function failure(status: number, code: ErrorCode, error: string): Response {
+export function failure(status: number, code: ErrorCode, error: string): Response {
   return json(status, { code, error })
 }
 
@@ -93,13 +93,13 @@ function decodeBase64(value: string): Uint8Array<ArrayBuffer> {
 const isJpeg = (bytes: Uint8Array) => bytes.length > 4 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
 const isPng = (bytes: Uint8Array) => bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47
 
-function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+export function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined
   const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(`${label} timed out`)), modelTimeoutMs) })
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
 }
 
-async function readJson(request: Request, maxBytes: number): Promise<{ ok: true; value: unknown } | { ok: false; response: Response }> {
+export async function readJson(request: Request, maxBytes: number): Promise<{ ok: true; value: unknown } | { ok: false; response: Response }> {
   const length = Number(request.headers.get('content-length') ?? '0')
   if (length > maxBytes) return { ok: false, response: failure(413, 'too_large', 'Zdjęcie jest za duże. Zrób mniejsze lub spróbuj ponownie.') }
   const text = await request.text()
@@ -108,13 +108,13 @@ async function readJson(request: Request, maxBytes: number): Promise<{ ok: true;
   catch { return { ok: false, response: failure(400, 'bad_request', 'Nieprawidłowe dane żądania.') } }
 }
 
-function bearer(request: Request): string | null {
+export function bearer(request: Request): string | null {
   const match = /^Bearer ([\w-]+\.[\w-]+\.[\w-]+)$/.exec(request.headers.get('authorization') ?? '')
   return match && match[1].length <= 4096 ? match[1] : null
 }
 
 /** Consumes one use of the daily budget as the signed-in user; the database enforces identity and counting. */
-async function consume(deps: KitchenDeps, token: string, kind: keyof typeof aiLimits): Promise<Response | null> {
+export async function consume(deps: KitchenDeps, token: string, kind: keyof typeof aiLimits): Promise<Response | null> {
   if (!deps.supabaseUrl || !deps.supabaseKey) return failure(503, 'unavailable', 'Usługa chwilowo niedostępna.')
   const doFetch = deps.fetch ?? fetch
   let response: Response
@@ -134,17 +134,17 @@ async function consume(deps: KitchenDeps, token: string, kind: keyof typeof aiLi
   return null
 }
 
-async function describePhoto(ai: AiBinding, url: string): Promise<string> {
+export async function describePhoto(ai: AiBinding, url: string, prompt = visionPrompt(), maxTokens = 450): Promise<string> {
   for (const model of visionModels) {
     const input = {
       messages: [{
         role: 'user',
         content: [
-          { type: 'text', text: visionPrompt() },
+          { type: 'text', text: prompt },
           { type: 'image_url', image_url: { url } },
         ],
       }],
-      max_tokens: 450,
+      max_tokens: maxTokens,
       temperature: 0.1,
       ...model.extra,
     }
@@ -159,7 +159,7 @@ async function describePhoto(ai: AiBinding, url: string): Promise<string> {
 const dataUrlPrefix = /^data:image\/(?:jpeg|png);base64,/i
 
 /** Checks type and size from the Base64 text alone, so photos cost no decoding time on the server. */
-function inspectPhoto(value: string): { url: string; bytes: number } | null {
+export function inspectPhoto(value: string): { url: string; bytes: number } | null {
   const body = value.replace(dataUrlPrefix, '').replace(/\s+/g, '')
   if (body.length < 100 || body.length % 4 === 1 || !/^[A-Za-z0-9+/]+={0,2}$/.test(body)) return null
   const head = atob(body.slice(0, 16))

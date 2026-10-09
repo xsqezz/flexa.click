@@ -121,7 +121,7 @@ okna zainstaluje się wersja 1.0.1 (`adb shell dumpsys package click.flexa.app.d
 
 - Ładuje tylko adres aplikacji (ten sam origin); inne linki `http(s)`, `mailto:`, `tel:` otwiera w przeglądarce
   lub aplikacji systemowej, a pozostałe schematy blokuje. Ramki (np. odtwarzacz YouTube) tylko po `https`.
-- Kamera: skaner kodów kreskowych i zdjęcie lodówki (Smart Kuchnia); Android prosi o zgodę w chwili użycia.
+- Kamera: skaner kodów kreskowych, zdjęcie lodówki (Smart Kuchnia) i zdjęcie tacy lub talerza (Skan posiłku); Android prosi o zgodę w chwili użycia.
   Strona dostaje wyłącznie wideo i tylko z adresu aplikacji.
 - Wybór plików (import GPX/TCX, zdjęcia) przez systemowy wybierak; zdjęcia z aparatu przez `FileProvider`.
 - Eksport danych przez okno „Zapisz jako” (kanał `window.flexaNative`, dostępny tylko dla adresu aplikacji;

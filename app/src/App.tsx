@@ -21,6 +21,7 @@ import { WorkoutPlayer } from './pages/WorkoutPlayer'
 import { Brand, Skeleton } from './components/ui'
 
 const KitchenPage = lazy(() => import('./pages/KitchenPage').then((module) => ({ default: module.KitchenPage })))
+const ScanPage = lazy(() => import('./pages/ScanPage').then((module) => ({ default: module.ScanPage })))
 
 function SessionGate() {
   const auth = useAuth()
@@ -80,6 +81,7 @@ export default function App() {
               <Route path="/goals" element={<GoalsPage />} />
               <Route path="/goals/new" element={<NewGoalCyclePage />} />
               <Route path="/meals" element={<MealsPage />} />
+              <Route path="/meals/scan" element={<Suspense fallback={<Skeleton />}><ScanPage /></Suspense>} />
               <Route path="/journal" element={<Navigate to="/meals" replace />} />
               <Route path="/kitchen" element={<Suspense fallback={<Skeleton />}><KitchenPage /></Suspense>} />
               <Route path="/plan" element={<PlanPage />} />

@@ -49,6 +49,15 @@ zmian, a następny cykl wymaga potwierdzenia. W Celach widać spożycie dla dnia
 bieżącą i docelową masę oraz historię kalorii i cykli. Demo dla 16–17-latków
 oferuje tylko cele ręczne, bez kalkulatora i propozycji faz.
 
+**Skan posiłku:** w Posiłkach (oraz z przycisku „Dodaj” i wyszukiwarki) zrobisz zdjęcie tacy lub talerza — np. z fast foodu.
+Po zalogowaniu i wyrażeniu zgody model wizyjny Cloudflare Workers AI tylko **nazywa widoczne pozycje** ze zamkniętego katalogu
+(ok. 70 gotowych potraw, dodatków, sosów i napojów: `shared/meal-scan/catalog.ts`) i ocenia rozmiar porcji (S/M/L) lub liczbę sztuk.
+Kalorie i makro liczy deterministyczny estymator w aplikacji (`shared/meal-scan/estimate.ts`) z wartości tabelarycznych i zawsze
+pokazuje **zakres**, bo zdjęcie nie ujawnia wagi, oleju ani sosu w środku dania. Użytkownik poprawia rozmiar, liczbę sztuk lub wagę,
+może wpisać dokładne wartości z menu, aplikacji sieci albo etykiety (zastępują tabelę) i dopiero potwierdzony wynik zapisuje w Posiłkach
+(każda pozycja jako produkt „skan”, wartość środkowa). Zdjęć nie zapisujemy; limit dzienny dzieli się ze Smart Kuchnią (`aiLimits.vision`).
+W demo ten sam ekran działa po ręcznym złożeniu talerza. Endpoint: `functions/api/meal/[action].ts` (`POST /api/meal/plate`).
+
 **Smart Kuchnia:** zakładka „Kuchnia” układa przepis z tego, co masz w domu. Wybierasz produkty
 (lub — po zalogowaniu — robisz zdjęcie lodówki i zatwierdzasz rozpoznaną listę), odpowiadasz na trzy
 pytania (czas, sprzęt, czego nie lubisz/alergie/ochota, a także liczba osób i wielkość porcji) i dostajesz
@@ -126,8 +135,8 @@ npm run test:e2e
 npm run test:android-scripts
 ```
 
-API Stravy jest wyłączone z uwagi na jego aktualny regulamin. Nie ma szacowania kalorii
-gotowego posiłku ze zdjęcia talerza (zdjęcie w Smart Kuchni tylko rozpoznaje produkty),
+API Stravy jest wyłączone z uwagi na jego aktualny regulamin. Skan posiłku nie obiecuje dokładnej liczby kalorii ze zdjęcia —
+pokazuje zakres i prosi o potwierdzenie. Nie ma też
 rankingów, map ani natywnego Apple Health / Health Connect w tej wersji.
 „Darmowe funkcje” nie oznacza darmowej domeny, nieograniczonej infrastruktury
 ani gwarantowanej kompletności danych produktów. Flexa nie daje porad medycznych.

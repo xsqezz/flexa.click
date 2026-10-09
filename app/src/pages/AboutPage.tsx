@@ -16,7 +16,7 @@ export function AboutPage() {
     <ul>
       <li><strong>Dzisiaj</strong> — agenda wybranego dnia: planowany trening i szybkie przejście do wpisów.</li>
       <li><strong>Cele</strong> — zatwierdzone kalorie, makroskładniki i woda, bieżąca i docelowa masa, historia dziennych zapisów oraz cykli. Fazy zmieniasz wyłącznie samodzielnie.</li>
-      <li><strong>Posiłki</strong> — pasek dni tygodnia, wpisy według pory dnia, kopiowanie posiłków i zestawy.</li>
+      <li><strong>Posiłki</strong> — pasek dni tygodnia, wpisy według pory dnia, kopiowanie posiłków i zestawy. Przycisk „Skanuj posiłek ze zdjęcia” zamienia zdjęcie tacy lub talerza w listę pozycji z kaloriami w zakresie, którą poprawiasz i zatwierdzasz.</li>
       <li><strong>Treningi</strong> — „Plan” prowadzi przez trening krok po kroku, a „Historia” pokazuje zapisane aktywności.</li>
       <li><strong>Kuchnia</strong> — Smart Kuchnia układa przepis z produktów, które masz.</li>
       <li><strong>Postępy</strong> — wykresy pomiarów, trendu wagi i odczuwalnego obciążenia.</li>

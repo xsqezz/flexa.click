@@ -1,3 +1,5 @@
+import { ScanLine } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useJournal } from '../lib/Journal'
 import { dateLabel } from '../lib/dates'
 import { DateControl, PageHeader, useWorkspace } from '../components/Workspace'
@@ -11,7 +13,8 @@ export function MealsPage() {
   const dayMeals = data.meals.filter((meal) => meal.date === date)
   return <>
     <PageHeader title="Posiłki" description="Dodawaj i przeglądaj jedzenie według pory dnia. Bilans i historię kalorii znajdziesz w Celach." />
-    <div className="page-toolbar"><DateControl /></div>
+    <div className="page-toolbar"><DateControl />
+      <Link className="button button-secondary" to="/meals/scan"><ScanLine size={17} aria-hidden="true" />Skanuj posiłek ze zdjęcia</Link></div>
     <WeekStrip />
     <section className="panel meal-panel meals-page-list" aria-labelledby="meals-day-title">
       <div className="section-heading"><h2 id="meals-day-title">{dateLabel(date, { weekday: 'long', day: 'numeric', month: 'long' })}</h2>

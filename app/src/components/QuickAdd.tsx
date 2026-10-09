@@ -1,4 +1,4 @@
-import { ChefHat, Droplet, Dumbbell, Play, Ruler, ScanBarcode, Utensils } from 'lucide-react'
+import { Camera, ChefHat, Droplet, Dumbbell, Play, Ruler, ScanBarcode, Utensils } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { mealNames } from '../../../shared/domain'
 import { useJournal } from '../lib/Journal'
@@ -44,6 +44,10 @@ export function QuickAdd({ date, onClose }: { date: string; onClose: () => void 
       <li><button type="button" onClick={() => then(() => workspace.openMeal(meal, 'barcode'))}>
         <span className="quick-add-icon"><ScanBarcode size={20} aria-hidden="true" /></span>
         <span><strong>Skanuj kod kreskowy</strong><small>Aparat albo wpisany numer EAN</small></span>
+      </button></li>
+      <li><button type="button" onClick={() => then(() => navigate('/meals/scan'))}>
+        <span className="quick-add-icon"><Camera size={20} aria-hidden="true" /></span>
+        <span><strong>Skan posiłku</strong><small>Zdjęcie tacy lub talerza z kaloriami</small></span>
       </button></li>
       <li><button type="button" disabled={pending} onClick={() => { void water() }}>
         <span className="quick-add-icon"><Droplet size={20} aria-hidden="true" /></span>

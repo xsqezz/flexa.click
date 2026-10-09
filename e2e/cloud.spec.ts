@@ -448,6 +448,50 @@ test('Smart Kuchnia falls back to manual selection and an ingredient picture whe
   await expect(page.getByRole('img', { name: /^Ilustracja składników/ })).toBeVisible()
 })
 
+test('Skan posiłku recognises a tray after consent, lets the user correct it and saves the confirmed plate', async ({ page }) => {
+  const mocked = await fixture(page)
+  const requests: { authorization: string; images: string[] }[] = []
+  await page.route('**/api/kitchen/status', (route) => route.fulfill({ json: { available: true, limits: { vision: 12, image: 30 } } }))
+  await page.route('**/api/meal/plate', async (route) => {
+    requests.push({ authorization: route.request().headers().authorization ?? '', images: (route.request().postDataJSON() as { images: string[] }).images })
+    await route.fulfill({ json: {
+      items: [{ id: 'nuggets', size: null, count: 6 }, { id: 'fries', size: 'L', count: null }, { id: 'sauce-garlic', size: 'S', count: 1 }],
+      unknown: ['Surówka z kimchi'], photos: 1, analysed: 1,
+    } })
+  })
+  await login(page)
+  await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
+  await page.goto(`${origin}/meals/scan`)
+  await expect(page.getByRole('heading', { name: 'Zdjęcie tacy lub talerza' })).toBeVisible()
+  await page.locator('input[type=file]').nth(1).setInputFiles({ name: 'taca.jpg', mimeType: 'image/jpeg', buffer: await bigPhoto(page) })
+  await expect(page.getByAltText('Podgląd zdjęcia 1 z 1')).toBeVisible()
+  await page.getByRole('button', { name: 'Rozpoznaj posiłek' }).click()
+  await expect(page.getByRole('alert')).toContainText('zgodę')
+  expect(requests).toHaveLength(0)
+  await page.getByRole('checkbox', { name: /zostanie pomniejszone, pozbawione danych EXIF/ }).check()
+  await page.getByRole('button', { name: 'Rozpoznaj posiłek' }).click()
+  await expect(page.getByText(/Rozpoznałem 3 pozycje/)).toBeVisible()
+  expect(requests).toHaveLength(1)
+  expect(requests[0].authorization).toMatch(/^Bearer /)
+  expect(requests[0].images).toHaveLength(1)
+  expect(requests[0].images[0]).toMatch(/^\/9j\//)
+  await expect(page.getByText(/Nie mam w bazie: Surówka z kimchi/)).toBeVisible()
+  const nuggets = page.locator('.scan-row').filter({ hasText: 'Nuggetsy z kurczaka' })
+  await expect(nuggets).toContainText('6 szt. (ok. 102 g)')
+  await nuggets.getByLabel('Liczba sztuk (szt.)').fill('9')
+  await expect(nuggets).toContainText('9 szt. (ok. 153 g)')
+  await page.locator('.scan-row').filter({ hasText: 'Sos czosnkowy' }).getByRole('button', { name: 'Usuń: Sos czosnkowy lub tatarski' }).click()
+  await page.getByRole('button', { name: 'Zapisz w Posiłkach' }).click()
+  await expect(page).toHaveURL(/\/meals$/)
+  await expect.poll(() => mocked.rows.meal_entries.length).toBe(2)
+  expect(mocked.rows.meal_entries).toMatchObject([
+    { user_id: userId, portion: 153, food: { id: 'scan-nuggets', source: 'custom', estimated: true, unit: 'g' } },
+    { user_id: userId, portion: 165, food: { id: 'scan-fries' } },
+  ])
+  await page.reload()
+  await expect(page.getByText('Nuggetsy z kurczaka (skan)')).toBeVisible()
+})
+
 test('Smart Kuchnia hides photo recognition when the AI service is not configured', async ({ page }) => {
   await fixture(page)
   await page.route('**/api/kitchen/status', (route) => route.fulfill({ json: { available: false, limits: { vision: 12, image: 30 } } }))

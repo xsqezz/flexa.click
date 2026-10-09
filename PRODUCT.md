@@ -57,6 +57,15 @@ account; it is never presented as synchronized cloud data.
   estimate, and the feature works without AI in the local demo.
 - Open Food Facts is the primary packaged-food source; USDA FoodData Central
   is an optional fallback. Missing nutrient values are not invented.
+- "Skan posiłku" (under Posiłki, also from Dodaj and search) turns a photo of a tray or
+  plate into an editable list of components. With an account and explicit consent, a
+  vision model on Cloudflare Workers AI only names the visible items from a closed catalogue
+  of about 70 prepared foods and judges their relative size; a deterministic in-app
+  estimator computes kcal, protein, carbohydrates and fat from table values and always
+  shows a range, because a photo cannot reveal weight, oil or sauce inside a dish. The
+  user corrects size, number of pieces or weight, may type exact values from a menu,
+  receipt or package (which replace the table), and confirms before anything is saved
+  to Posiłki. Photos are not stored. The demo offers the same flow built by hand.
 - Navigation has seven phone positions (Dzisiaj, Cele, Posiłki, Dodaj, Treningi,
   Kuchnia, Postępy). Treningi includes Plan and Historia; Dodaj opens a quick-add
   sheet from every screen. Dzisiaj is an agenda, Cele own approved nutrition
@@ -93,8 +102,8 @@ account; it is never presented as synchronized cloud data.
   part of the product, not optional extras.
 - Strava API use is conditional on its agreement and explicit approval.
   It is disabled by default; own GPX/TCX files are the independent import path.
-- Social feeds, leaderboards, medical advice, photo-calorie AI (estimating calories
-  of a finished plate; the Smart Kuchnia photo only recognises raw products), live GPS
+- Social feeds, leaderboards, medical advice, a claim of exact calories from a photo
+  (the scan always shows a range and asks for confirmation), live GPS
   background recording, and native Apple Health / Health Connect integrations
   are not part of this first version.
 
