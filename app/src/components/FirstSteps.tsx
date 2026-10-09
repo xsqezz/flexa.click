@@ -33,6 +33,7 @@ export function FirstSteps() {
     { done: Boolean(state.goals || data.goals.cycles.length), label: 'Sprawdź swoje cele kalorii i makro', action: <Link to="/goals">Ustaw cele</Link> },
     { done: data.meals.length > 0, label: 'Zapisz pierwszy posiłek', action: <button type="button" className="text-link" onClick={() => openMeal()}>Wybierz produkt</button> },
     { done: data.water.length > 0, label: 'Dodaj szklankę wody', action: <button type="button" className="text-link" onClick={openQuickAdd}>Otwórz „Dodaj”</button> },
+    { done: data.meals.some((meal) => meal.food.name.endsWith('(skan)')), label: 'Wypróbuj Skan posiłku ze zdjęcia', action: <Link to="/meals/scan">Skanuj posiłek</Link> },
     { done: Boolean(data.training.plan), label: 'Ułóż plan treningowy', action: <Link to="/plan/new">Ułóż plan</Link> },
   ]
   const done = steps.filter((step) => step.done).length
