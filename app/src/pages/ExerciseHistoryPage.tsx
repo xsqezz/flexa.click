@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useJournal } from '../lib/Journal'
 import { dateLabel } from '../lib/dates'
 import { integerFormat, numberFormat } from '../lib/nutrition'
-import { exerciseHistory, formatSet, type ExerciseHistory } from '../lib/training/sets'
+import { exerciseHistory, formatSet, newRecords, personalRecords, progressionHint, type ExerciseHistory } from '../lib/training/sets'
 import { LineChart, Sparkline } from '../components/Charts'
 import { EmptyState } from '../components/ui'
 
@@ -26,6 +26,23 @@ function Header({ title, description, back }: { title: string; description: stri
   </header></>
 }
 
+function Records({ item }: { item: ExerciseHistory }) {
+  const records = personalRecords(item)
+  const fresh = new Set(newRecords(item))
+  const hint = progressionHint(item)
+  if (!records.length && !hint) return null
+  return <section className="panel exercise-records" aria-labelledby="records-title">
+    <h2 id="records-title">Twoje rekordy</h2>
+    {fresh.size > 0 && <p className="exercise-record-new" role="status">Nowy rekord osobisty w ostatnim treningu. Dobra robota!</p>}
+    <ul className="exercise-record-list">{records.map((record) => <li key={record.kind}>
+      <small>{record.label}</small>
+      <strong>{numberFormat.format(record.value)} {record.unit}</strong>
+      <span>{dateLabel(record.date)}{fresh.has(record.kind) ? " · nowy" : ""}</span>
+    </li>)}</ul>
+    {hint && <p className="goals-help">Pomysł na następny trening: {hint} To tylko sugestia — słuchaj swojego ciała.</p>}
+  </section>
+}
+
 const estimateNote = 'Szacowane 1RM to wynik wzoru Epleya z serii do 15 powtórzeń — orientacyjna liczba, nie test ani cel do sprawdzania.'
 
 export function ExerciseHistoryPage() {
@@ -44,6 +61,7 @@ export function ExerciseHistoryPage() {
     return <>
       <Header title={item.name} description={`${sessionsLabel(item.sessions.length)} z zapisanymi seriami · ostatnio ${dateLabel(item.lastDate)}`} back={{ to: '/workouts/exercises', label: 'Wszystkie ćwiczenia' }} />
       <section className="panel exercise-history-summary"><Values item={item} /></section>
+      <Records item={item} />
       <section className="panel chart-section">
         <h2>{load ? 'Objętość na trening' : 'Powtórzenia na trening'}</h2>
         <p>{load ? 'Suma powtórzeń × ciężar ze wszystkich serii tego ćwiczenia w danym treningu.' : 'Suma powtórzeń ze wszystkich serii tego ćwiczenia w danym treningu.'}</p>

@@ -11,6 +11,7 @@ import { dateLabel, daysEndingAt, today } from '../lib/dates'
 import { currentWeight, cycleNames, effectiveCycle, goalForDay, validateCycleStart } from '../lib/goals'
 import { integerFormat, numberFormat, nutritionTotal } from '../lib/nutrition'
 import { useFeedback } from '../components/Feedback'
+import { AdaptiveGoals, CycleRecap } from '../components/AdaptiveGoals'
 import { FirstSteps, rememberGoalsReviewed } from '../components/FirstSteps'
 import { NutritionSummary, WaterPanel } from '../components/Summaries'
 import { DateControl, PageHeader, useWorkspace } from '../components/Workspace'
@@ -319,6 +320,7 @@ function CycleHistory({ journal, day }: { journal: Journal; day: string }) {
       {archived.length ? <ol>{archived.map((cycle) => <li key={cycle.id}>
         <div><strong>{cycleNames[cycle.kind]}</strong><span>{dateLabel(cycle.startDate)} – {dateLabel(cycle.endDate)}</span></div>
         <p>{integerFormat.format(cycle.calorieGoal)} kcal · B {numberFormat.format(cycle.proteinGoal)} g · W {numberFormat.format(cycle.carbsGoal)} g · T {numberFormat.format(cycle.fatGoal)} g · woda {numberFormat.format(cycle.waterGoal / 1000)} l</p>
+        <CycleRecap journal={journal} cycle={cycle} />
         <small>Start: {numberFormat.format(cycle.startWeightKg)} kg · cel: {cycle.targetWeightKg === null ? 'nie podano' : `${numberFormat.format(cycle.targetWeightKg)} kg`}{cycle.status === 'active' ? ' · okres minął, cele pozostały bez zmian' : ''}</small>
       </li>)}</ol> : <p className="goals-help">Poprzednie cykle pojawią się tutaj po zatwierdzeniu następnego.</p>}
     </section>
@@ -375,6 +377,8 @@ export function GoalsPage() {
         </details>
       </section>
     </div>
+    {current && <CycleRecap journal={data} cycle={current} />}
+    <AdaptiveGoals journal={data} />
     <CycleHistory journal={data} day={date} />
     <p className="goals-disclaimer"><Droplets size={16} aria-hidden="true" /> Woda i energia z treningów nie zmieniają same celów jedzenia. Szacunki nie są poradą medyczną.</p>
   </>

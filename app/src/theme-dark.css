@@ -211,6 +211,19 @@
   @media (max-width: 700px) {
     .mobile-nav { border: 1px solid #333e37; background: #3a3a3ae8; }
   }
+  .adaptive-change > div { background: #072f4f; }
+  .adaptive-change > div:nth-child(2) { background: #003720; }
+  .adaptive-change > div:nth-child(3) { background: #3e1d00; }
+  .adaptive-change dt { color: #b6cebf; }
+  .adaptive-change dd { color: #bdd7c9; }
+  .shopping-item { background: #1b2119; }
+  .shopping-check { background: #18211c; }
+  .exercise-record-new { background: #4b1e00; color: #f49a70; }
+  .exercise-record-list li { background: #38255b; }
+  .exercise-record-list li:nth-child(2) { background: #072f4f; }
+  .exercise-record-list li:nth-child(3) { background: #3e1d00; }
+  .exercise-record-list small, .exercise-record-list span { color: #b6cebf; }
+  .exercise-record-list strong { color: #bdd7c9; }
   .chart-svg line[stroke="#e4eae5"] { stroke: #2c3a32; }
   .chart-svg polyline[stroke="#326b49"] { stroke: #7cc59a; }
   .chart-svg circle[fill="#326b49"] { fill: #7cc59a; }

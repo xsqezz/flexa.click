@@ -12,7 +12,8 @@ import { Button, Drawer, EmptyState, Field, Notice, errorMessage } from './ui'
 import { CameraScanner } from './CameraScanner'
 import { SourceCredit } from './SourceCredit'
 import { catalogGroups, requiredProducts } from '../../../shared/polish-catalog'
-import { recentFoods } from '../lib/templates'
+import { suggestedFoods } from '../lib/templates'
+import { today } from '../lib/dates'
 import { MealTemplates } from './MealTemplates'
 
 const mealKinds: MealKind[] = ['breakfast', 'lunch', 'dinner', 'snack']
@@ -42,7 +43,7 @@ export function MealDrawer({ date, initialMeal, initialTab = 'search', onClose }
   if (!data) throw new Error('Journal data is unavailable')
   const customFoods = data.customFoods
   const mode = auth.mode === 'demo' ? 'demo' : 'cloud'
-  const recent = recentFoods(data.meals, customFoods)
+  const recent = suggestedFoods(data.meals, customFoods, today())
   const lastPortion = new Map(recent.map((item) => [item.food.id, item.portion]))
 
   function select(value: Food, previousPortion?: number | null) {
@@ -169,7 +170,7 @@ export function MealDrawer({ date, initialMeal, initialTab = 'search', onClose }
         {searching && <Notice>Wyszukuję produkty…</Notice>}
         {!result && !searching && tab === 'search' && <MealTemplates date={date} initialMeal={initialMeal} onAdded={onClose} />}
         {!result && tab === 'search' && <>
-          <h3 className="recent-foods-heading">Ostatnio dodane i Twoje produkty</h3>
+          <h3 className="recent-foods-heading">Częste, ostatnie i Twoje produkty</h3>
           <p className="source-credit">Dotknij produktu, a wpiszemy porcję z ostatniego razu. „Szukaj” sprawdza rzeczywisty katalog produktów, także w trybie lokalnym — nie tylko przykłady demo.</p>
         </>}
         {result?.warnings.map((warning) => <Notice key={warning}>{warning}</Notice>)}

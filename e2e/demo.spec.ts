@@ -885,7 +885,7 @@ test('meals copy from yesterday, reuse the last portion and become one-tap templ
 
   await page.getByRole('button', { name: 'Dodaj do: Kolacja' }).click()
   const dialog = page.getByRole('dialog')
-  await expect(dialog.getByRole('heading', { name: 'Ostatnio dodane i Twoje produkty' })).toBeVisible()
+  await expect(dialog.getByRole('heading', { name: 'Częste, ostatnie i Twoje produkty' })).toBeVisible()
   const portion = (await dinnerToday()).find((meal) => meal.food.name === 'Awokado')?.portion
   await dialog.getByRole('button', { name: new RegExp(`^Awokado.*ostatnio ${portion} g`) }).click()
   await expect(dialog.getByLabel('Porcja (g)', { exact: true })).toHaveValue(String(portion))
@@ -998,6 +998,69 @@ test('a Smart Kuchnia recipe is saved once to the product library', async ({ pag
   await navigate(page, '/meals')
   await page.getByRole('button', { name: 'Dodaj do: Śniadanie' }).click()
   await expect(page.getByRole('dialog').getByRole('button', { name: new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*wartości szacunkowe`) })).toBeVisible()
+})
+
+test('goals explain what more data the weight trend needs and never change targets on their own', async ({ page }) => {
+  await openDemo(page)
+  await navigate(page, '/goals')
+  const panel = page.locator('.adaptive-panel')
+  await expect(panel.getByRole('heading', { name: 'Trend a Twój cel' })).toBeVisible()
+  await expect(panel).toContainText('Zapisuj posiłki')
+  await expect(page.locator('.cycle-recap').first()).toContainText('Zmiana masy')
+  const before = (await journal(page)).goals.cycles
+  await accessible(page)
+  expect((await journal(page)).goals.cycles).toEqual(before)
+})
+
+test('shopping list keeps manual items on the device, checks them off and clears them', async ({ page }) => {
+  await openDemo(page)
+  await navigate(page, '/kitchen')
+  await page.getByRole('link', { name: 'Lista zakupów' }).click()
+  await expect(page.getByRole('heading', { name: 'Lista zakupów', level: 1 })).toBeVisible()
+  await page.getByLabel('Dodaj pozycję').fill('Mleko owsiane')
+  await page.getByRole('button', { name: 'Dodaj do listy' }).click()
+  await expect(page.getByRole('checkbox', { name: 'Mleko owsiane' })).toBeVisible()
+  await accessible(page)
+  await page.reload()
+  await page.getByRole('checkbox', { name: 'Mleko owsiane' }).click()
+  await expect(page.getByRole('heading', { name: 'Kupione (1)' })).toBeVisible()
+  await page.getByRole('button', { name: 'Wyczyść kupione' }).click()
+  await expect(page.getByRole('checkbox')).toHaveCount(0)
+  await expect(page.getByText('Lista jest pusta')).toBeVisible()
+})
+
+test('weekly plan logs a saved set into the diary once', async ({ page }) => {
+  await openDemo(page)
+  await page.evaluate(() => {
+    const value = JSON.parse(localStorage.getItem('flexa:demo:v1') ?? 'null')
+    const food = value.customFoods[0] ?? {
+      id: crypto.randomUUID(), name: 'Owsianka testowa', brand: '', barcode: null, source: 'custom', unit: 'g',
+      nutrients: { kcal: 120, protein: 4, carbs: 20, fat: 3, fiber: 2 },
+    }
+    value.mealTemplates = [{ id: crypto.randomUUID(), name: 'Zestaw testowy', items: [{ food, portion: 200 }] }]
+    localStorage.setItem('flexa:demo:v1', JSON.stringify(value))
+  })
+  await page.reload()
+  await page.goto('/meals/plan')
+  await expect(page.getByRole('heading', { name: 'Plan tygodnia', level: 1 })).toBeVisible()
+  const today = await browserToday(page)
+  const lunchBefore = (await journal(page)).meals.filter((meal) => meal.date === today && meal.meal === 'lunch').length
+  const day = page.locator('.meal-plan-day.today')
+  await day.getByLabel('Obiad').selectOption({ index: 1 })
+  await expect(day.getByText(/Plan: .* kcal/)).toBeVisible()
+  await accessible(page)
+  await day.getByRole('button', { name: 'Zapisz w dzienniku' }).click()
+  await expect.poll(async () => (await journal(page)).meals.filter((meal) => meal.date === today && meal.meal === 'lunch').length).toBe(lunchBefore + 1)
+  await expect(day.getByRole('button', { name: 'Zapisz w dzienniku' })).toBeDisabled()
+})
+
+test('exercise history shows personal records without rankings', async ({ page }) => {
+  await openDemo(page)
+  await page.goto('/workouts/exercises')
+  await page.locator('.exercise-history-list h2 a').first().click()
+  await expect(page.getByRole('heading', { name: 'Twoje rekordy' })).toBeVisible()
+  await expect(page.locator('.exercise-record-list li').first()).toBeVisible()
+  await accessible(page)
 })
 
 test('approved goal estimate, CSV export and backup restore without deleting anything', async ({ page }, testInfo) => {

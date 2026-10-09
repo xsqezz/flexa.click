@@ -147,3 +147,59 @@ export function exerciseHistory(workouts: Workout[]): ExerciseHistory[] {
     }
   }).sort((a, b) => b.lastDate.localeCompare(a.lastDate) || a.name.localeCompare(b.name, 'pl'))
 }
+
+export type RecordKind = 'weight' | 'estimate' | 'volume' | 'reps'
+export type PersonalRecord = { kind: RecordKind; label: string; value: number; unit: string; date: string }
+
+/** Best session values for an exercise, with the date they were reached. Ties keep the earlier date. */
+export function personalRecords(item: ExerciseHistory): PersonalRecord[] {
+  const best = (read: (session: ExerciseSession) => number | null) => {
+    let found: { value: number; date: string } | null = null
+    for (const session of item.sessions) {
+      const value = read(session)
+      if (value !== null && value > 0 && (!found || value > found.value)) found = { value, date: session.date }
+    }
+    return found
+  }
+  const result: PersonalRecord[] = []
+  const weight = best((session) => session.heaviest?.weightKg ?? null)
+  const estimate = best((session) => session.estimate)
+  const volume = best((session) => session.volume || null)
+  const reps = weight || volume ? null : best((session) => session.reps || null)
+  if (weight) result.push({ kind: 'weight', label: 'Największy ciężar', unit: 'kg', ...weight })
+  if (estimate) result.push({ kind: 'estimate', label: 'Szacowane 1RM', unit: 'kg', ...estimate })
+  if (volume) result.push({ kind: 'volume', label: 'Objętość treningu', unit: 'kg × powt.', ...volume })
+  if (reps) result.push({ kind: 'reps', label: 'Powtórzenia w treningu', unit: 'powt.', ...reps })
+  return result
+}
+
+/** Records that the latest session set: it beat everything logged before it (needs at least two sessions). */
+export function newRecords(item: ExerciseHistory): RecordKind[] {
+  if (item.sessions.length < 2) return []
+  const last = item.sessions[item.sessions.length - 1]!
+  const earlier = { ...item, sessions: item.sessions.slice(0, -1) }
+  const before = new Map(personalRecords(earlier).map((record) => [record.kind, record.value]))
+  const now = personalRecords(item).filter((record) => record.date === last.date)
+  return now.filter((record) => record.value > (before.get(record.kind) ?? 0)).map((record) => record.kind)
+}
+
+/**
+ * A gentle double-progression suggestion from the last two sessions: add repetitions first, then load.
+ * It is only a suggestion and returns null when there is not enough comparable data.
+ */
+export function progressionHint(item: ExerciseHistory): string | null {
+  const [previous, last] = item.sessions.slice(-2)
+  if (!previous || !last) return null
+  const top = (session: ExerciseSession) => session.heaviest ?? session.sets.reduce<WorkoutSet | null>((best, item) => (item.reps ?? 0) > (best?.reps ?? 0) ? item : best, null)
+  const a = top(previous)
+  const b = top(last)
+  if (!a || !b || a.reps === null || b.reps === null) return null
+  if (a.weightKg !== null && b.weightKg !== null) {
+    if (a.weightKg === b.weightKg && a.reps >= 12 && b.reps >= 12) return `Dwa treningi z rzędu ${b.reps} powt. przy ${numberFormat.format(b.weightKg)} kg. Możesz spróbować +2,5 kg i wrócić do 8–10 powtórzeń.`
+    if (a.weightKg === b.weightKg && b.reps >= 8 && b.reps >= a.reps) return `Przy ${numberFormat.format(b.weightKg)} kg spróbuj dołożyć jedno powtórzenie w serii.`
+    if (b.weightKg > a.weightKg) return `Ciężar wzrósł do ${numberFormat.format(b.weightKg)} kg. Zostań przy nim, aż powtórzenia będą pewne.`
+    return null
+  }
+  if (a.weightKg === null && b.weightKg === null && b.reps >= 15 && a.reps >= 15) return 'Seria 15+ powtórzeń dwa razy z rzędu. Spróbuj trudniejszego wariantu albo wolniejszego tempa.'
+  return null
+}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowRight, Camera, Check, ImagePlus, Search, ShieldCheck, Sparkles, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Camera, Check, ImagePlus, Search, ShieldCheck, ShoppingBasket, Sparkles, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { ingredients } from '../../../shared/kitchen/ingredients'
 import { getIngredient, normalizeName } from '../../../shared/kitchen/lookup'
 import { equipmentKinds, equipmentLabels, type Equipment, type IngredientCategory } from '../../../shared/kitchen/types'
@@ -208,6 +209,7 @@ export function KitchenPage() {
   const canContinue = step === 'ingredients' ? owned.length > 0 : step === 'preferences' ? preferences.equipment.length > 0 : false
   return <>
     <PageHeader title="Smart Kuchnia" description="Powiedz, co masz w domu — ułożę przepis z makroskładnikami, dopasowany do czasu i sprzętu." primary="none" />
+    <Link className="text-link kitchen-shopping-link" to="/kitchen/shopping"><ShoppingBasket size={16} aria-hidden="true" />Lista zakupów</Link>
     <nav aria-label="Kroki Smart Kuchni" className="kitchen-steps-nav">
       <ol>{stepOrder.map((item, position) => <li key={item} aria-current={item === step ? 'step' : undefined} className={position < index ? 'done' : undefined}>
         <span aria-hidden="true">{position < index ? <Check size={14} /> : position + 1}</span>

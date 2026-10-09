@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { ArrowLeftRight, BookmarkCheck, BookmarkPlus, CookingPot, Clock3, Plus, RefreshCw, SlidersHorizontal, Users } from 'lucide-react'
+import { ArrowLeftRight, BookmarkCheck, BookmarkPlus, CookingPot, Clock3, Plus, RefreshCw, ShoppingBasket, SlidersHorizontal, Users } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { foodSchema, mealNames, type Food, type MealKind } from '../../../shared/domain'
 import { getIngredient } from '../../../shared/kitchen/lookup'
 import { equipmentLabels } from '../../../shared/kitchen/types'
@@ -11,6 +12,8 @@ import { generateDishImage } from '../lib/kitchen/ai-client'
 import type { Preferences, Recipe, RecipeLine } from '../lib/kitchen/context'
 import { cap, joinList, minutesLabel, quantityLabel } from '../lib/kitchen/text'
 import { stableUuid } from '../lib/ids'
+import { addRecipeLines } from '../lib/shopping'
+import { useShopping } from '../lib/useShopping'
 import { useFeedback } from './Feedback'
 import { Button, Drawer, Field, Notice, errorMessage } from './ui'
 
@@ -178,6 +181,20 @@ function SaveToLibrary({ recipe }: { recipe: Recipe }) {
   </Button>
 }
 
+function AddToShopping({ recipe }: { recipe: Recipe }) {
+  const { update } = useShopping()
+  const navigate = useNavigate()
+  const feedback = useFeedback()
+  const missing = recipe.lines.filter((line) => !line.owned && !line.staple)
+  if (!missing.length) return null
+  return <Button variant="secondary" onClick={() => {
+    update((items) => addRecipeLines(items, missing.map((line) => ({
+      id: line.id, name: cap(getIngredient(line.id).nom), grams: line.grams, taste: line.taste,
+    })), recipe.title))
+    feedback(`Dodano ${missing.length} ${missing.length === 1 ? 'pozycję' : 'pozycji'} do listy zakupów.`, { action: { label: 'Otwórz', onAction: () => navigate('/kitchen/shopping') } })
+  }}><ShoppingBasket size={17} aria-hidden="true" />Dodaj brakujące do zakupów</Button>
+}
+
 export function RecipeView({ recipe, index, total, owned, preferences, aiReady, onPick, onNext, onEditPreferences }:
   { recipe: Recipe; index: number; total: number; owned: readonly string[]; preferences: Preferences; aiReady: boolean; onPick: (recipe: Recipe) => void; onNext: () => void; onEditPreferences: () => void }) {
   const [swapping, setSwapping] = useState<string | null>(null)
@@ -217,6 +234,7 @@ export function RecipeView({ recipe, index, total, owned, preferences, aiReady, 
     <div className="kitchen-actions">
       <Button onClick={() => setLogging(true)}><Plus size={17} aria-hidden="true" />Dodaj do dziennika</Button>
       <SaveToLibrary recipe={recipe} />
+        <AddToShopping recipe={recipe} />
       <Button variant="secondary" onClick={onNext} disabled={total < 2}><RefreshCw size={17} aria-hidden="true" />Inny przepis{total > 1 ? ` (${index + 1}/${total})` : ''}</Button>
       <Button variant="ghost" onClick={onEditPreferences}><SlidersHorizontal size={17} aria-hidden="true" />Zmień preferencje</Button>
     </div>

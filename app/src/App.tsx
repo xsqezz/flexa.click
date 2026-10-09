@@ -19,6 +19,8 @@ import { GoalsPage, GoalsSetupPage, NewGoalCyclePage } from './pages/GoalsPage'
 import { WorkoutPlayer } from './pages/WorkoutPlayer'
 import { Brand, Skeleton } from './components/ui'
 
+const MealPlanPage = lazy(() => import('./pages/MealPlanPage').then((module) => ({ default: module.MealPlanPage })))
+const ShoppingPage = lazy(() => import('./pages/ShoppingPage').then((module) => ({ default: module.ShoppingPage })))
 const KitchenPage = lazy(() => import('./pages/KitchenPage').then((module) => ({ default: module.KitchenPage })))
 const ScanPage = lazy(() => import('./pages/ScanPage').then((module) => ({ default: module.ScanPage })))
 
@@ -80,8 +82,10 @@ export default function App() {
               <Route path="/goals" element={<GoalsPage />} />
               <Route path="/goals/new" element={<NewGoalCyclePage />} />
               <Route path="/meals" element={<MealsPage />} />
+              <Route path="/meals/plan" element={<Suspense fallback={<Skeleton />}><MealPlanPage /></Suspense>} />
               <Route path="/meals/scan" element={<Suspense fallback={<Skeleton />}><ScanPage /></Suspense>} />
               <Route path="/journal" element={<Navigate to="/meals" replace />} />
+              <Route path="/kitchen/shopping" element={<Suspense fallback={<Skeleton />}><ShoppingPage /></Suspense>} />
               <Route path="/kitchen" element={<Suspense fallback={<Skeleton />}><KitchenPage /></Suspense>} />
               <Route path="/plan" element={<PlanPage />} />
               <Route path="/workouts" element={<WorkoutsPage />} />

@@ -29,3 +29,23 @@ export function recentFoods(meals: readonly Meal[], customFoods: readonly Food[]
   }
   return [...seen.values()]
 }
+
+/**
+ * Recent foods with the ones the user eats most often (at least 3 times in the last 60 days) moved to the front,
+ * so the daily staples are one tap away. Frequency never hides recent items, it only reorders them.
+ */
+export function suggestedFoods(meals: readonly Meal[], customFoods: readonly Food[], today: string, limit = 12): RecentFood[] {
+  const recent = recentFoods(meals, customFoods, limit)
+  const from = new Date(`${today}T00:00:00Z`)
+  from.setUTCDate(from.getUTCDate() - 60)
+  const since = from.toISOString().slice(0, 10)
+  const counts = new Map<string, number>()
+  for (const meal of meals) {
+    if (meal.date < since || meal.date > today) continue
+    const key = meal.food.id || meal.food.name
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  const count = (item: RecentFood) => counts.get(item.food.id || item.food.name) ?? 0
+  const frequent = recent.filter((item) => count(item) >= 3).sort((a, b) => count(b) - count(a)).slice(0, 4)
+  return [...frequent, ...recent.filter((item) => !frequent.includes(item))]
+}

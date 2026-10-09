@@ -1224,3 +1224,53 @@ h2 { font-weight: 680; }
 .drawer[open] { animation: slide-in 420ms var(--ease) both; }
 @keyframes slide-in { from { opacity: .4; transform: translateX(36px); } to { opacity: 1; transform: none; } }
 @media (max-width: 700px) { .drawer[open] { animation-name: sheet-in; } @keyframes sheet-in { from { opacity: .4; transform: translateY(40px); } to { opacity: 1; transform: none; } } }
+/* Cele: adaptacyjne propozycje i podsumowanie cyklu */
+.adaptive-panel { margin-top: 23px; display: grid; gap: 12px; }
+.adaptive-panel h2 { display: flex; align-items: center; gap: 9px; }
+.adaptive-reasons { margin: 0; padding-left: 20px; color: var(--muted); font-size: .84rem; line-height: 1.7; }
+.adaptive-change { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0; }
+.adaptive-change > div { padding: 14px 16px; border-radius: 18px; background: #d9ecff; }
+.adaptive-change > div:nth-child(2) { background: #d6f3e4; }
+.adaptive-change > div:nth-child(3) { background: #fff0bd; }
+.adaptive-change dt { font-size: .74rem; color: #2c4034; }
+.adaptive-change dd { margin: 4px 0 0; font-size: 1.15rem; font-weight: 650; color: #20352b; }
+.adaptive-change small { font-size: .74rem; font-weight: 500; }
+.adaptive-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.cycle-recap { margin-top: 24px; }
+.goals-cycles .cycle-recap { margin: 10px 0 6px; }
+.goals-cycles .cycle-recap strong { font-size: 1.05rem; }
+@media (max-width: 700px) { .adaptive-change { grid-template-columns: 1fr; } .cycle-recap small:first-child { font-size: .66rem; } }
+/* Lista zakupów */
+.kitchen-shopping-link { margin: -4px 0 14px; }
+.shopping-panel { margin-top: 18px; display: grid; gap: 14px; }
+.shopping-panel h2 small { color: var(--muted); font-weight: 500; }
+.shopping-add { display: flex; align-items: end; gap: 10px; flex-wrap: wrap; }
+.shopping-add .field { flex: 1 1 220px; }
+.shopping-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.shopping-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 18px; background: #f4f8f3; transition: opacity 200ms var(--ease), background-color 200ms var(--ease); }
+.shopping-item.done { opacity: .6; }
+.shopping-item.done .shopping-text strong { text-decoration: line-through; }
+.shopping-check { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #5f8f74; background: #fff; color: #fff; cursor: pointer; transition: background-color 160ms var(--ease), transform 160ms var(--ease); }
+.shopping-check[aria-checked="true"] { background: #0b7a55; border-color: #0b7a55; }
+.shopping-check:active { transform: scale(.9); }
+.shopping-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.shopping-text small { color: var(--muted); font-size: .76rem; }
+.shopping-done-title { font-size: .95rem; margin: 8px 0 0; color: var(--muted); }
+/* Plan tygodnia */
+.plan-week-nav { align-items: center; gap: 12px; }
+.meal-plan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-top: 16px; }
+.meal-plan-day { display: grid; gap: 10px; align-content: start; }
+.meal-plan-day h2 { font-size: 1.02rem; text-transform: capitalize; }
+.meal-plan-day.today { box-shadow: inset 0 0 0 2px #0b7a55; }
+.meal-plan-slot { display: grid; gap: 4px; font-size: .78rem; color: var(--muted); }
+.meal-plan-slot select { width: 100%; }
+.meal-plan-total { margin: 4px 0 0; font-size: .82rem; color: var(--muted); }
+/* Rekordy ćwiczeń */
+.exercise-records { display: grid; gap: 12px; margin-top: 18px; }
+.exercise-record-new { margin: 0; padding: 10px 14px; border-radius: 16px; background: #ffe4d1; color: #8a3a08; font-weight: 600; }
+.exercise-record-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.exercise-record-list li { display: grid; gap: 4px; padding: 14px 16px; border-radius: 18px; background: #e8e0ff; }
+.exercise-record-list li:nth-child(2) { background: #d9ecff; }
+.exercise-record-list li:nth-child(3) { background: #fff0bd; }
+.exercise-record-list small, .exercise-record-list span { font-size: .74rem; color: #2c4034; }
+.exercise-record-list strong { font-size: 1.15rem; color: #20352b; }
