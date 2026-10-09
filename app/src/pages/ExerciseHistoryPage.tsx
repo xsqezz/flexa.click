@@ -6,7 +6,6 @@ import { integerFormat, numberFormat } from '../lib/nutrition'
 import { exerciseHistory, formatSet, type ExerciseHistory } from '../lib/training/sets'
 import { LineChart, Sparkline } from '../components/Charts'
 import { EmptyState } from '../components/ui'
-import { TrainingTabs } from '../components/Workspace'
 
 const sessionsLabel = (count: number) => `${count} ${count === 1 ? 'trening' : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14) ? 'treningi' : 'treningów'}`
 const usesLoad = (item: ExerciseHistory) => item.sessions.some((session) => session.volume > 0)
@@ -22,7 +21,7 @@ function Values({ item }: { item: ExerciseHistory }) {
 }
 
 function Header({ title, description, back }: { title: string; description: string; back: { to: string; label: string } }) {
-  return <><TrainingTabs /><header className="page-header exercise-history-header">
+  return <><header className="page-header exercise-history-header">
     <div><Link className="text-link" to={back.to}><ArrowLeft size={15} aria-hidden="true" />{back.label}</Link><h1>{title}</h1><p>{description}</p></div>
   </header></>
 }
@@ -69,7 +68,7 @@ export function ExerciseHistoryPage() {
     </>
   }
   return <>
-    <Header title="Historia ćwiczeń" description="Twoje serie z dziennika: kiedy ostatnio, najcięższa seria i objętość treningu." back={{ to: '/workouts', label: 'Treningi' }} />
+    <Header title="Historia ćwiczeń" description="Twoje serie z dziennika: kiedy ostatnio, najcięższa seria i objętość treningu." back={{ to: '/workouts', label: 'Ruch' }} />
     {history.length === 0 ? <section className="panel"><EmptyState title="Tu pojawią się Twoje serie">
       Wpisz powtórzenia i ciężar w trakcie treningu z planu albo dodaj serie przy zapisie treningu siłowego („Dodaj trening” → Trening siłowy → Serie).
     </EmptyState></section> : <>

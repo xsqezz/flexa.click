@@ -6,7 +6,7 @@ import { useJournal } from '../lib/Journal'
 import { dateLabel, shiftDate } from '../lib/dates'
 import { integerFormat, numberFormat, pace, workoutLoad } from '../lib/nutrition'
 import { exerciseName, formatSet } from '../lib/training/sets'
-import { DateControl, PageHeader, TrainingTabs, useWorkspace } from '../components/Workspace'
+import { DateControl, PageHeader, useWorkspace } from '../components/Workspace'
 import { EmptyState } from '../components/ui'
 
 export function WorkoutsPage() {
@@ -17,8 +17,7 @@ export function WorkoutsPage() {
   const workouts = data.workouts.filter((workout) => workout.date <= date && (range === 0 || workout.date >= shiftDate(date, -range + 1)))
     .sort((a, b) => b.date.localeCompare(a.date))
   return <>
-    <TrainingTabs />
-    <PageHeader title="Historia treningów" description="Każda aktywność ma swoje miejsce. Bez rankingów i presji." primary="workout" />
+    <PageHeader title="Ruch" description="Zapisane spacery, biegi i treningi — każda aktywność ma tu swoje miejsce. Bez rankingów i presji." primary="workout" />
     <div className="page-toolbar"><DateControl /><div className="range-selector" aria-label="Okres aktywności">
       {[7, 30, 0].map((value) => <button key={value} aria-pressed={range === value} onClick={() => setRange(value)}>{value ? `${value} dni` : 'Wszystkie'}</button>)}
     </div></div>

@@ -6,7 +6,6 @@ import { FeedbackProvider } from './components/Feedback'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Workspace } from './components/Workspace'
 import { AuthPage } from './pages/AuthPage'
-import { Dashboard } from './pages/Dashboard'
 import { MealsPage } from './pages/MealsPage'
 import { WorkoutsPage } from './pages/WorkoutsPage'
 import { ExerciseHistoryPage } from './pages/ExerciseHistoryPage'
@@ -77,7 +76,7 @@ export default function App() {
           <Route path="/plan/:sessionKey" element={<WorkoutPlayer />} />
           <Route element={<AccountSetupGate />}>
             <Route element={<Workspace />}>
-              <Route index element={<Dashboard />} />
+              <Route index element={<Navigate to="/goals" replace />} />
               <Route path="/goals" element={<GoalsPage />} />
               <Route path="/goals/new" element={<NewGoalCyclePage />} />
               <Route path="/meals" element={<MealsPage />} />

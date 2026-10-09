@@ -18,6 +18,7 @@ export default defineConfig({
     actionTimeout: 12_000,
     timezoneId: 'Europe/Warsaw',
     serviceWorkers: 'block',
+    reducedMotion: 'reduce',
   },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1050 } } },

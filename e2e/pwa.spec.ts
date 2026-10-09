@@ -14,7 +14,7 @@ test('the app is installable and the demo opens offline after the first visit', 
   for (const icon of manifest.icons) expect((await page.request.get(`/${icon.src}`)).ok()).toBe(true)
 
   await page.goto('/demo')
-  await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Cele', level: 1, exact: true })).toBeVisible()
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/manifest.webmanifest')
   await page.evaluate(async () => { await navigator.serviceWorker.ready })
   if (!await page.evaluate(() => Boolean(navigator.serviceWorker.controller))) await page.reload()

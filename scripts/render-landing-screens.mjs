@@ -10,9 +10,9 @@ import { chromium } from '@playwright/test'
 const out = join(import.meta.dirname, '..', 'site', 'screens')
 const port = 4196
 const shots = [
-  { file: 'dzisiaj.jpg', route: '/', wait: 'Dzisiaj, w Twoim rytmie' },
   { file: 'cele.jpg', route: '/goals', wait: 'Cele' },
   { file: 'posilki.jpg', route: '/meals', wait: 'Posiłki' },
+  { file: 'kuchnia.jpg', route: '/kitchen', wait: 'Smart Kuchnia' },
   { file: 'trening.jpg', route: '/plan', wait: 'Twój plan treningowy' },
   { file: 'postepy.jpg', route: '/progress', wait: 'Postępy bez pośpiechu' },
 ]
@@ -28,10 +28,10 @@ try {
   })
   const page = await context.newPage()
   await page.goto(`http://127.0.0.1:${port}/demo`)
-  await page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' }).waitFor()
+  await page.getByRole('heading', { name: 'Cele', level: 1, exact: true }).waitFor()
   for (const shot of shots) {
     await page.goto(`http://127.0.0.1:${port}${shot.route}`)
-    await page.getByRole('heading', { name: shot.wait }).waitFor()
+    await page.getByRole('heading', { name: shot.wait, level: 1 }).waitFor()
     await page.addStyleTag({ content: '*, *::before, *::after { animation: none !important; transition: none !important; } .toast { display: none !important; }' })
     await page.waitForTimeout(400)
     await page.screenshot({ path: join(out, shot.file), type: 'jpeg', quality: 82 })

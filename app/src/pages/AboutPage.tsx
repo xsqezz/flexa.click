@@ -14,16 +14,16 @@ export function AboutPage() {
 
     <h2>Jak się poruszać</h2>
     <ul>
-      <li><strong>Dzisiaj</strong> — agenda wybranego dnia: planowany trening i szybkie przejście do wpisów.</li>
-      <li><strong>Cele</strong> — zatwierdzone kalorie, makroskładniki i woda, bieżąca i docelowa masa, historia dziennych zapisów oraz cykli. Fazy zmieniasz wyłącznie samodzielnie.</li>
+      <li><strong>Cele</strong> — ekran startowy: zatwierdzone kalorie, makroskładniki i woda, bieżąca i docelowa masa, historia dziennych zapisów oraz cykli. Fazy zmieniasz wyłącznie samodzielnie.</li>
       <li><strong>Posiłki</strong> — pasek dni tygodnia, wpisy według pory dnia, kopiowanie posiłków i zestawy. Przycisk „Skanuj posiłek ze zdjęcia” zamienia zdjęcie tacy lub talerza w listę pozycji z kaloriami w zakresie, którą poprawiasz i zatwierdzasz.</li>
-      <li><strong>Treningi</strong> — „Plan” prowadzi przez trening krok po kroku, a „Historia” pokazuje zapisane aktywności.</li>
       <li><strong>Kuchnia</strong> — Smart Kuchnia układa przepis z produktów, które masz.</li>
+      <li><strong>Treningi</strong> — plan prowadzi przez trening krok po kroku.</li>
+      <li><strong>Ruch</strong> — zapisane aktywności, historia ćwiczeń i import GPX/TCX.</li>
       <li><strong>Postępy</strong> — wykresy pomiarów, trendu wagi i odczuwalnego obciążenia.</li>
       <li><strong>Dodaj</strong> (przycisk „+”) — posiłek, skan kodu, woda, trening albo pomiar z każdego ekranu.</li>
       <li><strong>Konto</strong> (w prawym górnym rogu) — ustawienia profilu, eksport danych, przypomnienia w aplikacji na Androida i usunięcie konta.</li>
     </ul>
-    <p>Na telefonie przesuń palcem w lewo lub w prawo na ekranach „Dzisiaj”, „Cele” i „Posiłki”, żeby zmienić dzień. Usunięty wpis możesz przywrócić przyciskiem „Cofnij” w komunikacie, który pojawia się na kilka sekund.</p>
+    <p>Na telefonie przesuń palcem w lewo lub w prawo na ekranach „Cele” i „Posiłki”, żeby zmienić dzień. Usunięty wpis możesz przywrócić przyciskiem „Cofnij” w komunikacie, który pojawia się na kilka sekund.</p>
 
     <h2>Skróty klawiszowe</h2>
     <div className="table-scroll"><table>

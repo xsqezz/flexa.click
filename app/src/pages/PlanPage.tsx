@@ -11,7 +11,7 @@ import {
 import { findExercise } from '../lib/training/library'
 import { progressScope, readProgress } from '../lib/training/progress'
 import { workoutSteps } from '../lib/training/steps'
-import { TrainingTabs, useWorkspace } from '../components/Workspace'
+import { SectionIcon, useWorkspace } from '../components/Workspace'
 import { WeeklyActivity } from '../components/Summaries'
 import { useFeedback } from '../components/Feedback'
 import { Button, Confirm, EmptyState, Notice, errorMessage } from '../components/ui'
@@ -58,8 +58,7 @@ export function PlanPage() {
   }
 
   if (!plan) return <>
-    <TrainingTabs />
-    <header className="page-header"><div><h1>Plan treningowy</h1><p>Rozpisany tydzień treningów dopasowany do Ciebie.</p></div></header>
+    <header className="page-header"><div className="page-heading"><SectionIcon /><div><h1>Plan treningowy</h1><p>Rozpisany tydzień treningów dopasowany do Ciebie.</p></div></div></header>
     {data.training.unreadable && <Notice tone="error">Nie udało się odczytać zapisanego planu — mógł powstać w starszej wersji aplikacji. Utwórz go ponownie; poprzednie odpowiedzi nie zostały użyte.</Notice>}
     <section className="panel">
       <EmptyState title="Ułóż swój plan treningowy" action={<Link className="button button-primary" to="/plan/new"><ClipboardList size={17} aria-hidden="true" />Stwórz plan</Link>}>
@@ -74,9 +73,8 @@ export function PlanPage() {
   const resume: Resume = saved && savedSession ? { session: saved.session, step: saved.index + 1, total: workoutSteps(savedSession).length } : null
   const sessionsByDay = new Map(plan.sessions.map((session, index) => [session.weekday, { session, index }]))
   return <>
-    <TrainingTabs />
     <header className="page-header">
-      <div><h1>Twój plan treningowy</h1><p>{planSummary(plan.answers)}</p></div>
+      <div className="page-heading"><SectionIcon /><div><h1>Twój plan treningowy</h1><p>{planSummary(plan.answers)}</p></div></div>
       <Link className="button button-secondary" to="/plan/new"><RefreshCw size={17} aria-hidden="true" />Zmień odpowiedzi</Link>
     </header>
     <section aria-labelledby="plan-week-title">

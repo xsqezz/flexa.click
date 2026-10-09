@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, type TouchEvent } from 'react'
 import {
-  CalendarDays, ChartNoAxesCombined, ChefHat, ChevronLeft, ChevronRight, CircleHelp, Cloud, CloudOff, Dumbbell, LogOut, Plus, Search,
+  Activity, CalendarDays, ChartNoAxesCombined, ChefHat, ChevronLeft, ChevronRight, CircleHelp, Cloud, CloudOff, Dumbbell, LogOut, Plus, Search,
   Settings2, Target, Utensils,
 } from 'lucide-react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
@@ -26,14 +26,16 @@ type WorkspaceValue = {
 }
 const WorkspaceContext = createContext<WorkspaceValue | null>(null)
 
-type Section = { to: string; label: string; short: string; Icon: typeof CalendarDays; matches: (path: string) => boolean }
+type Accent = 'mint' | 'peach' | 'butter' | 'sky' | 'rose' | 'lilac'
+type Section = { to: string; label: string; short: string; Icon: typeof CalendarDays; accent: Accent; matches: (path: string) => boolean }
+/** Food on the left of „Dodaj”, movement on the right; each section has its own tile colour. */
 export const sections: Section[] = [
-  { to: '/', label: 'Dzisiaj', short: 'Dzisiaj', Icon: CalendarDays, matches: (path) => path === '/' },
-  { to: '/goals', label: 'Cele', short: 'Cele', Icon: Target, matches: (path) => path.startsWith('/goals') },
-  { to: '/meals', label: 'Posiłki', short: 'Posiłki', Icon: Utensils, matches: (path) => path.startsWith('/meals') },
-  { to: '/plan', label: 'Treningi', short: 'Treningi', Icon: Dumbbell, matches: (path) => path.startsWith('/plan') || path.startsWith('/workouts') },
-  { to: '/kitchen', label: 'Kuchnia', short: 'Kuchnia', Icon: ChefHat, matches: (path) => path.startsWith('/kitchen') },
-  { to: '/progress', label: 'Postępy', short: 'Postępy', Icon: ChartNoAxesCombined, matches: (path) => path.startsWith('/progress') },
+  { to: '/goals', label: 'Cele', short: 'Cele', Icon: Target, accent: 'mint', matches: (path) => path.startsWith('/goals') },
+  { to: '/meals', label: 'Posiłki', short: 'Posiłki', Icon: Utensils, accent: 'peach', matches: (path) => path.startsWith('/meals') },
+  { to: '/kitchen', label: 'Kuchnia', short: 'Kuchnia', Icon: ChefHat, accent: 'butter', matches: (path) => path.startsWith('/kitchen') },
+  { to: '/plan', label: 'Treningi', short: 'Treningi', Icon: Dumbbell, accent: 'sky', matches: (path) => path.startsWith('/plan') },
+  { to: '/workouts', label: 'Ruch', short: 'Ruch', Icon: Activity, accent: 'rose', matches: (path) => path.startsWith('/workouts') },
+  { to: '/progress', label: 'Postępy', short: 'Postępy', Icon: ChartNoAxesCombined, accent: 'lilac', matches: (path) => path.startsWith('/progress') },
 ]
 
 /** Pory dnia, dla których „Dodaj posiłek” podpowiada odpowiedni posiłek. */
@@ -44,8 +46,8 @@ export function mealForHour(hour: number): MealKind {
   return 'snack'
 }
 
-const DATED_ROUTES = ['/', '/goals', '/meals', '/meals/scan', '/workouts', '/progress']
-const SWIPE_ROUTES = ['/', '/goals', '/meals']
+const DATED_ROUTES = ['/goals', '/meals', '/meals/scan', '/workouts', '/progress']
+const SWIPE_ROUTES = ['/goals', '/meals']
 
 function isTyping(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName))
@@ -117,20 +119,21 @@ export function Workspace() {
     openQuickAdd: () => setQuickAdd(true), openSearch: () => setSearch(true),
   }
   const accountName = journal.data?.profile.displayName ?? 'Flexa'
+  const accent = sections.find((section) => section.matches(pathname))?.accent ?? 'mint'
   return <WorkspaceContext.Provider value={workspace}>
     <a className="skip-link" href="#main">Przejdź do treści</a>
-    <div className="app-shell">
+    <div className="app-shell" data-accent={accent}>
       <aside className="sidebar">
         <Brand />
         <nav aria-label="Menu główne" className="main-nav">
-          {sections.map(({ to, label, Icon, matches }) => {
+          {sections.map(({ to, label, Icon, matches, accent: tone }) => {
             const active = matches(pathname)
-            return <Link key={to} to={to} className={active ? 'nav-item active' : 'nav-item'} aria-current={active ? 'page' : undefined}>
-              <Icon size={20} aria-hidden="true" /><span>{label}</span>
+            return <Link key={to} to={to} data-accent={tone} className={active ? 'nav-item active' : 'nav-item'} aria-current={active ? 'page' : undefined}>
+              <span className="nav-icon"><Icon size={19} aria-hidden="true" /></span><span>{label}</span>
             </Link>
           })}
           <NavLink to="/settings" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-            <Settings2 size={20} aria-hidden="true" /><span>Konto i ustawienia</span>
+            <span className="nav-icon"><Settings2 size={19} aria-hidden="true" /></span><span>Konto i ustawienia</span>
           </NavLink>
         </nav>
         <div className="sidebar-note">
@@ -168,7 +171,7 @@ export function Workspace() {
           {error && <Notice tone="error">{error}</Notice>}
           {journal.error && <Notice tone="error">{journal.error} <button className="text-link" onClick={journal.refresh}>Spróbuj ponownie</button></Notice>}
           {journal.error && !journal.data && auth.mode === 'demo' && <DemoRecovery />}
-          {journal.loading ? <Skeleton /> : journal.data && <Outlet />}
+          {journal.loading ? <Skeleton /> : journal.data && <div key={pathname} className="page-enter"><Outlet /></div>}
         </main>
         <footer className="workspace-footer"><span>Flexa · Twój dziennik, Twoje dane</span>
           <div><Link to="/about">O Flexa</Link><Link to="/privacy">Prywatność</Link><Link to="/sources">Źródła i licencje</Link></div>
@@ -193,8 +196,8 @@ export function Workspace() {
 function MobileLink({ section, pathname }: { section: Section; pathname: string }) {
   const active = section.matches(pathname)
   const { Icon } = section
-  return <Link to={section.to} className={active ? 'active' : undefined} aria-current={active ? 'page' : undefined}>
-    <Icon size={21} aria-hidden="true" />{section.short}
+  return <Link to={section.to} data-accent={section.accent} className={active ? 'active' : undefined} aria-current={active ? 'page' : undefined}>
+    <span className="mobile-icon"><Icon size={20} aria-hidden="true" /></span>{section.short}
   </Link>
 }
 
@@ -204,19 +207,22 @@ export function useWorkspace() {
   return workspace
 }
 
-/** Przełącznik w zakładce „Treningi”: plan tygodnia i historia zapisanych aktywności. */
-export function TrainingTabs() {
-  return <nav className="subnav" aria-label="Widok treningu">
-    <NavLink to="/plan" end className={({ isActive }) => isActive ? 'active' : undefined}>Plan</NavLink>
-    <NavLink to="/workouts" className={({ isActive }) => isActive ? 'active' : undefined}>Historia</NavLink>
-  </nav>
+
+/** Kolorowy kafelek z ikoną bieżącej zakładki, używany w nagłówkach stron. */
+export function SectionIcon() {
+  const { pathname } = useLocation()
+  const section = sections.find((entry) => entry.matches(pathname))
+  return section ? <span className="page-icon" data-accent={section.accent} aria-hidden="true"><section.Icon size={24} /></span> : null
 }
 
 export function PageHeader({ title, description, primary = 'meal' }:
   { title: string; description: string; primary?: 'meal' | 'workout' | 'measurement' | 'none' }) {
   const workspace = useWorkspace()
   return <header className="page-header">
-    <div><h1>{title}</h1><p>{description}</p></div>
+    <div className="page-heading">
+      <SectionIcon />
+      <div><h1>{title}</h1><p>{description}</p></div>
+    </div>
     {primary !== 'none' && <Button onClick={primary === 'meal' ? () => workspace.openMeal() : primary === 'workout' ? workspace.openWorkout : workspace.openMeasurement}>
       <Plus size={18} aria-hidden="true" />{primary === 'meal' ? 'Dodaj posiłek' : primary === 'workout' ? 'Dodaj trening' : 'Dodaj pomiar'}
     </Button>}

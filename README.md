@@ -74,7 +74,7 @@ wymagają konta, zgody na wysłanie zdjęcia i mają dzienne limity na konto (mi
 `202610080001_kitchen_ai_quota.sql`). Zdjęć nie zapisujemy; AI nigdy nie pisze przepisu ani nie
 liczy makro.
 
-**Nawigacja i wygoda:** siedem pozycji: Dzisiaj · Cele · Posiłki · Dodaj · Treningi (Plan | Historia) · Kuchnia · Postępy. Dzisiaj jest agendą, Cele skupiają bilans i historię energii, Posiłki służą wpisywaniu jedzenia, a Postępy pokazują długoterminowe pomiary i aktywność. Przycisk „Dodaj”
+**Nawigacja i wygoda:** siedem pozycji: Cele · Posiłki · Kuchnia · Dodaj · Treningi · Ruch · Postępy (jedzenie po lewej, ruch po prawej). Cele to ekran startowy: bilans, historia energii i „Zacznij tu”; Posiłki służą wpisywaniu jedzenia, Treningi prowadzą plan, Ruch zbiera zapisane aktywności, a Postępy pokazują długoterminowe pomiary i aktywność. Przycisk „Dodaj”
 na każdym ekranie (posiłek, skan kodu, woda, trening, pomiar), wyszukiwarka Ctrl+K (strony, akcje, wpisy), zmiana dnia przesunięciem
 palca, strzałkami lub paskiem tygodnia, „Cofnij” po usunięciu wpisu, lista „Zacznij tu” dla nowych kont, strona „O Flexa” ze
 skrótami klawiszowymi, ciemny motyw według ustawień systemu i instalacja jako aplikacja (PWA) z działaniem offline.

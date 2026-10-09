@@ -192,7 +192,7 @@ test('install block offers the APK with a scannable QR code and highlights the m
   const screens = page.locator('#screens img')
   await expect(screens).toHaveCount(5)
   expect(await screens.evaluateAll((images) => images.map((image) => image.getAttribute('src'))))
-    .toEqual(['screens/dzisiaj.jpg', 'screens/cele.jpg', 'screens/posilki.jpg', 'screens/trening.jpg', 'screens/postepy.jpg'])
+    .toEqual(['screens/cele.jpg', 'screens/posilki.jpg', 'screens/kuchnia.jpg', 'screens/trening.jpg', 'screens/postepy.jpg'])
   for (const image of await screens.all()) {
     await expect(image).toHaveAttribute('alt', /.{20,}/)
     await expect(image).toHaveAttribute('width', '780')

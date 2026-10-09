@@ -11,7 +11,7 @@ import { dateLabel, daysEndingAt, today } from '../lib/dates'
 import { currentWeight, cycleNames, effectiveCycle, goalForDay, validateCycleStart } from '../lib/goals'
 import { integerFormat, numberFormat, nutritionTotal } from '../lib/nutrition'
 import { useFeedback } from '../components/Feedback'
-import { rememberGoalsReviewed } from '../components/FirstSteps'
+import { FirstSteps, rememberGoalsReviewed } from '../components/FirstSteps'
 import { NutritionSummary, WaterPanel } from '../components/Summaries'
 import { DateControl, PageHeader, useWorkspace } from '../components/Workspace'
 import { ChipChoice, ChoiceList } from '../components/WizardFields'
@@ -338,8 +338,9 @@ export function GoalsPage() {
   const dailyTarget = goalForDay(data, date)
   const meals = data.meals.filter((meal) => meal.date === date)
   return <>
-    <PageHeader title="Cele" description="Twój kierunek na dziś i historia zatwierdzonych zmian. Bez automatycznych faz." primary="none" />
-    <div className="page-toolbar"><DateControl /><Link className="button button-primary" to="/goals/new">Rozpocznij nowy cykl <ArrowRight size={17} aria-hidden="true" /></Link></div>
+    <PageHeader title="Cele" description="Twój kierunek na dziś i historia zatwierdzonych zmian. Bez automatycznych faz." />
+    <FirstSteps />
+    <div className="page-toolbar"><DateControl /><Link className="button button-secondary" to="/goals/new">Rozpocznij nowy cykl <ArrowRight size={17} aria-hidden="true" /></Link></div>
     {!data.goals.setupDone && <Notice>Wstępne wartości są tylko punktem wyjścia. <Link to="/goals/setup">Ustal i zatwierdź swoje cele</Link> albo wróć do nich później.</Notice>}
     {!current && <Notice>{last
       ? <>Cykl zakończył się {dateLabel(last.endDate)}. Dzienne cele nie zmieniły się same. Wybierz kolejny cykl, kiedy będziesz gotowy(-a).</>

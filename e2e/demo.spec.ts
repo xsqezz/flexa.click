@@ -24,7 +24,7 @@ test.beforeEach(async ({ page }) => {
 
 async function openDemo(page: Page) {
   await page.goto('/demo')
-  await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Cele', level: 1, exact: true })).toBeVisible()
 }
 
 async function journal(page: Page) {
@@ -35,10 +35,7 @@ async function journal(page: Page) {
 async function navigate(page: Page, route: string) {
   const link = page.locator(`nav:visible a[href="${route}"]`)
   if (route === '/settings' && await link.count() === 0) await page.getByRole('link', { name: /^Konto i ustawienia:/ }).click()
-  else if (route === '/workouts' && await link.count() === 0) {
-    await page.locator('nav:visible a[href="/plan"]').first().click()
-    await page.getByRole('navigation', { name: 'Widok treningu' }).getByRole('link', { name: 'Historia' }).click()
-  } else await link.first().click()
+  else await link.first().click()
 }
 
 async function accessible(page: Page) {
@@ -158,13 +155,15 @@ test('water, goals, measurements, complete JSON export and demo reset', async ({
   await expect(page.getByRole('heading', { name: 'Dobrze Cię widzieć' })).toBeVisible()
 })
 
-test('seven destinations have one owner each, and old journal links still open Meals', async ({ page }) => {
+test('six destinations around Dodaj have one owner each, and old journal links still open Meals', async ({ page }) => {
   await openDemo(page)
+  await expect(page).toHaveURL(/\/goals$/)
   expect((await page.locator('.mobile-nav a, .mobile-nav button').allTextContents()).map((label) => label.trim()))
-    .toEqual(['Dzisiaj', 'Cele', 'Posiłki', 'Dodaj', 'Treningi', 'Kuchnia', 'Postępy'])
+    .toEqual(['Cele', 'Posiłki', 'Kuchnia', 'Dodaj', 'Treningi', 'Ruch', 'Postępy'])
   expect((await page.locator('.main-nav a').allTextContents()).slice(0, 6).map((label) => label.trim()))
-    .toEqual(['Dzisiaj', 'Cele', 'Posiłki', 'Treningi', 'Kuchnia', 'Postępy'])
-  await expect(page.locator('.nutrition-panel, .meal-group, .water-panel')).toHaveCount(0)
+    .toEqual(['Cele', 'Posiłki', 'Kuchnia', 'Treningi', 'Ruch', 'Postępy'])
+  await expect(page.locator('.meal-group')).toHaveCount(0)
+  await expect(page.locator('.nutrition-panel, .water-panel')).toHaveCount(2)
   await navigate(page, '/goals')
   await expect(page.locator('.nutrition-panel, .water-panel')).toHaveCount(2)
   await expect(page.locator('.meal-group')).toHaveCount(0)
@@ -353,7 +352,7 @@ test('quick add, search and day navigation work from any screen', async ({ page 
   await search.fill('plan treningowy')
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL(/\/plan$/)
-  await expect(page.getByRole('navigation', { name: 'Widok treningu' }).getByRole('link', { name: 'Plan' })).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByRole('heading', { name: /plan treningowy/i, level: 1 })).toBeVisible()
 
   await navigate(page, '/meals')
   const day = page.getByLabel('Dzień dziennika', { exact: true })
@@ -484,7 +483,7 @@ test('corrupted demo is preserved, downloadable, and recoverable without setting
   expect(await readFile(output, 'utf8')).toBe('{damaged')
   await page.getByRole('button', { name: 'Wyzeruj demo', exact: true }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Wyzeruj demo', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Cele', level: 1, exact: true })).toBeVisible()
 })
 
 test('guided workout shows one step at a time, rests with a stopwatch, resumes and logs the session', async ({ page }) => {
@@ -594,8 +593,8 @@ test('all main pages, dialog, privacy and landing are accessible without overflo
     const width = await page.locator('.nutrition-panel').evaluate((node) => node.getBoundingClientRect().width)
     const widths = await page.locator('.dashboard-aside .panel').evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().width))
     expect(widths.every((value) => Math.abs(value - width) < 1)).toBe(true)
-    await navigate(page, '/')
   }
+  await navigate(page, '/meals')
   await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
   await accessible(page)
   await page.keyboard.press('Escape')

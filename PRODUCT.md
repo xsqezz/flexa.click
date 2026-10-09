@@ -70,10 +70,10 @@ account; it is never presented as synchronized cloud data.
   user corrects size, number of pieces or weight, may type exact values from a menu,
   receipt or package (which replace the table), and confirms before anything is saved
   to Posiłki. Photos are not stored. The demo offers the same flow built by hand.
-- Navigation has seven phone positions (Dzisiaj, Cele, Posiłki, Dodaj, Treningi,
-  Kuchnia, Postępy). Treningi includes Plan and Historia; Dodaj opens a quick-add
-  sheet from every screen. Dzisiaj is an agenda, Cele own approved nutrition
-  targets and their history, Posiłki own meal entries, and Postępy own longer-term
+- Navigation has seven phone positions (Cele, Posiłki, Kuchnia, Dodaj, Treningi,
+  Ruch, Postępy); Dodaj opens a quick-add sheet from every screen. Cele is the
+  landing screen and owns approved nutrition targets and their history, Posiłki own
+  meal entries, Treningi the plan and workout player, Ruch logged activity, and Postępy own longer-term
   measurements and movement. A command palette (Ctrl+K) finds pages, actions and diary entries,
   day navigation by swipe, arrow keys and a week strip, and undo toasts instead of
   confirmation dialogs for removing entries. The interface follows the system

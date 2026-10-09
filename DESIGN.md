@@ -1,6 +1,6 @@
 ---
 name: Flexa
-description: A light, practical planning board for food, movement and progress.
+description: A light, rounded, pastel-tiled planner for food, movement and progress.
 colors:
   pine: "#276043"
   pine-dark: "#1d4933"
@@ -39,9 +39,10 @@ typography:
     fontWeight: 600
     lineHeight: 1.4
 rounded:
-  control: "9px"
-  panel: "16px"
-  mobile-panel: "13px"
+  control: "999px"
+  panel: "24px"
+  tile: "20px"
+  mobile-panel: "20px"
 spacing:
   control-inline: "16px"
   control-block: "10px"
@@ -88,7 +89,8 @@ PRODUCT.md and the deployment guide, not decorative marketing claims.
 - Cool light paper, pine ink and functional green actions.
 - One system sans family with tabular numeric values.
 - Separate blue, ochre and lilac nutrient roles.
-- Flat record divisions, native controls and restrained state transitions.
+- Pill controls, 24px panels and pastel accent tiles (mint, peach, butter, sky, rose, lilac), one per tab.
+- Soft shadows and short CSS-only animations (rise, grow, glow) that stop under reduced motion.
 
 ## Colors
 
@@ -132,8 +134,7 @@ documentation uses a 920px reading container and horizontally scrollable tables.
 
 ## Elevation & Depth
 
-App surfaces are flat at rest, distinguished by white fill, thin borders and
-spacing. Small selection shadows are limited to segmented controls. The landing's
+App panels are white with thin borders and a soft, low-contrast shadow; pastel overview tiles carry nutrient and metric values. Pages fade and rise in on navigation (`page-enter`), bars grow in, and the Dodaj button glows. All motion is CSS-only and collapses under `prefers-reduced-motion`. The landing's
 illustrative board uses a soft offset shadow and slight rotation; this is a
 demonstration treatment, not the default for every app panel.
 
@@ -142,8 +143,8 @@ short and state-driven; honor reduced-motion preferences.
 
 ## Shapes
 
-Controls use 9px corners; panels use 16px, reducing to 13px on phones. Record
-groups use straight thin separators instead of individual nested cards.
+Buttons and chips are pills; panels use 24px corners and tiles 20px. Record
+groups still use thin separators instead of nested cards.
 Small line icons accompany named actions. Rounded avatars and the leaf
 illustration are accents, not a replacement for actual diary content.
 
@@ -159,21 +160,18 @@ at least 44px height. Preserve units, required-state validation and error messag
 
 **Navigation.** Named line-icon links use muted ink at rest and pale green with
 pine text when active. The rail and phone's seven-position bar follow the exact
-order Dzisiaj · Cele · Posiłki · Dodaj · Treningi · Kuchnia · Postępy.
-"Treningi" covers Plan and Historia, switched by a segmented control at the top
-of both views. On phones a round pine "Dodaj" button sits in the middle of the
-bar and opens the quick-add sheet; on desktop the same sheet opens from the top
+order Cele · Posiłki · Kuchnia · Dodaj · Treningi · Ruch · Postępy (food on the left, movement on the right). Each tab has its own accent colour on its icon tile.
+On phones the bar floats as a rounded pill and a round pine "Dodaj" button sits in the middle;
+it opens the quick-add sheet, and on desktop the same sheet opens from the top
 bar. Bottom labels are at least 11px at 320px and remain usable with seven targets.
 Account settings stay reachable from the labelled "Konto" link in the top bar,
 and "Szukaj" (Ctrl+K) opens the command palette beside it.
 
-**Screen ownership.** Dzisiaj is a lightweight agenda without duplicated food
-ledger or calorie summary. Cele own confirmed daily kcal, macros, hydration,
+**Screen ownership.** There is no separate "Dzisiaj" tab: Cele is the landing screen and hosts the first-steps checklist. Cele own confirmed daily kcal, macros, hydration,
 weight and dated cycle history; Posiłki own meal entry and copying, with the
 week strip but no second target panel. "Skan posiłku" (`/meals/scan`) belongs to
 Posiłki: a photo only proposes catalogue items; kcal and macros are shown as ranges
-and nothing is saved until the user confirms. Treningi own the plan, its workout player,
-logged sessions and weekly movement. Postępy own weight trends and longer-term
+and nothing is saved until the user confirms. Treningi own the plan and its workout player; Ruch owns logged sessions, exercise history and imports. Postępy own weight trends and longer-term
 activity charts, not another daily food dashboard. The goals setup reuses the
 plan's age and sex when available and shows an editable estimate before an
 explicit confirmation; expired cycles never activate a new phase automatically.
@@ -185,7 +183,7 @@ combobox, a listbox of pages, actions and diary entries, and visible key hints.
 
 **Day navigation.** A seven-day strip (day, number, kcal, dot for days with entries)
 sits under the date control in Posiłki; arrow keys, T and horizontal swipes on
-Dzisiaj, Cele and Posiłki move between days. Cele also show a date-indexed table
+Cele and Posiłki move between days. Cele also show a date-indexed table
 of consumed versus historically approved kcal, distinguishing no entry from zero.
 
 **Undo.** Removing a diary entry hides it at once and shows a toast with "Cofnij" for

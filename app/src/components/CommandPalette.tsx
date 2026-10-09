@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import {
-  CalendarDays, Camera, ChartNoAxesCombined, ChefHat, CircleHelp, ClipboardList, Download, Droplet, Dumbbell, History, Play, Ruler,
+  Camera, ChartNoAxesCombined, ChefHat, CircleHelp, ClipboardList, Download, Droplet, Dumbbell, History, Play, Ruler,
   ScanBarcode, Search, Settings2, Shield, Target, Utensils, X,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -71,12 +71,11 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
         detail: sessionTitle(plan.sessions[sessionIndex], sessionIndex, plan.answers.goal), keywords: 'plan cwiczenia', icon: icon(Play),
         run: go(`/plan/${plan.sessions[sessionIndex].key}`),
       }] : []),
-      { id: 'page-today', group: 'Przejdź do', label: 'Dzisiaj', keywords: 'pulpit start podsumowanie', icon: icon(CalendarDays), run: go('/') },
-      { id: 'page-goals', group: 'Przejdź do', label: 'Cele', keywords: 'kalorie makro waga cykle', icon: icon(Target), run: go('/goals') },
+      { id: 'page-goals', group: 'Przejdź do', label: 'Cele', keywords: 'kalorie makro waga cykle dzisiaj dzis pulpit start', icon: icon(Target), run: go('/goals') },
       { id: 'page-meals', group: 'Przejdź do', label: 'Posiłki', keywords: 'dziennik tydzien jedzenie', icon: icon(Utensils), run: go('/meals') },
-      { id: 'page-plan', group: 'Przejdź do', label: 'Treningi', keywords: 'plan treningowy cwiczenia tydzien', icon: icon(ClipboardList), run: go('/plan') },
       { id: 'page-kitchen', group: 'Przejdź do', label: 'Kuchnia', keywords: 'przepis gotowanie lodowka', icon: icon(ChefHat), run: go('/kitchen') },
-      { id: 'page-workouts', group: 'Przejdź do', label: 'Historia treningów', keywords: 'aktywnosc treningi', icon: icon(History), run: go('/workouts') },
+      { id: 'page-plan', group: 'Przejdź do', label: 'Treningi', keywords: 'plan treningowy cwiczenia tydzien', icon: icon(ClipboardList), run: go('/plan') },
+      { id: 'page-workouts', group: 'Przejdź do', label: 'Ruch', keywords: 'aktywnosc treningi historia', icon: icon(History), run: go('/workouts') },
       { id: 'page-progress', group: 'Przejdź do', label: 'Postępy', keywords: 'wykresy waga pomiary analiza', icon: icon(ChartNoAxesCombined), run: go('/progress') },
       { id: 'page-settings', group: 'Przejdź do', label: 'Konto i ustawienia', keywords: 'ustawienia profil eksport konto', icon: icon(Settings2), run: go('/settings') },
       { id: 'plan-new', group: 'Przejdź do', label: plan ? 'Zmień odpowiedzi w planie treningowym' : 'Ułóż plan treningowy', keywords: 'ankieta plan', icon: icon(ClipboardList), run: go('/plan/new') },
