@@ -1,3 +1,3 @@
-Przypomnienia o treningu i wodzie jako powiadomienia (opcjonalne, ustawiane w Cele i konto).
-Ciemny motyw zgodny z ustawieniami telefonu.
-Zapis eksportu CSV obok JSON.
+Przypomnienia o posiłkach (opcjonalne, w Ustawieniach)
+Skróty na ikonie: Skan posiłku, Posiłki, Trening
+Nowy adres aplikacji: app.flexa.best (zaloguj się ponownie)
