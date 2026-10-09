@@ -79,6 +79,8 @@ na każdym ekranie (posiłek, skan kodu, woda, trening, pomiar), wyszukiwarka Ct
 palca, strzałkami lub paskiem tygodnia, „Cofnij” po usunięciu wpisu, lista „Zacznij tu” dla nowych kont, strona „O Flexa” ze
 skrótami klawiszowymi, ciemny motyw według ustawień systemu i instalacja jako aplikacja (PWA) z działaniem offline.
 
+**Planowanie i trend:** Cele pokazują podsumowanie cyklu (zmiana masy, średnie kcal, dni z wpisami) i, gdy trend wagi z ostatnich 14 dni odbiega od założeń cyklu, *propozycję* małej korekty kalorii (`app/src/lib/adaptive.ts`: regresja liniowa wagi, krok 100–200 kcal, dolny limit 1200/1500 kcal, bez osób poniżej 18 lat, zatwierdzana przez użytkownika jako nowy cykl). Plan tygodnia (`/meals/plan`) układa się z zapisanych zestawów, a lista zakupów (`/kitchen/shopping`) zbiera brakujące składniki z przepisów; obie funkcje oraz zapamiętane porcje Skanu zostają w `localStorage` urządzenia, osobno dla konta. Częste produkty są na górze listy dodawania posiłku, a historia ćwiczeń pokazuje rekordy i spokojne podpowiedzi progresji.
+
 **Dziennik i dane:** kopiowanie posiłków z wczoraj, zestawy posiłków, zapis przepisu jako własnego produktu, kalkulator orientacyjnego
 zapotrzebowania (nowe dane użyte do obliczenia nie są trwale zapisywane), przywracanie kopii JSON (domyślnie tylko brakujące wpisy; opcjonalnie profil, plan i zakończone cykle), eksport CSV,
 serie i ciężary w treningach z historią ćwiczeń, tygodniowy cel ruchu, trend wagi z 7 dni oraz opcjonalne obwody talii i bioder.

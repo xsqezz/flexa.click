@@ -1,10 +1,29 @@
+import { Share2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { Brand } from '../components/ui'
+import { Brand, Button } from '../components/ui'
+import { useFeedback } from '../components/Feedback'
+import { changelog } from '../lib/changelog'
 import { InstallButton } from '../components/InstallButton'
 import { ANDROID_APK_URL, androidAppVersion } from '../lib/native'
 import { privacyContact } from '../lib/supabase'
 
 /** „O Flexa”: czym jest aplikacja, jak się po niej poruszać, zasady i kontakt. */
+const SITE_URL = 'https://xsqezz.github.io/flexa.click/'
+
+function ShareFlexa() {
+  const feedback = useFeedback()
+  async function share() {
+    const data = { title: 'Flexa', text: 'Flexa — darmowy polski dziennik jedzenia, treningów i postępów.', url: SITE_URL }
+    try {
+      if (typeof navigator.share === 'function') await navigator.share(data)
+      else { await navigator.clipboard.writeText(SITE_URL); feedback('Link do Flexa skopiowany do schowka.') }
+    } catch (cause) {
+      if (!(cause instanceof DOMException && cause.name === 'AbortError')) feedback('Nie udało się udostępnić linku.', { tone: 'error' })
+    }
+  }
+  return <Button variant="secondary" onClick={() => { void share() }}><Share2 size={17} aria-hidden="true" />Poleć Flexa znajomym</Button>
+}
+
 export function AboutPage() {
   const androidVersion = androidAppVersion()
   return <main className="information-page">
@@ -41,6 +60,14 @@ export function AboutPage() {
     <p>Na Androidzie zainstaluj <a href={ANDROID_APK_URL} rel="noopener">aplikację Flexa (APK)</a> — sama proponuje aktualizacje. Na iPhonie otwórz Flexa w Safari i wybierz „Udostępnij”, a potem „Do ekranu początkowego”. Na komputerze w Chrome lub Edge możesz zainstalować Flexa z paska adresu.
       {androidVersion && <> Korzystasz teraz z aplikacji na Androida w wersji {androidVersion}.</>}</p>
     <InstallButton className="button button-secondary" />
+
+    <ShareFlexa />
+
+    <h2>Co nowego</h2>
+    <div className="changelog">{changelog.map((entry) => <section key={entry.title}>
+      <h3>{entry.title} <small>{new Date(`${entry.date}T12:00:00`).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })}</small></h3>
+      <ul>{entry.points.map((point) => <li key={point}>{point}</li>)}</ul>
+    </section>)}</div>
 
     <h2>Zasady</h2>
     <ul>

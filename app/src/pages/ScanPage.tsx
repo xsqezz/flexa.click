@@ -14,6 +14,7 @@ import { dateLabel, today } from '../lib/dates'
 import { plural } from '../lib/templates'
 import { integerFormat, numberFormat } from '../lib/nutrition'
 import { KitchenAiError, kitchenAiAvailable, preparePhoto, type PreparedPhoto } from '../lib/kitchen/ai-client'
+import { lineWithHabit, readHabits, rememberLines, saveHabits } from '../lib/scan/habits'
 import { analysePlate, lineForItem, rememberScanConsent, resolveFindings, scanConsentGiven } from '../lib/scan/client'
 import { DateControl, PageHeader, mealForHour, useWorkspace } from '../components/Workspace'
 import { useFeedback } from '../components/Feedback'
@@ -246,6 +247,7 @@ export function ScanPage() {
   const [notice, setNotice] = useState<{ tone: 'info' | 'success'; text: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const counter = useRef(0)
+  const scope = auth.session?.user.id ?? 'demo'
   useEffect(() => {
     let active = true
     loadPlateLibrary().then(() => { if (active) setLibrary('ready') }, () => { if (active) setLibrary('failed') })
@@ -283,7 +285,7 @@ export function ScanPage() {
   function add(id: string) {
     if (entries.length >= maxEntries) { setError(`Na jednym talerzu zmieścimy najwyżej ${maxEntries} pozycji.`); return }
     setError(null)
-    setEntries((current) => [...current, newEntry({ id, size: 'M' })])
+    setEntries((current) => [...current, newEntry(lineWithHabit(readHabits(scope), id))])
   }
 
   function replace(key: string, id: string) {
@@ -298,6 +300,8 @@ export function ScanPage() {
     try {
       const value = plate.lines.map((estimate) => ({ date, meal, ...lineFood(estimate) }))
       await execute({ type: 'meal.addMany', value })
+      saveHabits(scope, rememberLines(readHabits(scope), plate.lines.map((estimate) => estimate.line)))
+      saveHabits(scope, rememberLines(readHabits(scope), plate.lines.map((estimate) => estimate.line)))
       feedback(`Zapisano ${plural(value.length, ['pozycję', 'pozycje', 'pozycji'])} w: ${mealNames[meal]}.`)
       navigate('/meals')
     } catch (cause) { setError(errorMessage(cause)) }

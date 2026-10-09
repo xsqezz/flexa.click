@@ -224,6 +224,7 @@
   .exercise-record-list li:nth-child(3) { background: #3e1d00; }
   .exercise-record-list small, .exercise-record-list span { color: #b6cebf; }
   .exercise-record-list strong { color: #bdd7c9; }
+  .changelog section { background: #1b2119; }
   .chart-svg line[stroke="#e4eae5"] { stroke: #2c3a32; }
   .chart-svg polyline[stroke="#326b49"] { stroke: #7cc59a; }
   .chart-svg circle[fill="#326b49"] { fill: #7cc59a; }

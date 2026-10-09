@@ -176,6 +176,8 @@ activity charts, not another daily food dashboard. The goals setup reuses the
 plan's age and sex when available and shows an editable estimate before an
 explicit confirmation; expired cycles never activate a new phase automatically.
 
+**Planning surfaces.** "Trend a Twój cel" in Cele uses a three-tile row (current, proposal, carbs) with pastel fills and two actions: "Zatwierdź propozycję" and "Nie teraz" (snoozed for 7 days). The week plan is a grid of day panels with one select per meal slot; today has a green inset ring. The shopping list uses 28px round check circles on soft rows; checked rows fade and strike through. Personal records are pastel tiles; a new record is a single quiet peach note, never a badge or streak.
+
 **Quick add and search.** "Dodaj" is a bottom sheet on phones and a right-hand drawer
 on desktop: two-column grid of 64px action rows (posiłek, skan, woda, trening, pomiar,
 przepis, dzisiejszy trening). The command palette is a centered dialog (640px) with a

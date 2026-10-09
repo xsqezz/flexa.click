@@ -78,6 +78,11 @@ account; it is never presented as synchronized cloud data.
   day navigation by swipe, arrow keys and a week strip, and undo toasts instead of
   confirmation dialogs for removing entries. The interface follows the system
   light or dark setting and can be installed as an offline-capable web app (PWA).
+- Planning aids stay advisory and local: Cele show a cycle recap and may propose a small calorie
+  change when the 14-day weight trend leaves the phase band (user confirms it as a new cycle;
+  never for under-18s, never below 1200/1500 kcal); the weekly meal plan, shopping list and
+  remembered Skan portions live in the browser per account; exercise history shows personal
+  records and gentle progression hints without rankings, streaks or badges.
 - After the training questionnaire (including skip), adults may propose calorie,
   macro and water goals using Mifflin–St Jeor and confirm them or set them manually.
   Each dated nutrition cycle stores an approved snapshot, start and target weight.

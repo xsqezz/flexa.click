@@ -1274,3 +1274,9 @@ h2 { font-weight: 680; }
 .exercise-record-list li:nth-child(3) { background: #fff0bd; }
 .exercise-record-list small, .exercise-record-list span { font-size: .74rem; color: #2c4034; }
 .exercise-record-list strong { font-size: 1.15rem; color: #20352b; }
+/* O Flexa: co nowego */
+.changelog { display: grid; gap: 14px; }
+.changelog section { padding: 16px 20px; border-radius: 22px; background: #f4f8f3; }
+.changelog h3 { margin: 0 0 8px; font-size: 1rem; }
+.changelog small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+.changelog ul { margin: 0; padding-left: 20px; line-height: 1.7; }
