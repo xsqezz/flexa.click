@@ -1,6 +1,7 @@
 import { z } from 'zod'
-import { getPlateItem, plateItemsById, plateSizes } from '../../../../shared/meal-scan/catalog'
+import { getPlateItem, plateSizes, type PlateItem } from '../../../../shared/meal-scan/catalog'
 import type { PlateLine } from '../../../../shared/meal-scan/estimate'
+import { matchDescriptor, type Confidence } from '../../../../shared/meal-scan/match'
 import { KitchenAiError, failure } from '../kitchen/ai-client'
 
 const CONSENT_KEY = 'flexa:meal-photo'
@@ -15,15 +16,16 @@ export function rememberScanConsent(value: boolean): void {
 
 const resultSchema = z.object({
   items: z.array(z.object({
-    id: z.string().refine((id) => plateItemsById.has(id)),
+    name: z.string().min(1).max(80),
+    brand: z.string().max(40).nullable(),
     size: z.enum(plateSizes).nullable(),
     count: z.number().int().min(1).max(60).nullable(),
   })).max(25),
-  unknown: z.array(z.string().max(60)).max(10),
   photos: z.number().int().min(1).max(2),
   analysed: z.number().int().min(0).max(2),
 })
 export type PlateAnalysis = z.infer<typeof resultSchema>
+export type PlateFinding = PlateAnalysis['items'][number]
 
 export async function analysePlate(images: readonly string[], token: string, signal?: AbortSignal): Promise<PlateAnalysis> {
   const response = await fetch('/api/meal/plate', {
@@ -36,10 +38,38 @@ export async function analysePlate(images: readonly string[], token: string, sig
   return parsed.data
 }
 
-/** Pieces the model counted become a count; otherwise its size guess (medium when it gave none) is kept for the user to confirm. */
-export function lineFromFinding(finding: PlateAnalysis['items'][number]): PlateLine {
-  const item = getPlateItem(finding.id)
+/** Pieces the model counted become a count; a fixed menu portion only takes a number of portions; otherwise its size guess is kept for the user to confirm. */
+export function lineForItem(item: PlateItem, finding: Pick<PlateFinding, 'size' | 'count'>): PlateLine {
+  const count = finding.count && finding.count > 1 ? finding.count : null
+  if (item.fixed) return count && !/\d/.test(item.name) ? { id: item.id, count: Math.min(count, 12) } : { id: item.id }
   if (finding.count && item.piece) return { id: item.id, count: finding.count }
-  if (finding.count && finding.count > 1) return { id: item.id, size: finding.size ?? 'M', count: Math.min(finding.count, 6) }
+  if (count) return { id: item.id, size: finding.size ?? 'M', count: Math.min(count, 6) }
   return { id: item.id, size: finding.size ?? 'M' }
+}
+
+export type ResolvedFinding = {
+  line: PlateLine
+  /** What the model said, shown so the user can see why this item was chosen. */
+  heard: string
+  /** Other catalogue items that fit, best first, for a one-tap correction. */
+  alternatives: string[]
+  confidence: Confidence
+}
+
+/** Looks every finding up in the catalogue; findings with no plausible item come back as plain names. */
+export function resolveFindings(findings: readonly PlateFinding[]): { resolved: ResolvedFinding[]; unknown: string[] } {
+  const resolved: ResolvedFinding[] = []
+  const unknown: string[] = []
+  for (const finding of findings) {
+    const match = matchDescriptor(finding, 5)
+    const best = match.candidates[0]
+    if (!best || match.candidates[0].score < 0.3) { unknown.push(finding.name); continue }
+    resolved.push({
+      line: lineForItem(best.item, finding),
+      heard: finding.brand ? `${finding.name} (${finding.brand})` : finding.name,
+      alternatives: match.candidates.slice(1).map((candidate) => candidate.item.id).filter((id) => getPlateItem(id)),
+      confidence: match.confidence,
+    })
+  }
+  return { resolved, unknown }
 }

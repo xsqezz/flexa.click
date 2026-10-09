@@ -2,24 +2,28 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Camera, Check, ImagePlus, Plus, Search, ShieldCheck, Sparkles, Trash2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { mealNames, type MealKind } from '../../../shared/domain'
-import { getPlateItem, plateSizeLabels, plateSizes, searchPlateItems, type PlateSize } from '../../../shared/meal-scan/catalog'
+import { getPlateItem, plateSizeLabels, plateSizes, type PlateSize } from '../../../shared/meal-scan/catalog'
 import {
   confidenceLabels, estimateLine, estimatePlate, lineFood, lineProblem, portionText, scaleToKcal, type Band, type PlateLine,
 } from '../../../shared/meal-scan/estimate'
+import { loadPlateLibrary } from '../../../shared/meal-scan/library'
+import { searchPlateItems, type Confidence } from '../../../shared/meal-scan/match'
 import { useAuth } from '../lib/Auth'
 import { useJournal } from '../lib/Journal'
 import { dateLabel, today } from '../lib/dates'
 import { plural } from '../lib/templates'
 import { integerFormat, numberFormat } from '../lib/nutrition'
 import { KitchenAiError, kitchenAiAvailable, preparePhoto, type PreparedPhoto } from '../lib/kitchen/ai-client'
-import { analysePlate, lineFromFinding, rememberScanConsent, scanConsentGiven } from '../lib/scan/client'
+import { analysePlate, lineForItem, rememberScanConsent, resolveFindings, scanConsentGiven } from '../lib/scan/client'
 import { DateControl, PageHeader, mealForHour, useWorkspace } from '../components/Workspace'
 import { useFeedback } from '../components/Feedback'
 import { Button, Notice, errorMessage } from '../components/ui'
 
-type Entry = { key: string; line: PlateLine }
+type Entry = { key: string; line: PlateLine; heard?: string; alternatives?: string[]; confidence?: Confidence }
 const maxEntries = 25
 const quickPicks = ['burger-double', 'fries', 'cola', 'pizza-cheese', 'kebab', 'nuggets', 'sauce-ketchup', 'salad-plain']
+const sourceLabels = { PL: 'oficjalne dane sieci w Polsce', US: 'dane sieci z USA (starsze, orientacyjne)' } as const
+const precisionLabels = { exact: 'wartości z menu', weighed: 'podana ilość', counted: 'policzone sztuki', official: 'porcja z oficjalnego menu', estimated: 'ocena na oko' } as const
 
 const kcalRange = (band: Band) => band.low === band.high ? integerFormat.format(band.typical) : `${integerFormat.format(band.low)}–${integerFormat.format(band.high)}`
 const without = (line: PlateLine, ...keys: ('count' | 'grams' | 'exact')[]): PlateLine => {
@@ -34,7 +38,22 @@ const parseNumber = (value: string): number | null => {
   return Number.isFinite(parsed) ? parsed : Number.NaN
 }
 
-function PlateRow({ entry, onChange, onRemove }: { entry: Entry; onChange: (line: PlateLine) => void; onRemove: () => void }) {
+function ItemPicker({ onPick, alternatives = [], label = 'Podobne pozycje', disabled = false, placeholder = 'Szukaj: frytki, kebab, cola, sos czosnkowy…' }: { onPick: (id: string) => void; alternatives?: readonly string[]; label?: string; disabled?: boolean; placeholder?: string }) {
+  const [query, setQuery] = useState('')
+  const found = useMemo(() => searchPlateItems(query, 12).map((entry) => entry.item), [query])
+  return <>
+    <label className="kitchen-search"><Search size={17} aria-hidden="true" /><span className="sr-only">Szukaj dania, dodatku lub napoju</span>
+      <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={placeholder} autoComplete="off" disabled={disabled} /></label>
+    {query.trim() ? <div className="kitchen-chips" role="group" aria-label="Wyniki wyszukiwania">
+      {found.length ? found.map((item) => <button key={item.id} type="button" className="kitchen-chip" onClick={() => { onPick(item.id); setQuery('') }} disabled={disabled}><Plus size={15} aria-hidden="true" />{item.name}{item.brand ? ` · ${item.brand}` : ''}</button>)
+        : <p className="scan-lead">Nie ma takiej pozycji. Spróbuj prostszej nazwy albo podobnego dania i wpisz własne wartości z menu.</p>}
+    </div> : alternatives.length > 0 && <div className="kitchen-chips" role="group" aria-label={label}>
+      {alternatives.map((id) => <button key={id} type="button" className="kitchen-chip" onClick={() => onPick(id)} disabled={disabled}>{getPlateItem(id).name}{getPlateItem(id).brand ? ` · ${getPlateItem(id).brand}` : ''}</button>)}
+    </div>}
+  </>
+}
+
+function PlateRow({ entry, onChange, onReplace, onRemove }: { entry: Entry; onChange: (line: PlateLine) => void; onReplace: (id: string) => void; onRemove: () => void }) {
   const id = useId()
   const { line } = entry
   const item = getPlateItem(line.id)
@@ -66,7 +85,9 @@ function PlateRow({ entry, onChange, onRemove }: { entry: Entry; onChange: (line
     <div className="scan-row-head">
       <div>
         <strong>{item.name}</strong>
-        <span>{portionText(estimate)} · {estimate.precision === 'exact' ? 'wartości z menu' : estimate.precision === 'weighed' ? 'podana ilość' : estimate.precision === 'counted' ? 'policzone sztuki' : 'ocena na oko'}</span>
+        <span>{item.brand ? `${item.brand} · ` : ''}{portionText(estimate)} · {precisionLabels[estimate.precision]}</span>
+        {item.brand && item.region && <span className="scan-heard">Źródło: {sourceLabels[item.region]}</span>}
+        {entry.heard && <span className="scan-heard">Rozpoznano: {entry.heard}</span>}
       </div>
       <div className="scan-row-kcal">
         <strong>{integerFormat.format(estimate.kcal.typical)} kcal</strong>
@@ -74,14 +95,19 @@ function PlateRow({ entry, onChange, onRemove }: { entry: Entry; onChange: (line
       </div>
       <button type="button" className="icon-button" aria-label={`Usuń: ${item.name}`} onClick={onRemove}><Trash2 size={17} aria-hidden="true" /></button>
     </div>
-    <fieldset className="scan-sizes">
+    {entry.confidence && entry.confidence !== 'sure' && <p className="scan-check" role="note">Nie jestem pewien tej pozycji — sprawdź ją albo zmień na właściwą.</p>}
+    {entry.heard && <details className="scan-swap">
+      <summary>To nie ta pozycja? Zmień</summary>
+      <div className="scan-more-body"><ItemPicker onPick={onReplace} alternatives={entry.alternatives} /></div>
+    </details>}
+    {!item.fixed && <fieldset className="scan-sizes">
       <legend className="sr-only">Rozmiar porcji: {item.name}</legend>
       {plateSizes.map((size) => <label key={size} className="scan-size">
         <input type="radio" name={`${id}-size`} checked={activeSize === size}
           onChange={() => onChange({ id: line.id, size, ...(line.exact ? { exact: line.exact } : {}) })} />
         <span><strong>{plateSizeLabels[size]}</strong><small>{item.sizes[size]} {item.unit}</small></span>
       </label>)}
-    </fieldset>
+    </fieldset>}
     <div className="scan-row-fields">
       <label className="scan-field">
         <span>{item.piece ? `Liczba sztuk (${item.piece.label})` : 'Liczba porcji'}</span>
@@ -121,7 +147,7 @@ function PlateRow({ entry, onChange, onRemove }: { entry: Entry; onChange: (line
   </li>
 }
 
-function PhotoPanel({ aiReady, onAnalysed }: { aiReady: boolean | null; onAnalysed: (analysis: Awaited<ReturnType<typeof analysePlate>>) => void }) {
+function PhotoPanel({ aiReady, onAnalysed }: { aiReady: boolean | null; onAnalysed: (analysis: Awaited<ReturnType<typeof analysePlate>>) => Promise<void> }) {
   const auth = useAuth()
   const token = auth.session?.access_token ?? null
   const [photos, setPhotos] = useState<PreparedPhoto[]>([])
@@ -163,7 +189,7 @@ function PhotoPanel({ aiReady, onAnalysed }: { aiReady: boolean | null; onAnalys
     setError(null); setBusy('working')
     try {
       const analysis = await analysePlate(photos.map((photo) => photo.images[0]), token)
-      onAnalysed(analysis)
+      await onAnalysed(analysis)
       for (const photo of photos) URL.revokeObjectURL(photo.preview)
       setPhotos([])
     } catch (cause) {
@@ -201,18 +227,9 @@ function PhotoPanel({ aiReady, onAnalysed }: { aiReady: boolean | null; onAnalys
 }
 
 function AddItem({ onAdd, disabled, suggestions }: { onAdd: (id: string) => void; disabled: boolean; suggestions: boolean }) {
-  const [query, setQuery] = useState('')
-  const found = useMemo(() => searchPlateItems(query), [query])
   return <section className="scan-add" aria-labelledby="scan-add-title">
     <h3 id="scan-add-title">Dodaj składnik</h3>
-    <label className="kitchen-search"><Search size={17} aria-hidden="true" /><span className="sr-only">Szukaj dania, dodatku lub napoju</span>
-      <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Szukaj: frytki, kebab, cola, sos czosnkowy…" autoComplete="off" disabled={disabled} /></label>
-    {query.trim() ? <div className="kitchen-chips" role="group" aria-label="Wyniki wyszukiwania">
-      {found.length ? found.map((item) => <button key={item.id} type="button" className="kitchen-chip" onClick={() => { onAdd(item.id); setQuery('') }} disabled={disabled}><Plus size={15} aria-hidden="true" />{item.name}</button>)
-        : <p className="scan-lead">Nie ma takiej pozycji. Spróbuj prostszej nazwy albo podobnego dania i wpisz własne wartości z menu.</p>}
-    </div> : suggestions && <div className="kitchen-chips" role="group" aria-label="Najczęstsze pozycje">
-      {quickPicks.map((id) => <button key={id} type="button" className="kitchen-chip" onClick={() => onAdd(id)} disabled={disabled}><Plus size={15} aria-hidden="true" />{getPlateItem(id).name}</button>)}
-    </div>}
+    <ItemPicker onPick={onAdd} disabled={disabled} alternatives={suggestions ? quickPicks : []} label="Najczęstsze pozycje" />
   </section>
 }
 
@@ -225,9 +242,15 @@ export function ScanPage() {
   const [entries, setEntries] = useState<Entry[]>([])
   const [meal, setMeal] = useState<MealKind>(() => mealForHour(new Date().getHours()))
   const [aiReady, setAiReady] = useState<boolean | null>(null)
+  const [library, setLibrary] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [notice, setNotice] = useState<{ tone: 'info' | 'success'; text: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const counter = useRef(0)
+  useEffect(() => {
+    let active = true
+    loadPlateLibrary().then(() => { if (active) setLibrary('ready') }, () => { if (active) setLibrary('failed') })
+    return () => { active = false }
+  }, [])
   useEffect(() => {
     if (auth.mode !== 'cloud') return
     let active = true
@@ -235,21 +258,25 @@ export function ScanPage() {
     return () => { active = false }
   }, [auth.mode])
 
-  const newEntry = (line: PlateLine): Entry => ({ key: `row-${counter.current++}`, line })
+  const newEntry = (line: PlateLine, extra: Partial<Entry> = {}): Entry => ({ key: `row-${counter.current++}`, line, ...extra })
   const problems = entries.some((entry) => lineProblem(entry.line))
   const plate = useMemo(() => estimatePlate(entries.filter((entry) => !lineProblem(entry.line)).map((entry) => entry.line)), [entries])
   const forDay = date === today() ? 'dziś' : dateLabel(date, { day: 'numeric', month: 'long' })
 
-  function onAnalysed(analysis: Awaited<ReturnType<typeof analysePlate>>) {
-    const lines = analysis.items.map(lineFromFinding)
+  async function onAnalysed(analysis: Awaited<ReturnType<typeof analysePlate>>) {
+    await loadPlateLibrary()
+    const { resolved, unknown } = resolveFindings(analysis.items)
     setEntries((current) => {
       const have = new Set(current.map((entry) => entry.line.id))
-      return [...current, ...lines.filter((line) => !have.has(line.id)).map(newEntry)].slice(0, maxEntries)
+      const fresh = resolved.filter((entry) => !have.has(entry.line.id) && have.add(entry.line.id))
+      return [...current, ...fresh.map((entry) => newEntry(entry.line, { heard: entry.heard, alternatives: entry.alternatives, confidence: entry.confidence }))].slice(0, maxEntries)
     })
-    const unknown = analysis.unknown.length ? ` Nie mam w bazie: ${analysis.unknown.join(', ')} — wyszukaj podobną pozycję albo wpisz własne wartości.` : ''
-    setNotice(lines.length
-      ? { tone: 'success', text: `Rozpoznałem ${plural(lines.length, ['pozycję', 'pozycje', 'pozycji'])}. Sprawdź rozmiary i liczbę sztuk — to one najbardziej zmieniają wynik.${unknown}` }
-      : { tone: 'info', text: `Nie rozpoznałem jedzenia na tym zdjęciu. Zrób zdjęcie z góry przy lepszym świetle albo dodaj składniki ręcznie.${unknown}` })
+    const unsure = resolved.filter((entry) => entry.confidence !== 'sure').length
+    const missing = unknown.length ? ` Nie znalazłem w bazie: ${unknown.join(', ')} — wyszukaj podobną pozycję albo wpisz własne wartości.` : ''
+    const doubt = unsure ? ` Oznaczyłem ${plural(unsure, ['pozycję', 'pozycje', 'pozycji'])} do sprawdzenia.` : ''
+    setNotice(resolved.length
+      ? { tone: 'success', text: `Rozpoznałem ${plural(resolved.length, ['pozycję', 'pozycje', 'pozycji'])}.${doubt} Sprawdź rozmiary i liczbę sztuk — to one najbardziej zmieniają wynik.${missing}` }
+      : { tone: 'info', text: `Nie rozpoznałem jedzenia na tym zdjęciu. Zrób zdjęcie z góry przy lepszym świetle albo dodaj składniki ręcznie.${missing}` })
     if (analysis.analysed < analysis.photos) setNotice({ tone: 'info', text: 'Jedno ze zdjęć nie zostało przeanalizowane. Sprawdź listę i uzupełnij ją ręcznie.' })
   }
 
@@ -257,6 +284,12 @@ export function ScanPage() {
     if (entries.length >= maxEntries) { setError(`Na jednym talerzu zmieścimy najwyżej ${maxEntries} pozycji.`); return }
     setError(null)
     setEntries((current) => [...current, newEntry({ id, size: 'M' })])
+  }
+
+  function replace(key: string, id: string) {
+    setEntries((current) => current.map((entry) => entry.key === key
+      ? { ...entry, line: lineForItem(getPlateItem(id), { size: entry.line.size ?? null, count: entry.line.count ?? null }), confidence: 'sure' }
+      : entry))
   }
 
   async function save() {
@@ -286,8 +319,11 @@ export function ScanPage() {
             ? <p className="scan-lead">Na razie pusto. Zrób zdjęcie albo dodaj składniki poniżej.</p>
             : <ul className="scan-rows">{entries.map((entry) => <PlateRow key={entry.key} entry={entry}
               onChange={(line) => setEntries((current) => current.map((item) => item.key === entry.key ? { ...item, line } : item))}
+              onReplace={(id) => replace(entry.key, id)}
               onRemove={() => setEntries((current) => current.filter((item) => item.key !== entry.key))} />)}</ul>}
-          <AddItem onAdd={add} disabled={false} suggestions={entries.length === 0} />
+          {library === 'loading' ? <p className="scan-lead" role="status">Wczytuję bazę potraw…</p>
+            : library === 'failed' ? <Notice tone="error">Nie udało się wczytać bazy potraw. Odśwież stronę i spróbuj ponownie.</Notice>
+              : <AddItem onAdd={add} disabled={false} suggestions={entries.length === 0} />}
         </section>
       </div>
       <aside className="panel scan-summary" aria-labelledby="scan-summary-title">

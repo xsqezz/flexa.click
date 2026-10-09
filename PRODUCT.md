@@ -59,10 +59,14 @@ account; it is never presented as synchronized cloud data.
   is an optional fallback. Missing nutrient values are not invented.
 - "Skan posiłku" (under Posiłki, also from Dodaj and search) turns a photo of a tray or
   plate into an editable list of components. With an account and explicit consent, a
-  vision model on Cloudflare Workers AI only names the visible items from a closed catalogue
-  of about 70 prepared foods and judges their relative size; a deterministic in-app
-  estimator computes kcal, protein, carbohydrates and fat from table values and always
-  shows a range, because a photo cannot reveal weight, oil or sauce inside a dish. The
+  vision model on Cloudflare Workers AI only names the visible items (English menu names,
+  restaurant brand, size, count) and never estimates calories; the app matches them to its
+  own library of over 8,000 items (official McDonald's, Burger King and KFC Poland menus,
+  USDA FoodData Central, hand-made Polish dishes). A recognised chain item uses the chain's
+  published values; everything else is computed by a deterministic in-app
+  estimator from table values and always
+  shows a range, because a photo cannot reveal weight, oil or sauce inside a dish. Uncertain
+  matches are flagged for review and swapped in one tap. The
   user corrects size, number of pieces or weight, may type exact values from a menu,
   receipt or package (which replace the table), and confirms before anything is saved
   to Posiłki. Photos are not stored. The demo offers the same flow built by hand.

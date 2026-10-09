@@ -50,13 +50,16 @@ bieżącą i docelową masę oraz historię kalorii i cykli. Demo dla 16–17-la
 oferuje tylko cele ręczne, bez kalkulatora i propozycji faz.
 
 **Skan posiłku:** w Posiłkach (oraz z przycisku „Dodaj” i wyszukiwarki) zrobisz zdjęcie tacy lub talerza — np. z fast foodu.
-Po zalogowaniu i wyrażeniu zgody model wizyjny Cloudflare Workers AI tylko **nazywa widoczne pozycje** ze zamkniętego katalogu
-(ok. 70 gotowych potraw, dodatków, sosów i napojów: `shared/meal-scan/catalog.ts`) i ocenia rozmiar porcji (S/M/L) lub liczbę sztuk.
-Kalorie i makro liczy deterministyczny estymator w aplikacji (`shared/meal-scan/estimate.ts`) z wartości tabelarycznych i zawsze
-pokazuje **zakres**, bo zdjęcie nie ujawnia wagi, oleju ani sosu w środku dania. Użytkownik poprawia rozmiar, liczbę sztuk lub wagę,
+Po zalogowaniu i wyrażeniu zgody model wizyjny Cloudflare Workers AI tylko **nazywa widoczne pozycje** (angielskie nazwy z menu, marka
+sieci, rozmiar, liczba sztuk) — kalorii ani wag nie podaje. Aplikacja dopasowuje te nazwy do własnej bazy (ponad 8 tys. pozycji, w tym
+oficjalne menu McDonald's, Burger King i KFC w Polsce, dane USDA FoodData Central oraz ręcznie opracowane polskie potrawy;
+`shared/meal-scan/data/catalog.json`, dopasowanie: `shared/meal-scan/match.ts`). Gdy marka jest rozpoznana, wartości pochodzą z oficjalnej
+tabeli sieci i zakres jest wąski; w pozostałych przypadkach jest to **zakres**, bo zdjęcie nie ujawnia wagi, oleju ani sosu w środku dania.
+Niepewne dopasowania są oznaczone do sprawdzenia i można je zmienić jednym kliknięciem. Użytkownik poprawia rozmiar, liczbę sztuk lub wagę,
 może wpisać dokładne wartości z menu, aplikacji sieci albo etykiety (zastępują tabelę) i dopiero potwierdzony wynik zapisuje w Posiłkach
 (każda pozycja jako produkt „skan”, wartość środkowa). Zdjęć nie zapisujemy; limit dzienny dzieli się ze Smart Kuchnią (`aiLimits.vision`).
 W demo ten sam ekran działa po ręcznym złożeniu talerza. Endpoint: `functions/api/meal/[action].ts` (`POST /api/meal/plate`).
+Bazę odbudowują skrypty z `scripts/plate-catalog/` (opis w `docs/DEPLOYMENT.md`).
 
 **Smart Kuchnia:** zakładka „Kuchnia” układa przepis z tego, co masz w domu. Wybierasz produkty
 (lub — po zalogowaniu — robisz zdjęcie lodówki i zatwierdzasz rozpoznaną listę), odpowiadasz na trzy

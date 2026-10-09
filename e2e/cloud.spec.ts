@@ -455,8 +455,11 @@ test('Skan posiłku recognises a tray after consent, lets the user correct it an
   await page.route('**/api/meal/plate', async (route) => {
     requests.push({ authorization: route.request().headers().authorization ?? '', images: (route.request().postDataJSON() as { images: string[] }).images })
     await route.fulfill({ json: {
-      items: [{ id: 'nuggets', size: null, count: 6 }, { id: 'fries', size: 'L', count: null }, { id: 'sauce-garlic', size: 'S', count: 1 }],
-      unknown: ['Surówka z kimchi'], photos: 1, analysed: 1,
+      items: [
+        { name: 'chicken nuggets', brand: null, size: null, count: 6 }, { name: 'french fries', brand: null, size: 'L', count: null },
+        { name: 'garlic sauce', brand: null, size: 'S', count: 1 }, { name: 'zzzzqqq', brand: null, size: null, count: null },
+      ],
+      photos: 1, analysed: 1,
     } })
   })
   await login(page)
@@ -475,8 +478,9 @@ test('Skan posiłku recognises a tray after consent, lets the user correct it an
   expect(requests[0].authorization).toMatch(/^Bearer /)
   expect(requests[0].images).toHaveLength(1)
   expect(requests[0].images[0]).toMatch(/^\/9j\//)
-  await expect(page.getByText(/Nie mam w bazie: Surówka z kimchi/)).toBeVisible()
+  await expect(page.getByText(/Nie znalazłem w bazie: zzzzqqq/)).toBeVisible()
   const nuggets = page.locator('.scan-row').filter({ hasText: 'Nuggetsy z kurczaka' })
+  await expect(nuggets).toContainText('Rozpoznano: chicken nuggets')
   await expect(nuggets).toContainText('6 szt. (ok. 102 g)')
   await nuggets.getByLabel('Liczba sztuk (szt.)').fill('9')
   await expect(nuggets).toContainText('9 szt. (ok. 153 g)')
@@ -490,6 +494,44 @@ test('Skan posiłku recognises a tray after consent, lets the user correct it an
   ])
   await page.reload()
   await expect(page.getByText('Nuggetsy z kurczaka (skan)')).toBeVisible()
+})
+
+test('Skan posiłku uses the official menu of a recognised chain and offers a one-tap correction', async ({ page }) => {
+  const mocked = await fixture(page)
+  await page.route('**/api/kitchen/status', (route) => route.fulfill({ json: { available: true, limits: { vision: 12, image: 30 } } }))
+  await page.route('**/api/meal/plate', (route) => route.fulfill({ json: {
+    items: [
+      { name: 'Big Mac', brand: "McDonald's", size: null, count: 1 }, { name: 'french fries', brand: "McDonald's", size: 'L', count: null },
+    ],
+    photos: 1, analysed: 1,
+  } }))
+  await login(page)
+  await expect(page.getByRole('heading', { name: 'Dzisiaj, w Twoim rytmie' })).toBeVisible()
+  await page.goto(`${origin}/meals/scan`)
+  await page.locator('input[type=file]').nth(1).setInputFiles({ name: 'taca.jpg', mimeType: 'image/jpeg', buffer: await bigPhoto(page) })
+  await expect(page.getByAltText('Podgląd zdjęcia 1 z 1')).toBeVisible()
+  await page.getByRole('checkbox', { name: /zostanie pomniejszone, pozbawione danych EXIF/ }).check()
+  await page.getByRole('button', { name: 'Rozpoznaj posiłek' }).click()
+  const mac = page.locator('.scan-row').filter({ has: page.getByText('Big Mac', { exact: true }) })
+  await expect(mac).toContainText("McDonald's")
+  await expect(mac).toContainText('porcja z menu')
+  await expect(mac).toContainText('oficjalne dane sieci w Polsce')
+  await expect(mac).toContainText('Rozpoznano: Big Mac (McDonald\'s)')
+  await expect(mac.getByRole('group', { name: /Rozmiar porcji/ })).toHaveCount(0)
+  await expect(mac.locator('.scan-row-kcal strong')).toHaveText(/54[34] kcal/)
+  const fries = page.locator('.scan-row').filter({ has: page.getByText('Frytki Duże', { exact: true }) })
+  await expect(fries).toContainText("McDonald's")
+  await mac.getByText('To nie ta pozycja? Zmień').click()
+  await mac.getByRole('searchbox', { name: 'Szukaj dania, dodatku lub napoju' }).fill('cheeseburger')
+  await mac.getByRole('group', { name: 'Wyniki wyszukiwania' }).getByRole('button', { name: /Cheeseburger · McDonald's/ }).first().click()
+  await expect(page.locator('.scan-row').filter({ hasText: 'Cheeseburger' }).first().locator('.scan-row-kcal strong')).toHaveText(/30[5-7] kcal/)
+  await page.getByRole('button', { name: 'Zapisz w Posiłkach' }).click()
+  await expect(page).toHaveURL(/\/meals$/)
+  await expect.poll(() => mocked.rows.meal_entries.length).toBe(2)
+  expect(mocked.rows.meal_entries).toMatchObject([
+    { food: { brand: "McDonald's", estimated: false, source: 'custom' } },
+    { food: { brand: "McDonald's", estimated: false } },
+  ])
 })
 
 test('Smart Kuchnia hides photo recognition when the AI service is not configured', async ({ page }) => {

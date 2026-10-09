@@ -1,10 +1,15 @@
 import { per, type Nutrients } from '../kitchen/types.ts'
 
-export const plateGroups = ['burger', 'chicken', 'pizza', 'wrap', 'side', 'home', 'asian', 'sauce', 'drink', 'sweet'] as const
+export const plateGroups = [
+  'burger', 'chicken', 'pizza', 'wrap', 'side', 'home', 'asian', 'sauce', 'drink', 'sweet',
+  'meat', 'fish', 'veg', 'fruit', 'dairy', 'bread', 'grain', 'egg', 'soup', 'snack', 'breakfast', 'alcohol',
+] as const
 export type PlateGroup = typeof plateGroups[number]
 export const plateGroupLabels: Record<PlateGroup, string> = {
   burger: 'Burgery', chicken: 'Kurczak i przekąski', pizza: 'Pizza', wrap: 'Kebab, wrapy i kanapki', side: 'Dodatki i surówki',
-  home: 'Dania domowe', asian: 'Kuchnia azjatycka', sauce: 'Sosy', drink: 'Napoje', sweet: 'Słodycze i desery',
+  home: 'Dania obiadowe', asian: 'Kuchnia azjatycka', sauce: 'Sosy', drink: 'Napoje', sweet: 'Słodycze i desery',
+  meat: 'Mięso i wędliny', fish: 'Ryby i owoce morza', veg: 'Warzywa i strączkowe', fruit: 'Owoce', dairy: 'Nabiał', bread: 'Pieczywo',
+  grain: 'Makarony, ryż i kasze', egg: 'Jajka', soup: 'Zupy', snack: 'Przekąski', breakfast: 'Śniadania', alcohol: 'Alkohol',
 }
 
 export const plateSizes = ['S', 'M', 'L'] as const
@@ -29,6 +34,16 @@ export type PlateItem = {
   spread: PlateSpread
   /** Extra words used when the user searches by hand. */
   aliases?: readonly string[]
+  /** English names a photo model is likely to use for this item; they are what the matcher compares against. */
+  en?: readonly string[]
+  /** Restaurant chain of an official menu item. */
+  brand?: string
+  /** Country whose menu the values come from. */
+  region?: 'PL' | 'US'
+  /** One official portion of fixed weight: the size choice does not apply, only the number of portions. */
+  fixed?: boolean
+  /** Part of the hand-made table of everyday items; preferred over database records of the same name. */
+  curated?: boolean
 }
 
 type Options = { piece?: [grams: number, label: string]; aliases?: readonly string[] }
@@ -49,13 +64,13 @@ function item(id: string, name: string, group: PlateGroup, unit: 'g' | 'ml', nut
 export const plateItems: readonly PlateItem[] = [
   item('hamburger', 'Hamburger', 'burger', 'g', per(245, 12.5, 29, 8.7, 1.5), [95, 105, 130], 'normal', { piece: [105, 'szt.'], aliases: ['burger'] }),
   item('cheeseburger', 'Cheeseburger', 'burger', 'g', per(258, 13.5, 28, 10.5, 1.5), [110, 120, 150], 'normal', { piece: [120, 'szt.'], aliases: ['burger z serem'] }),
-  item('burger-double', 'Burger duży lub podwójny (np. Big Mac)', 'burger', 'g', per(251, 11.4, 20.5, 13.7, 1.5), [160, 215, 300], 'wide', { piece: [215, 'szt.'], aliases: ['big mac', 'whopper', 'double', 'podwójny'] }),
-  item('burger-chicken', 'Burger z kurczakiem w panierce', 'burger', 'g', per(280, 9.8, 27.3, 14.7, 1.5), [130, 160, 220], 'wide', { piece: [160, 'szt.'], aliases: ['chicken burger', 'mcchicken', 'crispy'] }),
+  item('burger-double', 'Burger duży lub podwójny', 'burger', 'g', per(251, 11.4, 20.5, 13.7, 1.5), [160, 215, 300], 'wide', { piece: [215, 'szt.'], aliases: ['double', 'podwójny', 'burger z dwoma kotletami'] }),
+  item('burger-chicken', 'Burger z kurczakiem w panierce', 'burger', 'g', per(280, 9.8, 27.3, 14.7, 1.5), [130, 160, 220], 'wide', { piece: [160, 'szt.'], aliases: ['chicken burger', 'crispy'] }),
   item('burger-gourmet', 'Burger restauracyjny (bułka maślana, ser, bekon)', 'burger', 'g', per(275, 14, 20, 16, 1.2), [250, 330, 450], 'wide', { piece: [330, 'szt.'], aliases: ['burger rzemieślniczy', 'burger wołowy'] }),
   item('burger-veggie', 'Burger wegetariański', 'burger', 'g', per(225, 8, 28, 8.5, 3), [150, 200, 280], 'normal', { piece: [200, 'szt.'], aliases: ['burger roślinny', 'vege'] }),
 
-  item('nuggets', 'Nuggetsy z kurczaka', 'chicken', 'g', per(255, 15, 15.5, 15), [100, 150, 220], 'normal', { piece: [17, 'szt.'], aliases: ['mcnuggets', 'kawałki kurczaka'] }),
-  item('chicken-fried-bone', 'Kurczak w panierce (kawałek z kością)', 'chicken', 'g', per(228, 17, 8, 14), [110, 220, 330], 'wide', { piece: [110, 'szt.'], aliases: ['kfc', 'udko', 'pałka', 'smażony kurczak'] }),
+  item('nuggets', 'Nuggetsy z kurczaka', 'chicken', 'g', per(255, 15, 15.5, 15), [100, 150, 220], 'normal',   { piece: [17, 'szt.'], aliases: ['kawałki kurczaka'] }),
+    item('chicken-fried-bone', 'Kurczak w panierce (kawałek z kością)', 'chicken', 'g', per(228, 17, 8, 14), [110, 220, 330], 'wide', { piece: [110, 'szt.'], aliases: ['udko', 'pałka', 'smażony kurczak'] }),
   item('chicken-tenders', 'Paski z kurczaka w panierce', 'chicken', 'g', per(258, 17, 16, 14), [90, 135, 225], 'normal', { piece: [45, 'szt.'], aliases: ['strips', 'tenders', 'stripsy'] }),
   item('chicken-wings', 'Skrzydełka kurczaka z sosem', 'chicken', 'g', per(285, 20, 8, 20), [120, 200, 320], 'wide', { piece: [40, 'szt.'], aliases: ['hot wings', 'skrzydełka'] }),
   item('chicken-grilled', 'Pierś z kurczaka z grilla', 'chicken', 'g', per(165, 31, 0, 3.6), [100, 150, 220], 'tight', { aliases: ['kurczak grillowany', 'filet z kurczaka'] }),
@@ -67,11 +82,11 @@ export const plateItems: readonly PlateItem[] = [
 
   item('kebab', 'Kebab w picie lub tortilli', 'wrap', 'g', per(193, 11, 17, 9, 1.5), [300, 450, 600], 'wide', { piece: [450, 'szt.'], aliases: ['kebap', 'döner', 'gyros', 'durum'] }),
   item('kebab-meat', 'Mięso kebab (sam talerz)', 'wrap', 'g', per(206, 17, 3, 14), [100, 150, 220], 'wide', { aliases: ['gyros mięso', 'döner mięso'] }),
-  item('wrap-chicken', 'Wrap lub twister z kurczakiem', 'wrap', 'g', per(222, 11, 22, 10, 1.5), [180, 250, 330], 'wide', { piece: [250, 'szt.'], aliases: ['tortilla', 'twister', 'rolka'] }),
-  item('burrito', 'Burrito lub quesadilla', 'wrap', 'g', per(195, 8, 25, 7, 3), [250, 350, 450], 'wide', { piece: [350, 'szt.'], aliases: ['meksykańskie', 'quesadilla', 'taco'] }),
+  item('wrap-chicken', 'Wrap lub twister z kurczakiem', 'wrap', 'g', per(222, 11, 22, 10, 1.5), [180, 250, 330], 'wide', { piece: [250, 'szt.'], aliases: ['tortilla', 'rolka'] }),
+  item('burrito', 'Burrito lub quesadilla', 'wrap', 'g', per(195, 8, 25, 7, 3), [250, 350, 450], 'wide', { piece: [350, 'szt.'], aliases: ['meksykańskie', 'quesadilla'] }),
   item('hotdog', 'Hot dog', 'wrap', 'g', per(254, 10, 22, 14, 1.2), [100, 150, 230], 'normal', { piece: [150, 'szt.'], aliases: ['parówka w bułce'] }),
   item('zapiekanka', 'Zapiekanka z serem i pieczarkami', 'wrap', 'g', per(229, 9, 28, 9, 1.5), [200, 300, 400], 'wide', { piece: [300, 'szt.'], aliases: ['bagietka zapiekana'] }),
-  item('sandwich', 'Kanapka lub bagietka z mięsem i warzywami', 'wrap', 'g', per(194, 10, 25, 6, 2), [180, 250, 350], 'normal', { piece: [250, 'szt.'], aliases: ['subway', 'sub', 'bagietka'] }),
+  item('sandwich', 'Kanapka lub bagietka z mięsem i warzywami', 'wrap', 'g', per(194, 10, 25, 6, 2), [180, 250, 350], 'normal', { piece: [250, 'szt.'], aliases: ['sub', 'bagietka'] }),
   item('toast', 'Tost z serem i szynką', 'wrap', 'g', per(263, 11, 30, 11, 1.5), [90, 180, 270], 'normal', { piece: [90, 'szt.'], aliases: ['tosty', 'kanapka grillowana'] }),
 
   item('fries', 'Frytki', 'side', 'g', per(312, 3.4, 41, 15, 3.8), [80, 115, 165], 'normal', { aliases: ['pommes', 'frytki z budki'] }),
@@ -94,12 +109,12 @@ export const plateItems: readonly PlateItem[] = [
   item('sandwich-bread', 'Kanapka z chleba (ser, wędlina)', 'home', 'g', per(245, 11, 30, 9, 2.5), [90, 180, 270], 'normal', { piece: [90, 'szt.'], aliases: ['kanapka śniadaniowa'] }),
   item('schnitzel', 'Kotlet schabowy lub drobiowy w panierce', 'home', 'g', per(246, 18, 12, 14, 0.8), [120, 180, 250], 'wide', { piece: [120, 'szt.'], aliases: ['schabowy', 'kotlet'] }),
   item('grilled-meat', 'Mięso z grilla (wołowina, wieprzowina)', 'home', 'g', per(248, 26, 0, 16), [120, 180, 250], 'wide', { aliases: ['stek', 'karkówka', 'żeberka', 'kiełbasa z grilla'] }),
-  item('fish-breaded', 'Ryba w panierce', 'home', 'g', per(245, 14, 18, 13, 1), [100, 150, 220], 'wide', { piece: [100, 'szt.'], aliases: ['fish and chips', 'filet z ryby', 'filet-o-fish'] }),
+  item('fish-breaded', 'Ryba w panierce', 'home', 'g', per(245, 14, 18, 13, 1), [100, 150, 220], 'wide', { piece: [100, 'szt.'], aliases: ['fish and chips', 'filet z ryby'] }),
   item('salmon-baked', 'Łosoś lub ryba pieczona', 'home', 'g', per(196, 22, 0, 12), [100, 150, 200], 'normal', { aliases: ['ryba', 'dorsz', 'łosoś'] }),
-  item('soup', 'Zupa', 'home', 'ml', per(56, 2.5, 7, 2, 1), [250, 350, 500], 'normal', { aliases: ['rosół', 'krem', 'pomidorowa', 'żurek'] }),
+  item('soup', 'Zupa', 'home', 'ml', per(56, 2.5, 7, 2, 1), [250, 350, 500], 'normal', { aliases: ['krem'] }),
 
   item('sushi', 'Sushi (maki i nigiri)', 'asian', 'g', per(138, 5, 25, 2, 1), [140, 224, 336], 'normal', { piece: [28, 'szt.'], aliases: ['maki', 'nigiri', 'roll'] }),
-  item('noodles-wok', 'Makaron smażony na woku', 'asian', 'g', per(166, 6, 22, 6, 1.5), [250, 350, 500], 'wide', { aliases: ['chow mein', 'pad thai', 'ramen smażony'] }),
+  item('noodles-wok', 'Makaron smażony na woku', 'asian', 'g', per(166, 6, 22, 6, 1.5), [250, 350, 500], 'wide', { aliases: ['ramen smażony'] }),
   item('chicken-sweet-sour', 'Kurczak w sosie słodko-kwaśnym', 'asian', 'g', per(218, 10, 22, 10, 1), [150, 250, 350], 'wide', { aliases: ['kurczak po chińsku', 'kurczak curry'] }),
   item('rice-fried', 'Ryż smażony z warzywami', 'asian', 'g', per(173, 4, 28, 5, 1), [150, 250, 350], 'wide', { aliases: ['ryż z woka'] }),
 
@@ -124,36 +139,58 @@ export const plateItems: readonly PlateItem[] = [
   item('donut', 'Pączek lub donut', 'sweet', 'g', per(398, 5, 45, 22, 1.5), [80, 160, 240], 'normal', { piece: [80, 'szt.'], aliases: ['pączek'] }),
   item('cheesecake', 'Sernik lub ciasto (kawałek)', 'sweet', 'g', per(326, 6, 26, 22, 1), [100, 140, 200], 'wide', { aliases: ['ciasto', 'tort'] }),
   item('apple-pie', 'Szarlotka lub pieróg z nadzieniem', 'sweet', 'g', per(271, 2.5, 36, 13, 2), [80, 160, 240], 'normal', { piece: [80, 'szt.'], aliases: ['apple pie', 'szarlotka'] }),
-  item('chocolate', 'Czekolada lub baton', 'sweet', 'g', per(532, 6, 55, 32, 3), [20, 50, 100], 'tight', { aliases: ['baton', 'snickers', 'wafelek'] }),
+  item('chocolate', 'Czekolada lub baton', 'sweet', 'g', per(532, 6, 55, 32, 3), [20, 50, 100], 'tight', { aliases: ['baton', 'wafelek'] }),
   item('brownie', 'Brownie lub ciastko', 'sweet', 'g', per(410, 5, 55, 20, 2.5), [40, 80, 120], 'normal', { piece: [40, 'szt.'], aliases: ['ciasteczko', 'muffin', 'babeczka'] }),
   item('pancake', 'Naleśnik z nadzieniem', 'sweet', 'g', per(190, 6, 28, 6, 1), [90, 180, 270], 'normal', { piece: [90, 'szt.'], aliases: ['naleśniki', 'gofr'] }),
 ]
 
-export const plateItemsById: ReadonlyMap<string, PlateItem> = new Map(plateItems.map((entry) => [entry.id, entry]))
+const english: Record<string, readonly string[]> = {
+  hamburger: ['hamburger', 'burger', 'plain burger', 'beef burger'], cheeseburger: ['cheeseburger', 'burger with cheese'],
+  'burger-double': ['double cheeseburger', 'double burger', 'large burger', 'double patty burger'], 'burger-chicken': ['chicken burger', 'crispy chicken burger', 'chicken sandwich', 'fried chicken sandwich'],
+  'burger-gourmet': ['gourmet burger', 'restaurant burger', 'brioche bun burger', 'bacon cheeseburger'], 'burger-veggie': ['veggie burger', 'vegetarian burger', 'plant based burger'],
+  nuggets: ['chicken nuggets', 'nuggets', 'breaded chicken pieces'], 'chicken-fried-bone': ['fried chicken', 'fried chicken piece', 'chicken drumstick', 'breaded chicken drumstick', 'fried chicken thigh'],
+  'chicken-tenders': ['chicken tenders', 'chicken strips', 'chicken fingers', 'breaded chicken strips'], 'chicken-wings': ['chicken wings', 'buffalo wings', 'hot wings'],
+  'chicken-grilled': ['grilled chicken breast', 'grilled chicken', 'chicken fillet'], 'mozzarella-sticks': ['mozzarella sticks', 'cheese sticks', 'fried cheese sticks'],
+  'onion-rings': ['onion rings', 'fried onion rings', 'breaded onion rings'],   'pizza-cheese': ['cheese pizza', 'pizza slice', 'pizza'],
+  'pizza-meat': ['ham pizza', 'meat pizza', 'pizza with meat'], kebab: ['kebab', 'doner kebab', 'gyros wrap', 'shawarma wrap', 'durum'],
+  'kebab-meat': ['doner meat', 'kebab meat', 'gyros meat', 'shawarma meat'], 'wrap-chicken': ['chicken wrap', 'chicken tortilla wrap', 'twister wrap'], burrito: ['burrito', 'quesadilla', 'mexican wrap'],
+  hotdog: ['hot dog', 'hotdog', 'sausage in a bun'], zapiekanka: ['zapiekanka', 'baked baguette with cheese and mushrooms', 'open baguette pizza'],
+  sandwich: ['sub sandwich', 'submarine sandwich', 'baguette sandwich', 'sandwich', 'deli sandwich'], toast: ['toast with cheese and ham', 'grilled cheese sandwich', 'toasted sandwich', 'toastie'],
+  fries: ['french fries', 'fries', 'chips', 'fast food fries'], 'potato-wedges': ['potato wedges', 'wedges', 'roasted potatoes', 'country potatoes'],
+  coleslaw: ['coleslaw', 'cole slaw', 'cabbage salad with mayonnaise'], 'salad-plain': ['green salad', 'side salad', 'mixed salad', 'vegetable salad', 'garden salad', 'salad'],
+  'salad-chicken': ['chicken salad', 'caesar salad', 'chicken caesar salad', 'salad with chicken'], 'rice-cooked': ['cooked rice', 'white rice', 'rice', 'steamed rice'],
+  'pasta-cooked': ['cooked pasta', 'pasta', 'spaghetti', 'penne', 'noodles'], 'potatoes-boiled': ['boiled potatoes', 'potatoes'],
+  'groats-cooked': ['buckwheat', 'cooked groats', 'kasha', 'millet', 'barley groats'], 'bread-roll': ['bread roll', 'bread', 'bun', 'baguette', 'slice of bread'],
+  'veg-cooked': ['cooked vegetables', 'roasted vegetables', 'steamed vegetables', 'vegetables', 'broccoli', 'carrots'], 'chips-bag': ['potato chips', 'crisps', 'nachos', 'tortilla chips'],
+  'potato-pancake': ['potato pancakes', 'potato pancake', 'hash browns', 'latkes'], pierogi: ['pierogi', 'dumplings', 'polish dumplings', 'filled dumplings'],
+  'scrambled-eggs': ['scrambled eggs', 'omelette', 'omelet', 'fried eggs', 'eggs'], porridge: ['porridge', 'oatmeal', 'oats with milk'],
+  'sandwich-bread': ['sandwich', 'bread sandwich', 'ham and cheese sandwich', 'open sandwich'], schnitzel: ['schnitzel', 'breaded pork cutlet', 'breaded cutlet', 'pork schnitzel', 'chicken schnitzel'],
+  'grilled-meat': ['grilled meat', 'grilled pork', 'steak', 'grilled sausage', 'bbq ribs', 'grilled pork neck'], 'fish-breaded': ['breaded fish', 'fish fillet breaded', 'fish and chips', 'fried fish'],
+  'salmon-baked': ['baked salmon', 'grilled fish', 'baked fish', 'salmon fillet', 'cod'], soup: ['soup', 'broth', 'cream soup'],
+  sushi: ['sushi', 'maki', 'nigiri', 'sushi roll'], 'noodles-wok': ['stir fried noodles', 'wok noodles', 'chow mein', 'fried noodles'],
+  'chicken-sweet-sour': ['sweet and sour chicken', 'chicken in sauce', 'chicken curry'], 'rice-fried': ['fried rice', 'egg fried rice', 'wok rice'],
+  'sauce-ketchup': ['ketchup', 'tomato ketchup'], 'sauce-mayo': ['mayonnaise', 'mayo'], 'sauce-garlic': ['garlic sauce', 'tartar sauce', 'yogurt sauce', 'tzatziki'],
+  'sauce-cheese': ['cheese sauce', 'cheese dip', 'nacho cheese'], 'sauce-bbq': ['bbq sauce', 'barbecue sauce'], 'sauce-sweet-sour': ['sweet and sour sauce', 'sweet chili sauce'],
+  'dressing-oil': ['vinaigrette', 'olive oil dressing', 'oil and vinegar'], 'dressing-creamy': ['creamy dressing', 'caesar dressing', 'ranch dressing', 'salad dressing'],
+  cola: ['cola', 'soda', 'soft drink', 'fizzy drink', 'lemonade', 'carbonated drink'], 'cola-zero': ['diet cola', 'cola zero', 'zero sugar soda', 'diet soda'],
+  juice: ['juice', 'fruit juice'], shake: ['milkshake', 'shake', 'smoothie'], latte: ['latte', 'cappuccino', 'coffee with milk', 'flat white'],
+  'coffee-black': ['black coffee', 'espresso', 'americano', 'tea', 'unsweetened tea'], water: ['water', 'bottled water', 'mineral water'],
+  'ice-cream': ['ice cream', 'ice cream scoop', 'gelato', 'sundae'], donut: ['donut', 'doughnut', 'polish doughnut'], cheesecake: ['cheesecake', 'cake slice', 'cake'],
+  'apple-pie': ['apple pie', 'pie', 'fruit pie'], chocolate: ['chocolate', 'chocolate bar', 'candy bar'], brownie: ['brownie', 'cookie', 'muffin', 'cupcake'], pancake: ['pancake', 'crepe', 'pancakes', 'waffle'],
+}
+for (const entry of plateItems) Object.assign(entry, { en: english[entry.id], curated: true })
+
+const registry = new Map<string, PlateItem>(plateItems.map((entry) => [entry.id, entry]))
+
+/** Every item the app currently knows: the hand-made table plus whatever `registerPlateItems` added (see library.ts). */
+export const plateItemsById: ReadonlyMap<string, PlateItem> = registry
+
+export function registerPlateItems(items: readonly PlateItem[]): void {
+  for (const entry of items) registry.set(entry.id, entry)
+}
 
 export function getPlateItem(id: string): PlateItem {
-  const found = plateItemsById.get(id)
+  const found = registry.get(id)
   if (!found) throw new Error(`Unknown plate item: ${id}`)
   return found
-}
-
-const fold = (text: string) => text.toLocaleLowerCase('pl-PL').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l').replace(/[^a-z0-9]+/g, ' ').trim()
-
-const searchIndex = plateItems.map((entry) => ({ entry, text: fold([entry.name, ...(entry.aliases ?? [])].join(' ')) }))
-
-/** Hand search by name or alias; every typed word has to appear. */
-export function searchPlateItems(query: string, limit = 12): PlateItem[] {
-  const words = fold(query).split(' ').filter(Boolean)
-  if (!words.length) return []
-  return searchIndex.filter(({ text }) => words.every((word) => text.includes(word))).slice(0, limit).map(({ entry }) => entry)
-}
-
-/** Maps a name written by a model to a catalogue id when it is the id itself or the exact Polish name. */
-export function matchPlateName(name: string): string | null {
-  const key = fold(name)
-  if (!key) return null
-  const direct = plateItemsById.get(name.trim().toLowerCase())
-  if (direct) return direct.id
-  const exact = plateItems.find((entry) => fold(entry.name) === key)
-  return exact?.id ?? null
 }

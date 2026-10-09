@@ -13,7 +13,7 @@ export type PlateLine = {
 }
 
 /** How sure the amount is: from a guess by size, a counted number of pieces, a typed or weighed amount, to the menu's own numbers. */
-export type Precision = 'estimated' | 'counted' | 'weighed' | 'exact'
+export type Precision = 'estimated' | 'counted' | 'weighed' | 'official' | 'exact'
 
 export type Band = { low: number; typical: number; high: number }
 
@@ -22,6 +22,7 @@ const factors: Record<Precision, Record<PlateSpread, readonly [number, number]>>
   estimated: { tight: [0.9, 1.13], normal: [0.8, 1.28], wide: [0.7, 1.42] },
   counted: { tight: [0.95, 1.07], normal: [0.9, 1.12], wide: [0.82, 1.25] },
   weighed: { tight: [0.97, 1.04], normal: [0.94, 1.08], wide: [0.88, 1.15] },
+  official: { tight: [0.95, 1.05], normal: [0.95, 1.05], wide: [0.95, 1.05] },
   exact: { tight: [1, 1], normal: [1, 1], wide: [1, 1] },
 }
 
@@ -47,6 +48,7 @@ export function lineGrams(line: PlateLine): { grams: number; precision: Precisio
   const item = getPlateItem(line.id)
   if (finite(line.grams) && line.grams > 0) return { grams: clamp(line.grams, limits.grams.min, limits.grams.max), precision: line.exact ? 'exact' : 'weighed' }
   const count = finite(line.count) && line.count >= 1 ? clamp(Math.round(line.count), limits.count.min, limits.count.max) : null
+  if (item.fixed) return { grams: item.sizes.M * (count ?? 1), precision: line.exact ? 'exact' : 'official' }
   if (count && item.piece) return { grams: count * item.piece.grams, precision: line.exact ? 'exact' : 'counted' }
   const size: PlateSize = line.size && plateSizes.includes(line.size) ? line.size : 'M'
   return { grams: item.sizes[size] * (count ?? 1), precision: line.exact ? 'exact' : 'estimated' }
@@ -132,7 +134,7 @@ export function lineFood(estimate: LineEstimate) {
     food: {
       id: exact ? `scan-${item.id}-own-${digest(JSON.stringify(estimate.line.exact))}` : `scan-${item.id}`,
       name: exact ? `${item.name} (z menu lub etykiety)` : `${item.name} (skan)`,
-      brand: 'Skan posiłku', barcode: null, unit: item.unit, source: 'custom' as const, estimated: !exact,
+      brand: item.brand ?? 'Skan posiłku', barcode: null, unit: item.unit, source: 'custom' as const, estimated: !exact && precision !== 'official',
       nutrients: exact
         ? { kcal: per(estimate.kcal.typical), protein: per(estimate.protein.typical), carbs: per(estimate.carbs.typical), fat: per(estimate.fat.typical), fiber: null }
         : { kcal: item.per100.kcal, protein: item.per100.protein, carbs: item.per100.carbs, fat: item.per100.fat, fiber: item.per100.fiber },
@@ -145,5 +147,6 @@ export function lineFood(estimate: LineEstimate) {
 export function portionText(estimate: LineEstimate): string {
   const grams = `${Math.round(estimate.grams)} ${estimate.item.unit}`
   if (estimate.precision === 'counted' && estimate.line.count && estimate.item.piece) return `${estimate.line.count} ${estimate.item.piece.label} (ok. ${grams})`
+  if (estimate.precision === 'official') return estimate.line.count && estimate.line.count > 1 ? `${estimate.line.count} × porcja, razem ${grams}` : `porcja z menu, ${grams}`
   return estimate.precision === 'weighed' || estimate.precision === 'exact' ? grams : `ok. ${grams}`
 }

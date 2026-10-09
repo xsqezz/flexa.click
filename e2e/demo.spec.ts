@@ -926,7 +926,7 @@ test('Skan posiłku: a plate built by hand shows a range, accepts menu values an
   await page.getByRole('group', { name: 'Najczęstsze pozycje' }).getByRole('button', { name: /Burger duży/ }).click()
   const search = page.getByRole('searchbox', { name: 'Szukaj dania, dodatku lub napoju' })
   await search.fill('frytki')
-  await page.getByRole('group', { name: 'Wyniki wyszukiwania' }).getByRole('button', { name: 'Frytki', exact: true }).click()
+  await page.getByRole('group', { name: 'Wyniki wyszukiwania' }).getByRole('button', { name: 'Frytki', exact: true }).first().click()
   await search.fill('cola')
   await page.getByRole('group', { name: 'Wyniki wyszukiwania' }).getByRole('button', { name: 'Cola lub inny napój gazowany', exact: true }).click()
   const total = page.locator('.scan-total')

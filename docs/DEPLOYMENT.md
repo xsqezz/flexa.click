@@ -182,10 +182,21 @@ w przeglądarce i nie wymaga żadnej konfiguracji.
    bindingu `AI`, tych samych modeli wizyjnych i tego samego dziennego budżetu `vision`
    (12 zdjęć na konto, wspólnie ze zdjęciem lodówki) — nie wymaga nowej migracji ani konfiguracji.
    Jedno żądanie to najwyżej dwa zdjęcia (całość i drugie ujęcie; bez wycinków), czyli 1–2 wywołania modelu.
-   Model dostaje zamknięty katalog `shared/meal-scan/catalog.ts` i zwraca wyłącznie identyfikatory pozycji,
-   rozmiar i liczbę sztuk; kalorie liczy `shared/meal-scan/estimate.ts` w przeglądarce. Wartości katalogu
-   to uśrednione dane tabelaryczne — przy dodawaniu pozycji zachowaj spójność energii z makroskładnikami
-   (pilnuje tego test w `app/src/lib/scan/scan.test.ts`).
+   Model dostaje prompt z nazwami z menu sieci i popularnych potraw (`shared/meal-scan/anchors.ts`, ok. 5 tys. tokenów) i zwraca nazwy
+   po angielsku, markę, rozmiar i liczbę sztuk; dopasowanie do bazy (`shared/meal-scan/match.ts`) i kalorie
+   (`shared/meal-scan/estimate.ts`) liczy przeglądarka. Baza (`shared/meal-scan/data/catalog.json`, ok. 1,5 MB, ok. 300 KB po kompresji)
+   jest osobnym fragmentem pobieranym dopiero na ekranie skanu.
+
+   **Odbudowa bazy** (`scripts/plate-catalog/`, dane źródłowe poza repozytorium):
+   1. Pobierz publiczne eksporty USDA FoodData Central (Survey/FNDDS 2024-10-31 i SR Legacy 2018-04) i uruchom
+      `extract-fdc.mjs <survey> <sr> <draft-fdc.json>`.
+   2. Pobierz oficjalne tabele wartości odżywczych McDonald's Polska, Burger King Polska i KFC Polska (PDF), zamień na tekst
+      (pdf.js) i uruchom `parse-chains.mjs <dir> <chains.json>`.
+   3. `prepare-translation.mjs` dzieli nazwy na pliki do tłumaczenia (polskie nazwy USDA, angielskie aliasy menu sieci); wynik
+      oraz ręcznie opracowane potrawy trafiają do `translate/out/`.
+   4. `assemble.mjs <katalog roboczy>` składa `catalog.json` i `anchors.ts`, odrzucając rekordy niespójne energetycznie.
+   Jakość sprawdza `app/src/lib/scan/scan.test.ts` (liczba pozycji, spójność, test dopasowania), a na prawdziwych zdjęciach
+   `eval-vision.mjs` (wymaga tymczasowego tokenu Workers AI; zdjęcia z Wikimedia Commons: `fetch-eval-images.mjs`).
 
 ## Landing i pełne demo: GitHub Pages
 

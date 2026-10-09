@@ -1031,7 +1031,10 @@ kbd { display: inline-block; padding: 1px 6px; border: 1px solid var(--line); bo
 .scan-row-fields > .scan-field { width: 160px; }
 .scan-more { flex: 1 1 240px; }
 .scan-more[open] { flex-basis: 100%; }
-.scan-more summary { cursor: pointer; color: var(--pine); font-size: .82rem; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.scan-more summary, .scan-swap summary { cursor: pointer; color: var(--pine); font-size: .82rem; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.scan-heard { color: var(--muted); font-size: .74rem; }
+.scan-check { margin: 0; padding: 8px 12px; border-radius: 10px; background: #f6eed9; color: var(--text); font-size: .82rem; }
+.scan-swap { margin-top: 2px; }
 .scan-more-body { display: flex; flex-direction: column; gap: 14px; padding-top: 6px; }
 .scan-more-body > .scan-field { max-width: 220px; }
 .scan-own { margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: 11px; min-width: 0; }
