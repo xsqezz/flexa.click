@@ -202,7 +202,7 @@ export function searchPlateItems(query: string, limit = 12): Candidate[] {
   const idx = ensureIndex()
   const brand = detectBrand(query)
   const cleaned = brand ? tokenize(stripBrand(query)) : tokens
-  return rank(idx, makeQuery(idx, cleaned.length ? cleaned : tokens), { brand, prefixLast: true, limit })
+  return rank(idx, makeQuery(idx, cleaned.length ? cleaned : tokens), { brand, prefixLast: true, limit }).filter((entry) => entry.score >= 0.3)
 }
 
 /** What a photo model said about one item on the tray. */
