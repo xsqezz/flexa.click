@@ -116,7 +116,7 @@ export function AuthPage() {
           <small>Dane demonstracyjne zostają tylko w tej przeglądarce.</small>
         </div>}
         <div className="auth-legal"><Link to="/about">O Flexa</Link><Link to="/privacy">Prywatność</Link><Link to="/sources">Źródła danych</Link>
-          <a href="https://xsqezz.github.io/flexa.click/" target="_blank" rel="noreferrer">Strona projektu</a></div>
+          <a href="https://flexa.best/" target="_blank" rel="noreferrer">Strona projektu</a></div>
       </div>
     </main>
   </div>

@@ -8,7 +8,7 @@ import { ANDROID_APK_URL, androidAppVersion } from '../lib/native'
 import { privacyContact } from '../lib/supabase'
 
 /** „O Flexa”: czym jest aplikacja, jak się po niej poruszać, zasady i kontakt. */
-const SITE_URL = 'https://xsqezz.github.io/flexa.click/'
+const SITE_URL = 'https://flexa.best/'
 
 function ShareFlexa() {
   const feedback = useFeedback()
@@ -80,7 +80,7 @@ export function AboutPage() {
 
     <h2>Kontakt i kod</h2>
     <p>{privacyContact ? <>Pytania i uwagi: <a href={`mailto:${privacyContact}`}>{privacyContact}</a>. </> : null}
-      Kod, instrukcje i zgłoszenia: <a href="https://github.com/xsqezz/flexa.click" target="_blank" rel="noreferrer">github.com/xsqezz/flexa.click</a>. Strona projektu: <a href="https://xsqezz.github.io/flexa.click/" target="_blank" rel="noreferrer">xsqezz.github.io/flexa.click</a>.</p>
+      Kod, instrukcje i zgłoszenia: <a href="https://github.com/xsqezz/flexa.click" target="_blank" rel="noreferrer">github.com/xsqezz/flexa.click</a>. Strona projektu: <a href="https://flexa.best/" target="_blank" rel="noreferrer">flexa.best</a>.</p>
     <footer><Link to="/privacy">Polityka prywatności</Link> · <Link to="/sources">Źródła danych i licencje</Link></footer>
   </main>
 }

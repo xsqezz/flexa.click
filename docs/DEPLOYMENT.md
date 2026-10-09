@@ -25,8 +25,8 @@ Nie publikuj całej aplikacji z logowaniem i dziennikami na GitHub Pages.
 Brevo Free udostępnia 300 wiadomości dziennie na całe konto. Supabase ma
 ustawiony limit 300/h; nie jest to dodatkowa pula maili ani dzienny limit
 gwarantowany samej Flexa. Nie włączono nowego hooka ani limitu 50/dzień.
-Własne domeny `flexa.click` i `app.flexa.click` wymagają osobnego potwierdzenia
-własności i konfiguracji DNS.
+Własne domeny `flexa.best` (landing) i `app.flexa.best` (aplikacja) są skonfigurowane:
+DNS w Cloudflare (strefa `flexa.best`, serwery nazw ustawione u rejestratora Spaceship).
 
 ## Lokalny start i demo
 
@@ -100,7 +100,7 @@ Copy-Item supabase\.env.example supabase\.env
 
 Uzupełnij plik `supabase\.env`:
 
-- `ALLOWED_ORIGINS`: dokładne originy, np. `https://app.flexa.click`.
+- `ALLOWED_ORIGINS`: dokładne originy, np. `https://app.flexa.best`. Produkcja: `https://flexa-click.pages.dev,https://app.flexa.best`.
 - `OFF_CONTACT`: prawdziwy kontakt właściciela aplikacji do User-Agent.
 - `OFF_BASE_URL`: produkcja `https://world.openfoodfacts.org`; testy
   `https://world.openfoodfacts.net`. Staging ma udokumentowane Basic Auth off/off.
@@ -217,11 +217,11 @@ Zmienne repozytorium:
 
 - `FLEXA_APP_URL`: faktyczny origin działającej aplikacji Cloudflare; bez ścieżki.
   Bez niego CTA otwiera dołączone demo, nie fikcyjne działające konto.
-- `FLEXA_SITE_DOMAIN`: opcjonalnie `flexa.click`, **dopiero po potwierdzeniu
+- `FLEXA_SITE_DOMAIN`: ustawione na `flexa.best`, **dopiero po potwierdzeniu
   własności i poprawnym DNS**. Bez niego nie generujemy CNAME.
 
 ```powershell
-$env:FLEXA_APP_URL = 'https://app.flexa.click'
+$env:FLEXA_APP_URL = 'https://app.flexa.best'
 npm run build:pages
 ```
 
@@ -242,18 +242,18 @@ więc wdrożenie strony jest od razu widoczne w aplikacji. Nowy APK jest potrzeb
   `~/.flexa/android-signing/`; jego utrata uniemożliwia aktualizacje zainstalowanych aplikacji, więc zrób kopię zapasową.
 - Aplikacja Cloudflare publikuje `/.well-known/assetlinks.json` z odciskiem klucza. Landing i Ustawienia linkują do
   `releases/latest/download/flexa.apk`; adres przycisku na landingu można zmienić zmienną `FLEXA_ANDROID_URL` (https).
-- Adres aplikacji jest zapisany w APK: przeniesienie na `app.flexa.click` wymaga nowego wydania Androida z nowym `appUrl`.
+- Adres aplikacji jest zapisany w APK: przeniesienie na `app.flexa.best` wymaga nowego wydania Androida z nowym `appUrl`.
   Starsze aplikacje nadal otwierają `flexa-click.pages.dev`, dopóki ten adres działa.
 
-## flexa.click i app.flexa.click
+## flexa.best i app.flexa.best
 
 Zakup/odnowienie domeny nie jest darmowe i nie zostało wykonane przez ten kod.
 Najpierw zweryfikuj jej własność TXT zgodnie z GitHub/Cloudflare, żeby unikać
 przejęcia niezajętej konfiguracji.
 
-- Apex `flexa.click`: GitHub Pages, rekordy A/AAAA według
+- Apex `flexa.best`: GitHub Pages (cztery rekordy A `185.199.108–111.153`, tylko DNS, bez proxy; `www` to CNAME na `xsqezz.github.io`), rekordy według
   [aktualnej dokumentacji GitHub](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site).
-- `app.flexa.click`: dodaj jako Custom Domain projektu Cloudflare Pages
+- `app.flexa.best`: Custom Domain projektu Cloudflare Pages
   i zastosuj wskazany rekord CNAME. Nie wpisuj wymyślonego pages.dev.
 - Włącz HTTPS po propagacji DNS; nigdy nie obchodź ostrzeżeń certyfikatu.
 - Zaktualizuj redirecty Auth, ALLOWED_ORIGINS, SMTP oraz link aplikacji w landingu.

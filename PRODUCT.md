@@ -118,8 +118,8 @@ account; it is never presented as synchronized cloud data.
 
 ## Brand Commitments
 
-Name: Flexa. Target public domain: `flexa.click`; target application subdomain:
-`app.flexa.click`. Friendly, direct Polish copy without guilt, invented health
+Name: Flexa. Public domain: `flexa.best`; application subdomain:
+`app.flexa.best`. Friendly, direct Polish copy without guilt, invented health
 promises, or claims of affiliation with competing products.
 
 ## Evidence on Hand
