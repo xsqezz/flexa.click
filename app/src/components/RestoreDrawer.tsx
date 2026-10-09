@@ -8,7 +8,7 @@ import { itemsLabel, plural } from '../lib/templates'
 import { useFeedback } from './Feedback'
 import { Button, Drawer, Notice, errorMessage } from './ui'
 
-const kinds: ImportKind[] = ['meals', 'workouts', 'water', 'measurements', 'customFoods', 'mealTemplates']
+const kinds: ImportKind[] = ['meals', 'workouts', 'water', 'measurements', 'customFoods', 'mealTemplates', 'workoutTemplates']
 
 export function RestoreDrawer({ backup, fileName, onClose }: { backup: Backup; fileName: string; onClose: () => void }) {
   const auth = useAuth()

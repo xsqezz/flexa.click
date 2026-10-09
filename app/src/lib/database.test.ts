@@ -386,3 +386,55 @@ describe('meal templates', () => {
     expect((await database.query('select * from public.meal_templates where user_id = $1', [alice])).rows).toHaveLength(0)
   })
 })
+
+
+describe('workout templates', () => {
+  const sets = (count: number) => JSON.stringify(Array.from({ length: count }, () => ({ exercise: 'push-up', reps: 10, weightKg: null, seconds: null })))
+  const insert = (name: string, kind = 'strength', minutes = 45, value = '[]') => database.query<{ id: string; user_id: string }>(
+    'insert into public.workout_templates(name, kind, minutes, sets) values ($1, $2, $3, $4) returning id, user_id', [name, kind, minutes, value])
+  async function rejects(run: () => Promise<unknown>, message: string) {
+    await database.exec('savepoint attempt')
+    await expect(run()).rejects.toThrow(message)
+    await database.exec('rollback to savepoint attempt')
+  }
+
+  it('assigns the owner from the session and keeps templates private', async () => {
+    await asUser(alice)
+    const created = (await insert('Siłownia A', 'strength', 50, sets(3))).rows[0]!
+    expect(created.user_id).toBe(alice)
+    await asUser(bob)
+    expect((await database.query('select * from public.workout_templates')).rows).toHaveLength(0)
+    expect((await database.query('delete from public.workout_templates where id = $1 returning id', [created.id])).rows).toHaveLength(0)
+    await rejects(() => database.query("insert into public.workout_templates(user_id, name, kind, minutes) values ($1, 'Cudzy', 'run', 30)", [alice]), 'row-level security')
+    await asUser(alice)
+    await rejects(() => database.query("update public.workout_templates set name = 'Inna'"), 'permission denied')
+    expect((await database.query('delete from public.workout_templates where id = $1 returning id', [created.id])).rows).toHaveLength(1)
+  })
+
+  it('denies anonymous access', async () => {
+    await database.exec('set role anon')
+    await rejects(() => database.query('select * from public.workout_templates'), 'permission denied')
+  })
+
+  it('rejects malformed values and duplicate names', async () => {
+    await asUser(alice)
+    await rejects(() => insert(' '), 'check constraint')
+    await rejects(() => insert('x'.repeat(61)), 'check constraint')
+    await rejects(() => insert('Zły rodzaj', 'swim'), 'check constraint')
+    await rejects(() => insert('Zero', 'run', 0), 'check constraint')
+    await rejects(() => insert('Doba', 'run', 1441), 'check constraint')
+    await rejects(() => insert('Obiekt', 'run', 30, '{}'), 'check constraint')
+    await rejects(() => insert('Za dużo serii', 'strength', 30, sets(201)), 'check constraint')
+    await insert('Poranny bieg', 'run', 30)
+    await rejects(() => insert(' poranny BIEG ', 'run', 30), 'unique')
+    expect((await insert('Maks serii', 'strength', 30, sets(200))).rows).toHaveLength(1)
+  })
+
+  it('removes templates together with the account', async () => {
+    await asUser(alice)
+    await insert('Na wynos')
+    await database.exec('reset role')
+    await database.query('delete from auth.users where id = $1', [alice])
+    expect((await database.query('select * from public.workout_templates where user_id = $1', [alice])).rows).toHaveLength(0)
+  })
+})

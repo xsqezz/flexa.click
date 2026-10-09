@@ -1280,3 +1280,10 @@ h2 { font-weight: 680; }
 .changelog h3 { margin: 0 0 8px; font-size: 1rem; }
 .changelog small { color: var(--muted); font-weight: 400; margin-left: 6px; }
 .changelog ul { margin: 0; padding-left: 20px; line-height: 1.7; }
+
+/* Moje treningi */
+.my-workouts { margin-top: 18px; display: grid; gap: 12px; }
+.my-workouts-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.my-workouts-list li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 20px; background: #e8e0ff; }
+.my-workouts-name { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; color: #20352b; }
+.my-workouts-name small { color: #2c4034; font-size: .76rem; }

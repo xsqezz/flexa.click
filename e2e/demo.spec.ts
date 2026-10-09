@@ -1063,6 +1063,33 @@ test('exercise history shows personal records without rankings', async ({ page }
   await accessible(page)
 })
 
+test('own workouts: saved from a logged one, logged again with its sets, deleted with undo', async ({ page }) => {
+  await openDemo(page)
+  await navigate(page, '/workouts')
+  await expect(page.locator('.my-workouts')).toContainText('Zapisz ulubiony trening')
+  const source = page.locator('.workout-item').filter({ has: page.locator('summary') }).first()
+  const name = (await source.locator('h2').innerText()).trim()
+  await source.getByRole('button', { name: `Zapisz jako własny trening: ${name}` }).click()
+  await expect(page.locator('.my-workouts-list')).toContainText(name)
+  await expect(source.getByRole('button', { name: /^Zapisz jako własny trening/ })).toHaveCount(0)
+  const saved = (await journal(page)).workoutTemplates
+  expect(saved).toHaveLength(1)
+  expect(saved[0]!.sets.length).toBeGreaterThan(0)
+  await accessible(page)
+
+  const today = await browserToday(page)
+  const before = (await journal(page)).workouts.filter((item) => item.date === today && item.name === name).length
+  await page.getByRole('button', { name: `Zapisz dziś: ${name}` }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: 'Zapisz własny trening' })).toBeVisible()
+  await expect(dialog.locator('.sets-editor-row')).toHaveCount(saved[0]!.sets.length)
+  await dialog.getByRole('button', { name: 'Zapisz trening', exact: true }).click()
+  await expect.poll(async () => (await journal(page)).workouts.filter((item) => item.date === today && item.name === name).length).toBe(before + 1)
+
+  await page.getByRole('button', { name: `Usuń własny trening: ${name}` }).click()
+  await expect.poll(async () => (await journal(page)).workoutTemplates, { timeout: 15_000 }).toEqual([])
+})
+
 test('approved goal estimate, CSV export and backup restore without deleting anything', async ({ page }, testInfo) => {
   await openDemo(page)
   await navigate(page, '/goals')

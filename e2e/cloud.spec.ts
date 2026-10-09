@@ -26,7 +26,7 @@ async function fixture(page: Page, failJournal = false, onboarded = true) {
       onboarding_completed_at: onboarded ? '2026-10-06T10:00:00Z' : null,
       goals_setup_done_at: onboarded ? '2026-10-06T10:00:00Z' : null,
     }],
-    goal_cycles: [], meal_entries: [], workouts: [], water_entries: [], measurements: [], custom_foods: [], training_plans: [], meal_templates: [],
+    goal_cycles: [], meal_entries: [], workouts: [], water_entries: [], measurements: [], custom_foods: [], training_plans: [], meal_templates: [], workout_templates: [],
   }
   await page.routeWebSocket('ws://127.0.0.1:54321/**', (socket) => socket.close())
   await page.route('http://127.0.0.1:54321/**', async (route) => {
@@ -659,4 +659,24 @@ test('cloud meal copy, templates, backup restore and calculated goals use the ac
   expect(mocked.rows.profiles[0]).toMatchObject({ calorie_goal: 1870, protein_goal: 128, fat_goal: 52, carbs_goal: 223, water_goal: 2800, weekly_minutes_goal: 180 })
   expect(mocked.rows.goal_cycles).toMatchObject([{ kind: 'reduction', calorie_goal: 1870 }])
   expect(JSON.stringify(mocked.calls)).not.toMatch(/"age"|height/)
+})
+
+test('cloud custom workouts are stored in their own table and removed again', async ({ page }) => {
+  const mocked = await fixture(page)
+  mocked.rows.workouts.push({
+    id: randomUUID(), user_id: userId, created_at: '2026-10-01T10:00:00Z', date: '2026-10-01', name: 'Siłownia chmurowa', kind: 'strength',
+    minutes: 50, distance_km: null, calories: null, effort: null, elevation_m: null, import_hash: null,
+    sets: [{ exercise: 'goblet-squat-db', reps: 10, weightKg: 20, seconds: null }],
+  })
+  await login(page)
+  await expect(page.getByRole('heading', { name: 'Cele', level: 1, exact: true })).toBeVisible()
+  await page.locator('nav:visible a[href="/workouts"]').first().click()
+  await page.getByRole('button', { name: 'Zapisz jako własny trening: Siłownia chmurowa' }).click()
+  await expect(page.locator('.my-workouts-list')).toContainText('Siłownia chmurowa')
+  expect(mocked.rows.workout_templates).toMatchObject([{
+    user_id: userId, name: 'Siłownia chmurowa', kind: 'strength', minutes: 50,
+    sets: [{ exercise: 'goblet-squat-db', reps: 10, weightKg: 20 }],
+  }])
+  await page.getByRole('button', { name: 'Usuń własny trening: Siłownia chmurowa' }).click()
+  await expect.poll(() => mocked.rows.workout_templates, { timeout: 15_000 }).toEqual([])
 })

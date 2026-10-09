@@ -8,7 +8,7 @@ import { useFeedback } from '../components/Feedback'
 import { rememberGoalsReviewed } from '../components/FirstSteps'
 
 /** Usunięcia, które można cofnąć: wpis znika od razu, a zapis następuje dopiero po zniknięciu komunikatu „Cofnij”. */
-export type UndoableDelete = Extract<Command, { type: 'meal.delete' | 'workout.delete' | 'measurement.delete' | 'water.delete' }>
+export type UndoableDelete = Extract<Command, { type: 'meal.delete' | 'workout.delete' | 'measurement.delete' | 'water.delete' | 'wtemplate.delete' }>
 
 type JournalContextValue = {
   data: Journal | undefined; loading: boolean; error: string | null; pending: boolean
@@ -27,6 +27,7 @@ function withoutHidden(journal: Journal, hidden: ReadonlySet<string>): Journal {
     workouts: journal.workouts.filter((item) => !hidden.has(item.id)),
     water: journal.water.filter((item) => !hidden.has(item.id)),
     measurements: journal.measurements.filter((item) => !hidden.has(item.id)),
+    workoutTemplates: journal.workoutTemplates.filter((item) => !hidden.has(item.id)),
   }
 }
 

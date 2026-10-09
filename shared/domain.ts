@@ -125,6 +125,15 @@ export const workoutSchema = z.object({
   sets: z.array(workoutSetSchema).max(200).optional(),
 })
 
+/** A named workout ("Mój trening") that is logged again with one tap; sets are optional. */
+export const workoutTemplateSchema = z.object({
+  id: z.uuid(),
+  name: z.string().trim().min(1).max(60),
+  kind: workoutSchema.shape.kind,
+  minutes: z.number().finite().positive().max(1440),
+  sets: z.array(workoutSetSchema).max(200),
+})
+
 export const waterSchema = z.object({
   id: z.uuid(),
   date: dateSchema,
@@ -150,6 +159,7 @@ export const journalSchema = z.object({
   customFoods: z.array(foodSchema),
   training: trainingStateSchema.default({ onboardingDone: true, plan: null, unreadable: false }),
   mealTemplates: z.array(mealTemplateSchema).default([]),
+  workoutTemplates: z.array(workoutTemplateSchema).default([]),
 })
 
 export const searchRequestSchema = z.object({
@@ -172,6 +182,7 @@ export type Meal = z.infer<typeof mealSchema>
 export type MealKind = Meal['meal']
 export type MealTemplate = z.infer<typeof mealTemplateSchema>
 export type Workout = z.infer<typeof workoutSchema>
+export type WorkoutTemplate = z.infer<typeof workoutTemplateSchema>
 export type WorkoutSet = z.infer<typeof workoutSetSchema>
 export type Water = z.infer<typeof waterSchema>
 export type Measurement = z.infer<typeof measurementSchema>

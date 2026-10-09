@@ -195,7 +195,7 @@ describe('cloud backup import', () => {
     const food = createDemo().meals[0].food
     return {
       meals: Array.from({ length: count }, (_, index) => ({ date: '2026-01-01', meal: 'lunch' as const, food, portion: index + 1 })),
-      workouts: [], water: [], measurements: [], customFoods: [], mealTemplates: [], goalCycles: [], profile: null, plan: null,
+      workouts: [], water: [], measurements: [], customFoods: [], mealTemplates: [], workoutTemplates: [], goalCycles: [], profile: null, plan: null,
     }
   }
 
@@ -243,5 +243,40 @@ describe('goal cycles in demo persistence', () => {
     expect(readDemo().profile).toEqual(empty.profile)
     await expect(repository.execute({ type: 'journal.import', value: preview.payload })).rejects.toThrow('Historia cykli już istnieje')
     expect(readDemo().goals.cycles).toHaveLength(1)
+  })
+})
+
+describe('custom workouts (workout templates)', () => {
+  beforeEach(() => localStorage.clear())
+  const template = (name = 'Siłownia A') => ({
+    name, kind: 'strength' as const, minutes: 50,
+    sets: [{ exercise: 'goblet-squat-db', reps: 10, weightKg: 20, seconds: null }],
+  })
+
+  it('saves, rejects a duplicate name case-insensitively and deletes only the chosen one', async () => {
+    writeDemo(createDemo())
+    const repository = new DemoRepository()
+    await repository.execute({ type: 'wtemplate.save', value: template() })
+    await expect(repository.execute({ type: 'wtemplate.save', value: template('  siłownia a ') })).rejects.toThrow('własny trening o tej nazwie')
+    await repository.execute({ type: 'wtemplate.save', value: template('Bieg 5 km') })
+    const [first] = readDemo().workoutTemplates
+    expect(readDemo().workoutTemplates.map((item) => item.name)).toEqual(['Siłownia A', 'Bieg 5 km'])
+    await repository.execute({ type: 'wtemplate.delete', id: first!.id })
+    expect(readDemo().workoutTemplates.map((item) => item.name)).toEqual(['Bieg 5 km'])
+  })
+
+  it('refuses invalid templates instead of storing them', async () => {
+    writeDemo(createDemo())
+    const repository = new DemoRepository()
+    await expect(repository.execute({ type: 'wtemplate.save', value: { ...template(), minutes: 0 } })).rejects.toThrow()
+    await expect(repository.execute({ type: 'wtemplate.save', value: { ...template(), name: '   ' } })).rejects.toThrow()
+    expect(readDemo().workoutTemplates).toEqual([])
+  })
+
+  it('keeps older demo data valid: no workout templates by default', () => {
+    const legacy = JSON.parse(JSON.stringify(createDemo())) as Record<string, unknown>
+    delete legacy.workoutTemplates
+    localStorage.setItem(DEMO_KEY, JSON.stringify(legacy))
+    expect(readDemo().workoutTemplates).toEqual([])
   })
 })

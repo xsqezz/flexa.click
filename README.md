@@ -81,10 +81,10 @@ skrótami klawiszowymi, ciemny motyw według ustawień systemu i instalacja jako
 
 **Planowanie i trend:** Cele pokazują podsumowanie cyklu (zmiana masy, średnie kcal, dni z wpisami) i, gdy trend wagi z ostatnich 14 dni odbiega od założeń cyklu, *propozycję* małej korekty kalorii (`app/src/lib/adaptive.ts`: regresja liniowa wagi, krok 100–200 kcal, dolny limit 1200/1500 kcal, bez osób poniżej 18 lat, zatwierdzana przez użytkownika jako nowy cykl). Plan tygodnia (`/meals/plan`) układa się z zapisanych zestawów, a lista zakupów (`/kitchen/shopping`) zbiera brakujące składniki z przepisów; obie funkcje oraz zapamiętane porcje Skanu zostają w `localStorage` urządzenia, osobno dla konta. Częste produkty są na górze listy dodawania posiłku, a historia ćwiczeń pokazuje rekordy i spokojne podpowiedzi progresji.
 
-**Dziennik i dane:** kopiowanie posiłków z wczoraj, zestawy posiłków, zapis przepisu jako własnego produktu, kalkulator orientacyjnego
+**Dziennik i dane:** kopiowanie posiłków z wczoraj, zestawy posiłków, „Moje treningi” (własne treningi zapisane z dziennika i dodawane jednym dotknięciem), zapis przepisu jako własnego produktu, kalkulator orientacyjnego
 zapotrzebowania (nowe dane użyte do obliczenia nie są trwale zapisywane), przywracanie kopii JSON (domyślnie tylko brakujące wpisy; opcjonalnie profil, plan i zakończone cykle), eksport CSV,
 serie i ciężary w treningach z historią ćwiczeń, tygodniowy cel ruchu, trend wagi z 7 dni oraz opcjonalne obwody talii i bioder.
-Kolejne migracje: `202610090001_meal_templates.sql`, `202610090002_training_details.sql` i `202610100001_goal_cycles.sql`.
+Kolejne migracje: `202610090001_meal_templates.sql`, `202610090002_training_details.sql`, `202610100001_goal_cycles.sql` i `202610100002_workout_templates.sql`.
 
 **Aplikacja na Androida:** `android/` to powłoka Kotlin z `WebView`, która otwiera działającą stronę (zmiany
 w aplikacji są więc widoczne od razu) i sama proponuje aktualizację, gdy w GitHub Releases pojawi się nowszy APK:

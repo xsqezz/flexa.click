@@ -19,6 +19,7 @@ function journal(patch: Partial<Journal> = {}): Journal {
     meals: [], workouts: [], water: [], measurements: [], customFoods: [],
     training: { onboardingDone: true, plan: null, unreadable: false },
     mealTemplates: [],
+    workoutTemplates: [],
     ...patch,
   }
 }

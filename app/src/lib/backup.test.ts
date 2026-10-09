@@ -119,4 +119,16 @@ describe('import merge plan', () => {
     expect(accepted.total).toBe(1)
     expect(planImport(backup, backup, { ...options, restoreGoalHistory: true }).goalsRestorable).toBe(0)
   })
+
+  it('restores missing custom workouts by name and leaves existing ones alone', () => {
+    const existing = createDemo()
+    existing.workoutTemplates = [{ id: crypto.randomUUID(), name: 'Siłownia A', kind: 'strength', minutes: 50, sets: [] }]
+    const backup = clone(existing)
+    backup.workoutTemplates.push({ id: crypto.randomUUID(), name: 'Bieg 5 km', kind: 'run', minutes: 30, sets: [] })
+    backup.workoutTemplates.push({ id: crypto.randomUUID(), name: ' siłownia a ', kind: 'other', minutes: 10, sets: [] })
+    const preview = planImport(existing, backup, options)
+    expect(preview.payload.workoutTemplates.map((item) => item.name)).toEqual(['Bieg 5 km'])
+    expect(preview.counts.workoutTemplates).toEqual({ inFile: 3, added: 1, present: 2 })
+    expect(preview.total).toBe(1)
+  })
 })

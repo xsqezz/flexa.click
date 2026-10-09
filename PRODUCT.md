@@ -82,7 +82,8 @@ account; it is never presented as synchronized cloud data.
   change when the 14-day weight trend leaves the phase band (user confirms it as a new cycle;
   never for under-18s, never below 1200/1500 kcal); the weekly meal plan, shopping list and
   remembered Skan portions live in the browser per account; exercise history shows personal
-  records and gentle progression hints without rankings, streaks or badges.
+  records and gentle progression hints without rankings, streaks or badges. "Moje treningi" are
+  user-named workouts saved from the diary (kind, usual minutes, optional sets) and logged again with one tap.
 - After the training questionnaire (including skip), adults may propose calorie,
   macro and water goals using Mifflin–St Jeor and confirm them or set them manually.
   Each dated nutrition cycle stores an approved snapshot, start and target weight.

@@ -7,7 +7,7 @@ import { needsHealthConsent, trainingPlanSchema, type TrainingPlan, type Trainin
 import type { Database, Json, ProfileRow } from './database.types'
 import { readDemo, writeDemo } from './demo'
 import { isPlanUsable } from './training/generator'
-import { mealSchema, mealTemplateSchema, type MealTemplate } from '../../../shared/domain'
+import { mealSchema, mealTemplateSchema, workoutTemplateSchema, type MealTemplate, type WorkoutTemplate } from '../../../shared/domain'
 import { importSize, type ImportPayload } from './backup'
 import { startDemoCycle } from './goals'
 import { today } from './dates'
@@ -31,6 +31,8 @@ export type Command =
   | { type: 'meal.addMany'; value: Omit<Meal, 'id'>[] }
   | { type: 'template.save'; value: Omit<MealTemplate, 'id'> }
   | { type: 'template.delete'; id: string }
+  | { type: 'wtemplate.save'; value: Omit<WorkoutTemplate, 'id'> }
+  | { type: 'wtemplate.delete'; id: string }
   | { type: 'journal.import'; value: ImportPayload; onProgress?: (saved: number, total: number) => void }
 
 export interface JournalRepository {
@@ -92,6 +94,13 @@ export class DemoRepository implements JournalRepository {
       }
       case 'template.delete':
         journal.mealTemplates = journal.mealTemplates.filter((item) => item.id !== command.id); break
+      case 'wtemplate.save': {
+        const template = workoutTemplateSchema.parse({ ...command.value, id: crypto.randomUUID() })
+        if (journal.workoutTemplates.some((item) => sameTemplateName(item.name, template.name))) throw new Error(workoutTemplateExists)
+        journal.workoutTemplates.push(template); break
+      }
+      case 'wtemplate.delete':
+        journal.workoutTemplates = journal.workoutTemplates.filter((item) => item.id !== command.id); break
       case 'journal.import': importIntoDemo(journal, command.value); break
     }
     writeDemo(updated)
@@ -100,6 +109,7 @@ export class DemoRepository implements JournalRepository {
 }
 
 const IMPORT_CHUNK = 200
+const workoutTemplateExists = 'Masz już własny trening o tej nazwie. Wybierz inną nazwę albo usuń poprzedni.'
 const templateExists = 'Masz już zestaw o tej nazwie. Wybierz inną nazwę albo usuń poprzedni zestaw.'
 const sameTemplateName = (a: string, b: string) => a.trim().toLocaleLowerCase('pl-PL') === b.trim().toLocaleLowerCase('pl-PL')
 
@@ -129,6 +139,9 @@ function importIntoDemo(journal: Journal, value: ImportPayload): void {
   journal.mealTemplates.push(...value.mealTemplates
     .filter((template) => !journal.mealTemplates.some((item) => sameTemplateName(item.name, template.name)))
     .map((template) => mealTemplateSchema.parse(withId(template))))
+  journal.workoutTemplates.push(...value.workoutTemplates
+    .filter((template) => !journal.workoutTemplates.some((item) => sameTemplateName(item.name, template.name)))
+    .map((template) => workoutTemplateSchema.parse(withId(template))))
   if (value.profile) journal.profile = profileSchema.parse(value.profile)
   if (value.plan) journal.training = { onboardingDone: true, plan: trainingPlanSchema.parse(value.plan), unreadable: false }
 }
@@ -197,6 +210,8 @@ export class SupabaseRepository implements JournalRepository {
     const client = this.client
     const user = this.userId
     const templates = this.loadTemplates(signal)
+    const workoutTemplates = this.loadWorkoutTemplates(signal)
+    workoutTemplates.catch(() => {})
     templates.catch(() => {})
     const [profile, meals, workouts, water, measurements, foods, training, cycles] = await Promise.all([
       client.from('profiles').select('*').eq('user_id', user).abortSignal(signal).single(),
@@ -240,7 +255,24 @@ export class SupabaseRepository implements JournalRepository {
       customFoods: foods.map((row) => foodSchema.parse(row.food)),
       training: trainingFromRow(training.data, profileRow.onboarding_completed_at),
       mealTemplates: await templates,
+      workoutTemplates: await workoutTemplates,
     })
+  }
+
+  /** Custom workouts arrive in their own migration; until it is applied the diary still loads without them. */
+  private async loadWorkoutTemplates(signal: AbortSignal): Promise<WorkoutTemplate[]> {
+    const client = this.client
+    try {
+      const rows = await readPages((start, end) => client.from('workout_templates').select('*').eq('user_id', this.userId).order('created_at').order('id').range(start, end).abortSignal(signal))
+      return rows.flatMap((row) => {
+        const parsed = workoutTemplateSchema.safeParse({ id: row.id, name: row.name, kind: row.kind, minutes: Number(row.minutes), sets: setsFromRow(row.sets) })
+        return parsed.success ? [parsed.data] : []
+      })
+    } catch (cause) {
+      const code = cause instanceof Error && typeof cause.cause === 'object' && cause.cause !== null ? (cause.cause as { code?: unknown }).code : undefined
+      if (code === 'PGRST205' || code === '42P01') return []
+      throw cause
+    }
   }
 
   /** Templates arrive in their own migration; until it is applied the diary still loads without them. */
@@ -292,6 +324,8 @@ export class SupabaseRepository implements JournalRepository {
         (chunk) => client.from('custom_foods').insert(chunk).select('id'), step)
       await this.insertChunks(value.mealTemplates.map((template) => ({ user_id, name: template.name, items: template.items })),
         (chunk) => client.from('meal_templates').insert(chunk).select('id'), step)
+      await this.insertChunks(value.workoutTemplates.map((template) => ({ user_id, name: template.name, kind: template.kind, minutes: template.minutes, sets: template.sets })),
+        (chunk) => client.from('workout_templates').insert(chunk).select('id'), step)
       await this.insertChunks((value.meals.length ? validMeals(value.meals) : []).map((meal) => ({ user_id, date: meal.date, meal: meal.meal, food: meal.food, portion: meal.portion })),
         (chunk) => client.from('meal_entries').insert(chunk).select('id'), step)
       await this.insertChunks(value.workouts.map((workout) => ({
@@ -414,6 +448,18 @@ export class SupabaseRepository implements JournalRepository {
       }
       case 'template.delete':
         result(await client.from('meal_templates').delete().eq('user_id', user_id).eq('id', command.id).select('id').single()); break
+      case 'wtemplate.save': {
+        const template = workoutTemplateSchema.omit({ id: true }).parse(command.value)
+        try {
+          result(await client.from('workout_templates').insert({ user_id, name: template.name, kind: template.kind, minutes: template.minutes, sets: template.sets }).select('id').single())
+        } catch (cause) {
+          if (cause instanceof Error && cause.message.startsWith('Ten wpis już istnieje')) throw new Error(workoutTemplateExists, { cause })
+          throw cause
+        }
+        break
+      }
+      case 'wtemplate.delete':
+        result(await client.from('workout_templates').delete().eq('user_id', user_id).eq('id', command.id).select('id').single()); break
       case 'journal.import':
         await this.importJournal(command.value, command.onProgress); break
     }

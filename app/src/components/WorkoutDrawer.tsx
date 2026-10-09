@@ -13,7 +13,7 @@ export type WorkoutPreset = {
   distanceKm?: number | null
   sets?: WorkoutSet[]
   /** `repeat` copies an earlier diary entry; otherwise the preset comes from the training plan. */
-  origin?: 'plan' | 'repeat'
+  origin?: 'plan' | 'repeat' | 'template'
 }
 
 type SetRow = { key: number; exercise: string; reps: string; weight: string }
@@ -62,6 +62,7 @@ export function WorkoutDrawer({ date, preset, onClose }: { date: string; preset?
   const [kind, setKind] = useState<Workout['kind']>(preset?.kind ?? 'run')
   const [rows, setRows] = useState<SetRow[]>(() => (preset?.sets ?? []).map(toRow))
   const repeat = preset?.origin === 'repeat'
+  const fromTemplate = preset?.origin === 'template'
 
   async function read(file: File) {
     setError(null); setDraft(null); setReading(true)
@@ -93,9 +94,10 @@ export function WorkoutDrawer({ date, preset, onClose }: { date: string; preset?
     catch (cause) { setError(errorMessage(cause)) }
   }
 
-  const title = repeat ? 'Powtórz trening' : preset ? 'Zapisz trening z planu' : 'Dodaj trening'
+  const title = repeat ? 'Powtórz trening' : fromTemplate ? 'Zapisz własny trening' : preset ? 'Zapisz trening z planu' : 'Dodaj trening'
   return <Drawer title={title} onClose={pending || reading ? () => {} : onClose}>
-    {preset && !repeat && <p>Sprawdź czas i dodaj odczuwalny wysiłek. Trening trafi do dziennika aktywności.</p>}
+    {fromTemplate && <p>Wartości pochodzą z Twojego zapisanego treningu. Zmień to, co dziś wyglądało inaczej — data jest ustawiona na dziś.</p>}
+    {preset && !repeat && !fromTemplate && <p>Sprawdź czas i dodaj odczuwalny wysiłek. Trening trafi do dziennika aktywności.</p>}
     {repeat && <p>Wartości pochodzą z wcześniejszego wpisu. Zmień to, co dziś wyglądało inaczej — data jest ustawiona na dziś.</p>}
     {!preset && <div className="segmented-control" aria-label="Sposób dodania aktywności">
       <button aria-pressed={tab === 'manual'} onClick={() => { setTab('manual'); setDraft(null); setError(null) }}>Ręcznie</button>

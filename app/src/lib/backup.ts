@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import {
   journalSchema,
-  type Food, type GoalCycle, type Journal, type Meal, type MealTemplate, type Measurement, type Profile, type Water, type Workout,
+  type Food, type GoalCycle, type Journal, type Meal, type MealTemplate, type Measurement, type WorkoutTemplate, type Profile, type Water, type Workout,
 } from '../../../shared/domain'
 import { needsHealthConsent, type TrainingPlan } from '../../../shared/training'
 import { EXPORT_FORMAT } from './export'
@@ -24,15 +24,16 @@ export type ImportPayload = {
   measurements: Omit<Measurement, 'id'>[]
   customFoods: Food[]
   mealTemplates: Omit<MealTemplate, 'id'>[]
+  workoutTemplates: Omit<WorkoutTemplate, 'id'>[]
   goalCycles: GoalCycle[]
   profile: Profile | null
   plan: TrainingPlan | null
 }
 
-export type ImportKind = 'meals' | 'workouts' | 'water' | 'measurements' | 'customFoods' | 'mealTemplates'
+export type ImportKind = 'meals' | 'workouts' | 'water' | 'measurements' | 'customFoods' | 'mealTemplates' | 'workoutTemplates'
 export const importKindLabels: Record<ImportKind, string> = {
   meals: 'Posiłki', workouts: 'Treningi', water: 'Woda', measurements: 'Pomiary',
-  customFoods: 'Własne produkty', mealTemplates: 'Zestawy',
+  customFoods: 'Własne produkty', mealTemplates: 'Zestawy', workoutTemplates: 'Moje treningi',
 }
 
 export type ImportCount = { inFile: number; added: number; present: number }
@@ -62,7 +63,7 @@ const envelopeSchema = z.object({
 const issuePath = (path: readonly PropertyKey[]) => {
   const labels: Record<string, string> = {
     meals: 'posiłki', workouts: 'treningi', water: 'woda', measurements: 'pomiary', customFoods: 'własne produkty',
-    mealTemplates: 'zestawy', profile: 'profil', training: 'plan treningowy', goals: 'cele i cykle',
+    mealTemplates: 'zestawy', workoutTemplates: 'moje treningi', profile: 'profil', training: 'plan treningowy', goals: 'cele i cykle',
   }
   const [section, index] = path
   const name = labels[String(section)] ?? String(section ?? 'plik')
@@ -163,6 +164,13 @@ export function planImport(existing: Journal, backup: Journal, options: ImportOp
     return true
   })
 
+  const workoutTemplateNames = new Set(existing.workoutTemplates.map((template) => text(template.name)))
+  const workoutTemplates = backup.workoutTemplates.filter((template) => {
+    if (workoutTemplateNames.has(text(template.name))) return false
+    workoutTemplateNames.add(text(template.name))
+    return true
+  })
+
   const plan = backup.training.plan
   let planNote: string | null = null
   let restoredPlan: TrainingPlan | null = null
@@ -185,6 +193,7 @@ export function planImport(existing: Journal, backup: Journal, options: ImportOp
   const payload: ImportPayload = {
     meals: meals.map(withoutId), workouts: workouts.map(withoutId), water: water.map(withoutId),
     measurements: measurements.map(withoutId), customFoods, mealTemplates: mealTemplates.map(withoutId),
+    workoutTemplates: workoutTemplates.map(withoutId),
     goalCycles, profile: options.replaceProfile ? backup.profile : null, plan: restoredPlan,
   }
   return {
@@ -196,6 +205,7 @@ export function planImport(existing: Journal, backup: Journal, options: ImportOp
       measurements: count(backup.measurements.length, measurements.length),
       customFoods: count(backup.customFoods.length, customFoods.length),
       mealTemplates: count(backup.mealTemplates.length, mealTemplates.length),
+      workoutTemplates: count(backup.workoutTemplates.length, workoutTemplates.length),
     },
     measurementConflicts,
     planNote,
@@ -210,6 +220,6 @@ export function planImport(existing: Journal, backup: Journal, options: ImportOp
 /** Number of records (plus profile/plan) the import writes; used for progress. */
 export function importSize(payload: ImportPayload): number {
   return payload.meals.length + payload.workouts.length + payload.water.length + payload.measurements.length
-    + payload.customFoods.length + payload.mealTemplates.length + (payload.profile ? 1 : 0) + (payload.plan ? 1 : 0)
+    + payload.customFoods.length + payload.mealTemplates.length + payload.workoutTemplates.length + (payload.profile ? 1 : 0) + (payload.plan ? 1 : 0)
     + payload.goalCycles.length
 }

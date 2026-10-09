@@ -30,6 +30,7 @@ export type MeasurementRow = BaseRow & {
 }
 export type CustomFoodRow = BaseRow & { food: Json }
 export type MealTemplateRow = BaseRow & { name: string; items: Json }
+export type WorkoutTemplateRow = BaseRow & { name: string; kind: string; minutes: number; sets: Json }
 type NewRow<T extends BaseRow> = Omit<T, 'created_at' | 'id'> & { id?: string }
 
 export type Database = {
@@ -45,6 +46,7 @@ export type Database = {
       measurements: Table<MeasurementRow, NewRow<MeasurementRow>>
       custom_foods: Table<CustomFoodRow, NewRow<CustomFoodRow>>
       meal_templates: Table<MealTemplateRow, NewRow<MealTemplateRow>>
+      workout_templates: Table<WorkoutTemplateRow, NewRow<WorkoutTemplateRow>>
     }
     Views: Record<string, never>
     Functions: {
