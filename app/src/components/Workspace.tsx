@@ -17,7 +17,7 @@ import { QuickAdd } from './QuickAdd'
 import { CommandPalette } from './CommandPalette'
 import { InstallButton } from './InstallButton'
 
-export type MealTab = 'search' | 'barcode' | 'custom'
+export type MealTab = 'search' | 'barcode' | 'custom' | 'kcal'
 type WorkspaceValue = {
   date: string; setDate: (date: string) => void
   openMeal: (kind?: MealKind, tab?: MealTab) => void; openWorkout: () => void; openMeasurement: () => void

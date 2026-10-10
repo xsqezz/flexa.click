@@ -1117,6 +1117,39 @@ test('quick entry is reachable from Dodaj and reports unknown words', async ({ p
   await expect(page.getByText(/zzzxqv/).first()).toBeVisible()
 })
 
+test('calorie-only entry is stored with exactly the typed energy and shown without grams', async ({ page }) => {
+  await openDemo(page)
+  await page.goto('/meals')
+  await page.getByRole('button', { name: 'Dodaj', exact: true }).first().click()
+  await page.getByRole('button', { name: /Same kcal/ }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Nazwa (opcjonalnie)').fill('Obiad na mieście')
+  await dialog.getByLabel('Energia (kcal)').fill('912')
+  await dialog.getByLabel('Białko (g)').fill('40')
+  await accessible(page)
+  await dialog.getByRole('button', { name: 'Dodaj do dziennika' }).click()
+  const row = page.locator('.meal-row').filter({ hasText: 'Obiad na mieście' })
+  await expect(row).toContainText('912 kcal')
+  await expect(row).toContainText('wpis kcal')
+  const saved = (await journal(page)).meals.find((meal) => meal.food.name === 'Obiad na mieście')!
+  expect(saved.food.nutrients.fat).toBeNull()
+  expect(saved.food.nutrients.kcal! * saved.portion / 100).toBeCloseTo(912, 5)
+})
+
+test('repeat day copies a whole earlier day onto an empty day', async ({ page }) => {
+  await openDemo(page)
+  await page.goto('/meals')
+  await page.getByRole('button', { name: 'Następny dzień' }).click()
+  const heading = page.getByRole('heading', { name: 'Powtórz dzień' })
+  await expect(heading).toBeVisible()
+  await accessible(page)
+  const before = (await journal(page)).meals.length
+  await page.getByRole('button', { name: /^Skopiuj \(/ }).click()
+  await expect(heading).toHaveCount(0)
+  await expect.poll(async () => (await journal(page)).meals.length).toBeGreaterThan(before)
+  await expect(page.locator('.meal-row').first()).toBeVisible()
+})
+
 test('approved goal estimate, CSV export and backup restore without deleting anything', async ({ page }, testInfo) => {
   await openDemo(page)
   await navigate(page, '/goals')

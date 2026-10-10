@@ -4,6 +4,14 @@ export type ChangelogEntry = { date: string; title: string; points: string[] }
 export const changelog: ChangelogEntry[] = [
   {
     date: '2026-10-11',
+    title: 'Same kcal i powtórz dzień',
+    points: [
+      'W „Dodaj posiłek” → „Same kcal” zapiszesz posiłek, o którym znasz tylko kalorie (np. z menu restauracji). Makroskładniki są opcjonalne.',
+      'W Posiłkach, gdy dzień jest pusty, „Powtórz dzień” kopiuje cały wcześniejszy dzień — do poprawienia, jeśli było trochę inaczej.',
+    ],
+  },
+  {
+    date: '2026-10-11',
     title: 'Szybki wpis',
     points: [
       'Napisz lub podyktuj, co zjadłeś („dwa jajka sadzone, 200 g ryżu i szklanka mleka”) — Flexa zamieni to na listę z kaloriami do sprawdzenia i zapisania w Posiłkach.',

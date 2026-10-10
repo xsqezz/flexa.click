@@ -5,6 +5,7 @@ import { dateLabel } from '../lib/dates'
 import { DateControl, PageHeader, useWorkspace } from '../components/Workspace'
 import { MealList } from '../components/MealList'
 import { WeekStrip } from '../components/WeekStrip'
+import { RepeatDay } from '../components/RepeatDay'
 
 export function MealsPage() {
   const { data } = useJournal()
@@ -18,6 +19,7 @@ export function MealsPage() {
       <Link className="button button-secondary" to="/meals/quick"><PenLine size={17} aria-hidden="true" />Szybki wpis</Link>
       <Link className="button button-secondary" to="/meals/plan"><CalendarRange size={17} aria-hidden="true" />Plan tygodnia</Link></div>
     <WeekStrip />
+    <RepeatDay date={date} />
     <section className="panel meal-panel meals-page-list" aria-labelledby="meals-day-title">
       <div className="section-heading"><h2 id="meals-day-title">{dateLabel(date, { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
         <span className="section-meta">{dayMeals.length ? `${dayMeals.length} ${dayMeals.length === 1 ? 'wpis' : dayMeals.length < 5 ? 'wpisy' : 'wpisów'}` : 'bez wpisów'}</span>

@@ -58,6 +58,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     const sessionIndex = plan ? plan.sessions.findIndex((session) => session.weekday === todayIndex) : -1
     const list: Item[] = [
       { id: 'add-meal', group: 'Dodaj', label: 'Dodaj posiłek', keywords: 'jedzenie produkt kalorie', icon: icon(Utensils), run: () => workspace.openMeal() },
+      { id: 'quick-kcal', group: 'Dodaj', label: 'Dodaj same kalorie', keywords: 'kcal restauracja menu szybko bez produktu', icon: icon(Utensils), run: () => workspace.openMeal(undefined, 'kcal') },
       { id: 'scan', group: 'Dodaj', label: 'Skanuj kod kreskowy', keywords: 'ean aparat kamera', icon: icon(ScanBarcode), run: () => workspace.openMeal(undefined, 'barcode') },
       { id: 'quick-entry', group: 'Dodaj', label: 'Szybki wpis tekstem lub głosem', keywords: 'napisz podyktuj zdanie jedzenie szybko jajka', icon: icon(Utensils), run: go('/meals/quick') },
       { id: 'scan-plate', group: 'Dodaj', label: 'Skan posiłku ze zdjęcia', keywords: 'talerz taca fast food zdjecie kalorie makro jedzenie ai', icon: icon(Camera), run: go('/meals/scan') },

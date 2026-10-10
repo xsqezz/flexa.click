@@ -5,6 +5,7 @@ import { integerFormat, numberFormat, nutritionTotal } from '../lib/nutrition'
 import { sourceNames } from '../lib/sources'
 import { useWorkspace } from './Workspace'
 import { CopyFromYesterday } from './MealCopy'
+import { portionLabel } from '../lib/quick-kcal'
 
 const groups: { kind: MealKind; Icon: typeof Coffee }[] = [
   { kind: 'breakfast', Icon: Coffee }, { kind: 'lunch', Icon: Sun },
@@ -27,11 +28,11 @@ export function MealList({ date }: { date: string }) {
         {entries.length ? entries.map((entry) => <div className="meal-row" key={entry.id}>
           <span className="food-mark"><Utensils size={16} aria-hidden="true" /></span>
           <div className="meal-row-info"><strong>{entry.food.name}</strong>
-            <small>{numberFormat.format(entry.portion)} {entry.food.unit} · {sourceNames[entry.food.source]}</small>
+            <small>{portionLabel(entry, numberFormat.format)} · {sourceNames[entry.food.source]}</small>
           </div>
           <span className="meal-row-energy">{integerFormat.format(nutritionTotal([entry], 'kcal').value)} kcal</span>
           <button className="icon-button" aria-label={`Usuń: ${entry.food.name}`}
-            onClick={() => removeWithUndo({ type: 'meal.delete', id: entry.id }, `Usunięto: ${entry.food.name}, ${numberFormat.format(entry.portion)} ${entry.food.unit}.`)}><Trash2 size={14} /></button>
+            onClick={() => removeWithUndo({ type: 'meal.delete', id: entry.id }, `Usunięto: ${entry.food.name}, ${portionLabel(entry, numberFormat.format)}.`)}><Trash2 size={14} /></button>
         </div>) : <p className="meal-empty">Jeszcze bez wpisów. Dodaj wtedy, gdy chcesz.</p>}
       </div>
     })}

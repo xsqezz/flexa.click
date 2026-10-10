@@ -15,6 +15,8 @@ import { catalogGroups, requiredProducts } from '../../../shared/polish-catalog'
 import { suggestedFoods } from '../lib/templates'
 import { today } from '../lib/dates'
 import { MealTemplates } from './MealTemplates'
+import type { MealTab } from './Workspace'
+import { kcalOnlyMeal } from '../lib/quick-kcal'
 
 const mealKinds: MealKind[] = ['breakfast', 'lunch', 'dinner', 'snack']
 const nutrientFields = [
@@ -25,12 +27,12 @@ const nutrientFields = [
   { name: 'fiber', label: 'Błonnik (g)', max: 100 },
 ] as const
 
-export function MealDrawer({ date, initialMeal, initialTab = 'search', onClose }: { date: string; initialMeal: MealKind; initialTab?: 'search' | 'barcode' | 'custom'; onClose: () => void }) {
+export function MealDrawer({ date, initialMeal, initialTab = 'search', onClose }: { date: string; initialMeal: MealKind; initialTab?: MealTab; onClose: () => void }) {
   const auth = useAuth()
   const { data, execute, pending } = useJournal()
   const feedback = useFeedback()
   const client = useQueryClient()
-  const [tab, setTab] = useState<'search' | 'barcode' | 'custom'>(initialTab)
+  const [tab, setTab] = useState<MealTab>(initialTab)
   const [query, setQuery] = useState('')
   const [barcode, setBarcode] = useState('')
   const [result, setResult] = useState<SearchResponse | null>(null)
@@ -99,6 +101,17 @@ export function MealDrawer({ date, initialMeal, initialTab = 'search', onClose }
     } catch (cause) { setError(errorMessage(cause)) }
   }
 
+  async function saveKcal(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const values = new FormData(event.currentTarget)
+    const field = (key: string) => String(values.get(key) ?? '')
+    const built = kcalOnlyMeal({ date, meal: field('meal'), name: field('name'), kcal: field('kcal'), protein: field('protein'), carbs: field('carbs'), fat: field('fat') })
+    if (!built.ok) { setError(built.error); return }
+    setError(null)
+    try { await execute({ type: 'meal.add', value: built.meal }); feedback(`Zapisano ${Math.round(built.meal.food.nutrients.kcal! * built.meal.portion / 100)} kcal w dzienniku.`); onClose() }
+    catch (cause) { setError(errorMessage(cause)) }
+  }
+
   const list = result ? result.foods : tab === 'search' ? recent.map((item) => item.food) : []
   const amount = Number(portion)
   return <Drawer title={food ? 'Twoja porcja' : 'Dodaj posiłek'} onClose={pending ? () => {} : onClose}>
@@ -130,8 +143,20 @@ export function MealDrawer({ date, initialMeal, initialTab = 'search', onClose }
         <button aria-pressed={tab === 'search'} onClick={() => { setTab('search'); setResult(null); setError(null) }}>Wyszukaj</button>
         <button aria-pressed={tab === 'barcode'} onClick={() => { setTab('barcode'); setResult(null); setError(null) }}>Kod kreskowy</button>
         <button aria-pressed={tab === 'custom'} onClick={() => { setTab('custom'); setResult(null); setError(null) }}>Własny produkt</button>
-      </div>
-      {tab === 'custom' ? <form className="form-stack" onSubmit={(event) => { void saveCustom(event) }}>
+                <button aria-pressed={tab === 'kcal'} onClick={() => { setTab('kcal'); setResult(null); setError(null) }}>Same kcal</button>
+              </div>
+              {tab === 'kcal' ? <form className="form-stack" onSubmit={(event) => { void saveKcal(event) }}>
+                <p className="source-credit">Znasz tylko kalorie, np. z menu restauracji lub aplikacji sieci? Wpisz je bez szukania produktu. Makroskładniki są opcjonalne; puste oznaczają „nieznane”, nie zero.</p>
+                <Field label="Nazwa (opcjonalnie)"><input name="name" maxLength={120} placeholder="Np. obiad w restauracji" /></Field>
+                <div className="form-grid">
+                  <Field label="Energia (kcal)"><input name="kcal" type="number" inputMode="decimal" min="1" max="4000" step="1" required /></Field>
+                  <Field label="Posiłek"><select name="meal" defaultValue={initialMeal}>{mealKinds.map((kind) => <option value={kind} key={kind}>{mealNames[kind]}</option>)}</select></Field>
+                  <Field label="Białko (g)"><input name="protein" type="number" inputMode="decimal" min="0" max="500" step="0.1" /></Field>
+                  <Field label="Węglowodany (g)"><input name="carbs" type="number" inputMode="decimal" min="0" max="1000" step="0.1" /></Field>
+                  <Field label="Tłuszcze (g)"><input name="fat" type="number" inputMode="decimal" min="0" max="500" step="0.1" /></Field>
+                </div>
+                <Button type="submit" busy={pending}>Dodaj do dziennika</Button>
+              </form> : tab === 'custom' ? <form className="form-stack" onSubmit={(event) => { void saveCustom(event) }}>
         <p className="source-credit">Wpisz dane z etykiety. Produkt pozostaje prywatny i jest dostępny na Twoim koncie. Puste makro oznacza „nieznane”, nie zero.</p>
         <Field label="Nazwa produktu"><input name="name" required maxLength={200} /></Field>
         <Field label="Marka (opcjonalnie)"><input name="brand" maxLength={100} /></Field>

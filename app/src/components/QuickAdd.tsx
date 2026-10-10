@@ -1,4 +1,4 @@
-import { Camera, ChefHat, Droplet, Dumbbell, PenLine, Play, Ruler, ScanBarcode, Utensils } from 'lucide-react'
+import { Camera, ChefHat, Droplet, Dumbbell, Flame, PenLine, Play, Ruler, ScanBarcode, Utensils } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { mealNames } from '../../../shared/domain'
 import { useJournal } from '../lib/Journal'
@@ -44,6 +44,10 @@ export function QuickAdd({ date, onClose }: { date: string; onClose: () => void 
       <li><button type="button" onClick={() => then(() => navigate('/meals/quick'))}>
         <span className="quick-add-icon"><PenLine size={20} aria-hidden="true" /></span>
         <span><strong>Szybki wpis</strong><small>Napisz lub podyktuj: „dwa jajka i tost”</small></span>
+      </button></li>
+      <li><button type="button" onClick={() => then(() => workspace.openMeal(meal, 'kcal'))}>
+        <span className="quick-add-icon"><Flame size={20} aria-hidden="true" /></span>
+        <span><strong>Same kcal</strong><small>Znasz tylko kalorie, np. z menu restauracji</small></span>
       </button></li>
       <li><button type="button" onClick={() => then(() => workspace.openMeal(meal, 'barcode'))}>
         <span className="quick-add-icon"><ScanBarcode size={20} aria-hidden="true" /></span>
