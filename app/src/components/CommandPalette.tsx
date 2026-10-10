@@ -12,8 +12,6 @@ import { sessionTitle, weekdayIndex } from '../lib/training/format'
 import { useFeedback } from './Feedback'
 import { useWorkspace } from './Workspace'
 import { errorMessage } from './ui'
-import { DictationButton } from './DictationButton'
-import { useDictation } from '../lib/speech'
 
 type Item = { id: string; group: string; label: string; detail?: string; keywords?: string; icon: ReactNode; run: () => void }
 
@@ -41,7 +39,6 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   const workspace = useWorkspace()
   const { data, execute } = useJournal()
   const feedback = useFeedback()
-  const dictation = useDictation((spoken) => { setQuery(spoken.slice(0, 80)); setActive(0) })
 
   useEffect(() => {
     const dialog = ref.current
@@ -63,7 +60,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
       { id: 'add-meal', group: 'Dodaj', label: 'Dodaj posiłek', keywords: 'jedzenie produkt kalorie', icon: icon(Utensils), run: () => workspace.openMeal() },
       { id: 'quick-kcal', group: 'Dodaj', label: 'Dodaj same kalorie', keywords: 'kcal restauracja menu szybko bez produktu', icon: icon(Utensils), run: () => workspace.openMeal(undefined, 'kcal') },
       { id: 'scan', group: 'Dodaj', label: 'Skanuj kod kreskowy', keywords: 'ean aparat kamera', icon: icon(ScanBarcode), run: () => workspace.openMeal(undefined, 'barcode') },
-      { id: 'quick-entry', group: 'Dodaj', label: 'Szybki wpis tekstem lub głosem', keywords: 'napisz podyktuj zdanie jedzenie szybko jajka', icon: icon(Utensils), run: go('/meals/quick') },
+      { id: 'quick-entry', group: 'Dodaj', label: 'Szybki wpis tekstem', keywords: 'napisz zdanie jedzenie szybko jajka', icon: icon(Utensils), run: go('/meals/quick') },
       { id: 'scan-plate', group: 'Dodaj', label: 'Skan posiłku ze zdjęcia', keywords: 'talerz taca fast food zdjecie kalorie makro jedzenie ai', icon: icon(Camera), run: go('/meals/scan') },
       { id: 'water', group: 'Dodaj', label: 'Dodaj wodę 250 ml', keywords: 'picie nawodnienie szklanka', icon: icon(Droplet), run: () => {
         execute({ type: 'water.add', value: { date: workspace.date, amountMl: 250 } })
@@ -148,7 +145,6 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
         aria-activedescendant={results.length ? `${listId}-${current}` : undefined} aria-label="Szukaj stron, akcji i wpisów"
         placeholder="Szukaj: posiłek, woda, plan, nazwa produktu…" value={query} autoComplete="off"
         onChange={(event) => { setQuery(event.target.value); setActive(0) }} onKeyDown={onKeyDown} />
-      <DictationButton supported={dictation.supported} listening={dictation.listening} onToggle={dictation.toggle} />
       <button className="icon-button" type="button" aria-label="Zamknij wyszukiwanie" onClick={onClose}><X size={18} /></button>
     </div>
     <ul id={listId} role="listbox" aria-label="Wyniki" className="palette-results">

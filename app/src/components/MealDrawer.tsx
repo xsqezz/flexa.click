@@ -17,8 +17,6 @@ import { today } from '../lib/dates'
 import { MealTemplates } from './MealTemplates'
 import type { MealTab } from './Workspace'
 import { LabelReader } from './LabelReader'
-import { DictationButton } from './DictationButton'
-import { useDictation } from '../lib/speech'
 import type { LabelReading } from '../lib/scan/label-client'
 import { kcalOnlyMeal } from '../lib/quick-kcal'
 
@@ -48,11 +46,6 @@ export function MealDrawer({ date, initialMeal, initialTab = 'search', onClose }
   const [prefill, setPrefill] = useState<LabelReading | null>(null)
   const [prefillKey, setPrefillKey] = useState(0)
   const searchVersion = useRef(0)
-  const dictation = useDictation((spoken, _base, final) => {
-    const text = spoken.slice(0, 80)
-    setQuery(text)
-    if (final && text.length >= 2) void search({ query: text })
-  })
   if (!data) throw new Error('Journal data is unavailable')
   const customFoods = data.customFoods
   const mode = auth.mode === 'demo' ? 'demo' : 'cloud'
@@ -206,7 +199,7 @@ export function MealDrawer({ date, initialMeal, initialTab = 'search', onClose }
               inputMode={tab === 'barcode' ? 'numeric' : 'search'}
               minLength={tab === 'barcode' ? 8 : 2} maxLength={tab === 'barcode' ? 14 : 80} required
               onChange={(event) => tab === 'barcode' ? setBarcode(event.target.value) : setQuery(event.target.value)} />
-          </label>{tab === 'search' && <DictationButton supported={dictation.supported} listening={dictation.listening} onToggle={dictation.toggle} label="Szukaj głosem" />}<Button type="submit" busy={searching}><Search size={17} aria-hidden="true" />Szukaj</Button>
+          </label><Button type="submit" busy={searching}><Search size={17} aria-hidden="true" />Szukaj</Button>
         </form>
         {searching && <Notice>Wyszukuję produkty…</Notice>}
         {!result && !searching && tab === 'search' && <MealTemplates date={date} initialMeal={initialMeal} onAdded={onClose} />}

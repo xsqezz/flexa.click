@@ -4,14 +4,6 @@ export type ChangelogEntry = { date: string; title: string; points: string[] }
 export const changelog: ChangelogEntry[] = [
   {
     date: '2026-10-11',
-    title: 'Wyszukiwanie głosem',
-    points: [
-      'Mikrofon jest teraz w wyszukiwarce produktów i w Ctrl+K, a nie tylko w Szybkim wpisie.',
-      'W aplikacji na Androida (1.4.0) mikrofon otwiera systemowe okno głosowe i działa po polsku. W przeglądarkach bez rozpoznawania mowy (np. Firefox) przycisku nie ma.',
-    ],
-  },
-  {
-    date: '2026-10-11',
     title: 'Prostszy układ zakładek',
     points: [
       'Wszystkie zakładki zostały, ale mają mniej przycisków: dodawanie jest w jednym miejscu — przycisku „Dodaj” — a nie w każdej zakładce osobno.',
@@ -46,7 +38,7 @@ export const changelog: ChangelogEntry[] = [
     date: '2026-10-11',
     title: 'Szybki wpis',
     points: [
-      'Napisz lub podyktuj, co zjadłeś („dwa jajka sadzone, 200 g ryżu i szklanka mleka”) — Flexa zamieni to na listę z kaloriami do sprawdzenia i zapisania w Posiłkach.',
+      'Napisz, co zjadłeś („dwa jajka sadzone, 200 g ryżu i szklanka mleka”) — Flexa zamieni to na listę z kaloriami do sprawdzenia i zapisania w Posiłkach.',
       'Działa bez AI i bez wysyłania tekstu: zdanie jest rozkładane na Twoim urządzeniu, a słowa spoza bazy są wyraźnie zgłaszane.',
     ],
   },

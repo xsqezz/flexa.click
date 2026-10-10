@@ -1164,49 +1164,6 @@ test('fibre is shown against a reference and flags missing data instead of count
   await expect(line).toContainText(/Dane o błonniku są w \d+ z \d+ wpisów|nie da się go policzyć/)
 })
 
-async function fakeDictation(page: Page, transcript: string) {
-  await page.addInitScript((spoken) => {
-    class FakeRecognition {
-      lang = ''; interimResults = false; continuous = false
-      onresult: ((event: unknown) => void) | null = null; onend: (() => void) | null = null; onerror: (() => void) | null = null
-      start() {
-        setTimeout(() => {
-          const result = Object.assign([{ transcript: spoken }], { isFinal: true })
-          this.onresult?.({ results: [result] }); this.onend?.()
-        }, 50)
-      }
-      stop() { this.onend?.() }
-    }
-    const scope = window as unknown as Record<string, unknown>
-    scope.SpeechRecognition = FakeRecognition
-    scope.webkitSpeechRecognition = FakeRecognition
-  }, transcript)
-}
-
-test('voice search fills the product search and the Ctrl+K palette', async ({ page }) => {
-  await fakeDictation(page, 'jogurt naturalny')
-  await openDemo(page)
-  await openAdd(page, 'Posiłek')
-  const dialog = page.getByRole('dialog')
-  await dialog.getByRole('button', { name: 'Szukaj głosem' }).click()
-  await expect(dialog.getByRole('textbox', { name: 'Nazwa produktu', exact: true })).toHaveValue('jogurt naturalny')
-  await expect(dialog.getByRole('button', { name: /Jogurt naturalny.*61 kcal/ })).toBeVisible()
-  await page.keyboard.press('Escape')
-  await page.keyboard.press('Control+k')
-  const palette = page.getByRole('dialog', { name: 'Szukaj w Flexa' })
-  await palette.getByRole('button', { name: 'Wyszukaj głosem' }).click()
-  await expect(palette.getByRole('combobox')).toHaveValue('jogurt naturalny')
-})
-
-test('quick entry dictation appends to the typed text', async ({ page }) => {
-  await fakeDictation(page, 'dwie kromki chleba')
-  await openDemo(page)
-  await page.goto('/meals/quick')
-  await page.getByLabel('Opisz posiłek').fill('jajko')
-  await page.getByRole('button', { name: /Podyktuj/ }).click()
-  await expect(page.getByLabel('Opisz posiłek')).toHaveValue('jajko, dwie kromki chleba')
-})
-
 test('approved goal estimate, CSV export and backup restore without deleting anything', async ({ page }, testInfo) => {
   await openDemo(page)
   await navigate(page, '/goals')

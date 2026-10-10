@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Camera, Check, ImagePlus, Mic, Plus, Search, ShieldCheck, Sparkles, Trash2 } from 'lucide-react'
+import { Camera, Check, ImagePlus, Plus, Search, ShieldCheck, Sparkles, Trash2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { mealNames, type MealKind } from '../../../shared/domain'
 import { getPlateItem, plateSizeLabels, plateSizes, type PlateSize } from '../../../shared/meal-scan/catalog'
@@ -15,7 +15,6 @@ import { plural } from '../lib/templates'
 import { integerFormat, numberFormat } from '../lib/nutrition'
 import { KitchenAiError, kitchenAiAvailable, preparePhoto, type PreparedPhoto } from '../lib/kitchen/ai-client'
 import { takeSharedImage } from '../lib/native'
-import { joinSpoken, useDictation } from '../lib/speech'
 import { resolveQuick } from '../lib/scan/quick'
 import { lineWithHabit, readHabits, rememberLines, saveHabits } from '../lib/scan/habits'
 import { analysePlate, lineForItem, rememberScanConsent, resolveFindings, scanConsentGiven } from '../lib/scan/client'
@@ -238,22 +237,17 @@ function PhotoPanel({ aiReady, onAnalysed }: { aiReady: boolean | null; onAnalys
   </section>
 }
 
-/** Type or dictate what you ate; the sentence is split into items and looked up in the same catalogue as the photo scan. */
+/** Type what you ate; the sentence is split into items and looked up in the same catalogue as the photo scan. */
 function QuickPanel({ ready, onSubmit }: { ready: boolean; onSubmit: (text: string) => void }) {
   const inputId = useId()
   const [text, setText] = useState('')
-  const textRef = useRef(text)
-  useEffect(() => { textRef.current = text })
-  const dictation = useDictation((spoken, base) => setText(joinSpoken(base, spoken, 400)), () => textRef.current)
-  const Speech = dictation.supported
-
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!text.trim() || !ready) return
-    dictation.stop()
     onSubmit(text)
     setText('')
   }
+
   return <section className="panel scan-photo quick-entry" aria-labelledby="quick-title">
     <h2 id="quick-title">Co zjadłeś?</h2>
     <p className="scan-lead">Napisz własnymi słowami, także z ilościami: „owsianka z bananem i dwie kawy z mlekiem”, „200 g ryżu, 2 kromki chleba”.</p>
@@ -263,10 +257,9 @@ function QuickPanel({ ready, onSubmit }: { ready: boolean; onSubmit: (text: stri
         onChange={(event) => setText(event.target.value)} />
       <div className="button-row">
         <Button type="submit" disabled={!text.trim() || !ready}><Plus size={17} aria-hidden="true" />Dodaj do talerza</Button>
-        {Speech && <Button type="button" variant="secondary" onClick={dictation.toggle} aria-pressed={dictation.listening}><Mic size={17} aria-hidden="true" />{dictation.listening ? 'Słucham… (stuknij, by zakończyć)' : 'Podyktuj'}</Button>}
       </div>
     </form>
-    <p className="scan-lead"><ShieldCheck size={15} aria-hidden="true" /> Tekst przetwarzamy na Twoim urządzeniu, bez wysyłania go do AI.{Speech ? ' Dyktowanie korzysta z rozpoznawania mowy przeglądarki lub telefonu i może wysyłać nagranie do jej dostawcy (np. Google).' : ' Na telefonie możesz użyć mikrofonu na klawiaturze.'}</p>
+    <p className="scan-lead"><ShieldCheck size={15} aria-hidden="true" /> Tekst przetwarzamy na Twoim urządzeniu, bez wysyłania go do AI.</p>
   </section>
 }
 
@@ -365,7 +358,7 @@ export function ScanPage({ mode = 'photo' }: { mode?: 'photo' | 'quick' }) {
   return <>
     <div className="goals-back"><Link to="/meals" className="text-link">← Wróć do Posiłków</Link></div>
     <PageHeader title={mode === 'quick' ? 'Szybki wpis' : 'Skan posiłku'} description={mode === 'quick'
-      ? 'Napisz lub podyktuj, co zjadłeś. Zamienimy to na listę z kaloriami i makroskładnikami — do sprawdzenia i zapisania w Posiłkach.'
+      ? 'Napisz, co zjadłeś. Zamienimy to na listę z kaloriami i makroskładnikami — do sprawdzenia i zapisania w Posiłkach.'
       : 'Zdjęcie tacy lub talerza zamienione w listę składników z kaloriami i makroskładnikami — do sprawdzenia i zapisania w Posiłkach.'} />
     <div className="page-toolbar"><DateControl /></div>
     {mode === 'quick'

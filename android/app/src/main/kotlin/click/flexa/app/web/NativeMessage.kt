@@ -15,8 +15,6 @@ sealed interface NativeMessage {
     data object OpenNotificationSettings : NativeMessage
     /** The page asks for the photo another app shared with Flexa (once). */
     data class TakeSharedImage(val id: String?) : NativeMessage
-    /** The page asks the system voice dialog to listen (Polish) and return the recognised text. */
-    data class ListenSpeech(val id: String?) : NativeMessage
 
     companion object {
         const val MAX_MESSAGE_CHARS = 12_000_000
@@ -52,10 +50,6 @@ sealed interface NativeMessage {
                 "shared-image.take" -> {
                     if (!GET_KEYS.containsAll(ReminderSettings.keys(json))) return null
                     TakeSharedImage((requestId(json) ?: return null).ifEmpty { null })
-                }
-                "speech.listen" -> {
-                    if (!GET_KEYS.containsAll(ReminderSettings.keys(json))) return null
-                    ListenSpeech((requestId(json) ?: return null).ifEmpty { null })
                 }
                 "reminders.open-settings" -> if (ReminderSettings.keys(json) == setOf("type")) OpenNotificationSettings else null
                 else -> null

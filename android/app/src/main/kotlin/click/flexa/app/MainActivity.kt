@@ -4,8 +4,6 @@ import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.speech.RecognizerIntent
-import androidx.activity.result.contract.ActivityResultContracts
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.net.ConnectivityManager
@@ -68,12 +66,6 @@ class MainActivity : ComponentActivity(), WebHost {
     private val cameraAccess = WebCameraAccess(this, policy)
     private val fileSaver = FileSaver(this)
     private val reminders = ReminderController(this)
-    private var speechReply: ((String) -> Unit)? = null
-    private var speechId: String? = null
-    private val speechLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        val text = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.trim()?.take(400)
-        finishSpeech(if (result.resultCode == RESULT_OK && !text.isNullOrEmpty()) text else null, error = false)
-    }
     private lateinit var updates: UpdateController
 
     private lateinit var root: FrameLayout
@@ -149,31 +141,6 @@ class MainActivity : ComponentActivity(), WebHost {
             }
         }.start()
         return true
-    }
-
-    /** Opens the system voice dialog (no microphone permission is needed in Flexa) and sends the text back to the page. */
-    private fun listenForSpeech(id: String?, reply: (String) -> Unit) {
-        speechReply = reply
-        speechId = id
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-            .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pl-PL")
-            .putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.speech_prompt))
-        try { speechLauncher.launch(intent) } catch (_: ActivityNotFoundException) { finishSpeech(null, error = true) }
-    }
-
-    private fun finishSpeech(text: String?, error: Boolean) {
-        val reply = speechReply ?: return
-        val json = JSONObject().put("type", "speech")
-        speechId?.let { json.put("id", it) }
-        when {
-            error -> json.put("error", true)
-            text == null -> json.put("none", true)
-            else -> json.put("text", text)
-        }
-        speechReply = null
-        speechId = null
-        reply(json.toString())
     }
 
     private fun replySharedImage(id: String?, reply: (String) -> Unit) {
@@ -384,7 +351,7 @@ class MainActivity : ComponentActivity(), WebHost {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             WebViewCompat.addWebMessageListener(
                 view, NativeBridge.NAME, setOf(BuildConfig.APP_URL.trimEnd('/')),
-                NativeBridge(onSaveFile = fileSaver::save, onCheckUpdate = updates::checkInteractively, onReminders = reminders::handle, onSharedImage = ::replySharedImage, onSpeech = ::listenForSpeech),
+                NativeBridge(onSaveFile = fileSaver::save, onCheckUpdate = updates::checkInteractively, onReminders = reminders::handle, onSharedImage = ::replySharedImage),
             )
         }
         return view
