@@ -1,2 +1,2 @@
-Udostępnij zdjęcie z galerii do Skanu posiłku
-Jasny motyw w oknach systemowych i na stronie offline
+Wyszukiwanie głosem: mikrofon w wyszukiwarce produktów i Ctrl+K
+Dyktowanie otwiera systemowe okno głosowe po polsku
