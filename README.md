@@ -49,6 +49,8 @@ zmian, a następny cykl wymaga potwierdzenia. W Celach widać spożycie dla dnia
 bieżącą i docelową masę oraz historię kalorii i cykli. Demo dla 16–17-latków
 oferuje tylko cele ręczne, bez kalkulatora i propozycji faz.
 
+**Błonnik:** `FiberLine` w podsumowaniu Celów pokazuje sumę błonnika z dnia względem orientacyjnych 25 g (`fiberReference` w `nutrition.ts`, bez osobnego celu w profilu i bez migracji); brakujące wartości dają „≥” i licznik wpisów z danymi. Cukru i soli baza nie przechowuje (pola nie istnieją w `foods`), więc nie są liczone.
+
 **Same kcal i powtórz dzień:** zakładka „Same kcal” w oknie dodawania posiłku zapisuje wpis z samymi kaloriami (`app/src/lib/quick-kcal.ts`: id `kcal-…`, wartości na 100 g × porcja 100/200 g, żeby suma równała się wpisanej; w dzienniku „wpis kcal”, nieznane makro zostaje puste). Na pustym dniu w Posiłkach `RepeatDay` kopiuje jeden z 14 ostatnich dni z wpisami (`meal.addMany`).
 
 **Szybki wpis:** `/meals/quick` (Posiłki, „Dodaj”, Ctrl+K) rozkłada zdanie („dwa jajka, 200 g ryżu i szklanka mleka”) na pozycje lokalnie: `shared/meal-scan/phrase.ts` (ilości, jednostki, rozmiary, polskie odmiany) i `app/src/lib/scan/quick.ts` (dopasowanie do katalogu Skanu). Bez AI, bez limitu dziennego i bez wysyłania tekstu; niepewne i nieznane słowa są zgłaszane. Zapis jako produkt „szybki wpis”. Opcjonalne dyktowanie używa Web Speech API przeglądarki (poza WebView).

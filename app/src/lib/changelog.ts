@@ -4,6 +4,14 @@ export type ChangelogEntry = { date: string; title: string; points: string[] }
 export const changelog: ChangelogEntry[] = [
   {
     date: '2026-10-11',
+    title: 'Błonnik w Celach',
+    points: [
+      'Pod makroskładnikami widać błonnik z dnia na tle orientacyjnych 25 g dla dorosłych (to punkt odniesienia, nie Twój cel).',
+      'Jeśli część wpisów nie ma danych o błonniku, Flexa pokazuje „≥” i mówi, ile wpisów je ma — brakujących wartości nie liczy jako zera.',
+    ],
+  },
+  {
+    date: '2026-10-11',
     title: 'Same kcal i powtórz dzień',
     points: [
       'W „Dodaj posiłek” → „Same kcal” zapiszesz posiłek, o którym znasz tylko kalorie (np. z menu restauracji). Makroskładniki są opcjonalne.',

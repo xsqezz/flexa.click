@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import type { Journal, Meal } from '../../../shared/domain'
 import { daysEndingAt, dateLabel, today, weekStart, shiftDate } from '../lib/dates'
 import { goalForDay } from '../lib/goals'
-import { calorieStatus, integerFormat, numberFormat, nutritionTotal, progress } from '../lib/nutrition'
+import { calorieStatus, fiberReference, integerFormat, numberFormat, nutritionTotal, progress } from '../lib/nutrition'
 import { useJournal } from '../lib/Journal'
 import { useFeedback } from './Feedback'
 import { useWorkspace } from './Workspace'
@@ -15,6 +15,19 @@ const macroDefinitions = [
   { key: 'carbs', name: 'Węglowodany', goal: 'carbsGoal', className: 'carbs' },
   { key: 'fat', name: 'Tłuszcze', goal: 'fatGoal', className: 'fat' },
 ] as const
+
+/** Fibre is shown against the common adult reference rather than a personal target; unknown values are never counted as zero. */
+function FiberLine({ meals }: { meals: Meal[] }) {
+  const total = nutritionTotal(meals, 'fiber')
+  const known = meals.length - total.missing
+  return <div className="macro fiber-line">
+    <span className="macro-label"><i />Błonnik</span>
+    <div><strong>{total.missing > 0 ? '≥ ' : ''}{numberFormat.format(total.value)}</strong><span> g · orientacyjnie {fiberReference} g dziennie dla dorosłych</span></div>
+    <div className="macro-meter" aria-hidden="true"><span style={{ width: `${progress(total.value, fiberReference)}%` }} /></div>
+    <small>{known === 0 ? 'Żaden z dzisiejszych wpisów nie ma danych o błonniku, więc nie da się go policzyć.'
+      : total.missing > 0 ? `Dane o błonniku są w ${known} z ${meals.length} wpisów, więc to dolna granica.` : 'Dane o błonniku są we wszystkich wpisach.'}</small>
+  </div>
+}
 
 export function NutritionSummary({ meals, profile, date }: { meals: Meal[]; profile: Journal['profile']; date: string }) {
   const energy = nutritionTotal(meals, 'kcal').value
@@ -48,6 +61,7 @@ export function NutritionSummary({ meals, profile, date }: { meals: Meal[]; prof
         </div>
       })}
     </div>
+    {meals.length > 0 && <FiberLine meals={meals} />}
     <div className="summary-footnote">Cel zatwierdzasz Ty. Energia treningów nie zwiększa go automatycznie. <Link to="/goals/new">Rozpocznij nowy cykl</Link></div>
   </section>
 }

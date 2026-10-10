@@ -3,6 +3,9 @@ import type { Meal, Nutrient, Workout } from '../../../shared/domain'
 export const numberFormat = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 1 })
 export const integerFormat = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 0 })
 
+/** Common adult guideline in grams per day (WHO and EFSA both give about 25 g). */
+export const fiberReference = 25
+
 export function nutritionTotal(meals: Meal[], nutrient: Nutrient) {
   return meals.reduce((total, meal) => {
     const value = meal.food.nutrients[nutrient]

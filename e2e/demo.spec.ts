@@ -1150,6 +1150,20 @@ test('repeat day copies a whole earlier day onto an empty day', async ({ page })
   await expect(page.locator('.meal-row').first()).toBeVisible()
 })
 
+test('fibre is shown against a reference and flags missing data instead of counting zero', async ({ page }) => {
+  await openDemo(page)
+  await page.goto('/goals')
+  const line = page.locator('.fiber-line')
+  await expect(line).toContainText('Błonnik')
+  await expect(line).toContainText('orientacyjnie 25 g')
+  await accessible(page)
+  await page.getByRole('button', { name: 'Dodaj', exact: true }).first().click()
+  await page.getByRole('button', { name: /Same kcal/ }).click()
+  await page.getByRole('dialog').getByLabel('Energia (kcal)').fill('300')
+  await page.getByRole('dialog').getByRole('button', { name: 'Dodaj do dziennika' }).click()
+  await expect(line).toContainText(/Dane o błonniku są w \d+ z \d+ wpisów|nie da się go policzyć/)
+})
+
 test('approved goal estimate, CSV export and backup restore without deleting anything', async ({ page }, testInfo) => {
   await openDemo(page)
   await navigate(page, '/goals')
