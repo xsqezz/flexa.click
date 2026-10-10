@@ -1,2 +1,1 @@
-Wyszukiwanie głosem: mikrofon w wyszukiwarce produktów i Ctrl+K
-Dyktowanie otwiera systemowe okno głosowe po polsku
+Usunięto dyktowanie głosowe, które nie działało
