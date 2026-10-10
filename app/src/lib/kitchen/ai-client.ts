@@ -69,13 +69,15 @@ function cropAreas(width: number, height: number): Area[] {
 export type PreparedPhoto = { images: string[]; preview: string }
 
 /** Shrinks the photo and re-encodes it as JPEG, which also drops EXIF data such as the location. The first image is the whole photo, the rest are zoomed crops (unless `crops` is off). */
-export async function preparePhoto(file: File, options: { crops?: boolean } = {}): Promise<PreparedPhoto> {
+export async function preparePhoto(file: File, options: { crops?: boolean; sharp?: boolean } = {}): Promise<PreparedPhoto> {
   let bitmap: ImageBitmap
   try { bitmap = await createImageBitmap(file) }
   catch { throw new KitchenAiError('Nie udało się odczytać zdjęcia. Spróbuj zrobić je ponownie lub wybierz plik JPEG albo PNG.', 'unreadable') }
   try {
     const whole: Area = { x: 0, y: 0, width: bitmap.width, height: bitmap.height }
-    for (const [side, quality] of [[1024, 0.82], [900, 0.7], [720, 0.6]] as const) {
+    // Printed nutrition tables need more pixels than a plate of food does.
+    const steps = options.sharp ? [[1500, 0.85], [1200, 0.75], [960, 0.65]] as const : [[1024, 0.82], [900, 0.7], [720, 0.6]] as const
+    for (const [side, quality] of steps) {
       const blob = await renderJpeg(bitmap, whole, side, quality)
       if (!blob || blob.size > maxBytes) continue
       const images = [await toBase64(blob)]

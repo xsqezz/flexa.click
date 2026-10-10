@@ -57,6 +57,8 @@ account; it is never presented as synchronized cloud data.
   estimate, and the feature works without AI in the local demo.
 - Open Food Facts is the primary packaged-food source; USDA FoodData Central
   is an optional fallback. Missing nutrient values are not invented.
+- "Odczyt etykiety" (custom product tab, signed-in only) copies the per-100 figures from a photo
+  of a nutrition table into the form; the user checks and saves. Shares the daily vision budget.
 - "Same kcal" (tab in the add-meal drawer) stores a meal known only by its calories;
   unknown macros stay unknown. "Powtórz dzień" copies a whole earlier day onto an empty one.
 - "Szybki wpis" (under Posiłki and Dodaj) turns a typed or dictated Polish sentence into

@@ -23,7 +23,7 @@ const modelTimeoutMs = 30_000
 export type AiBinding = { run(model: string, input: unknown): Promise<unknown> }
 export type KitchenDeps = { ai?: AiBinding; supabaseUrl?: string; supabaseKey?: string; fetch?: typeof fetch }
 
-export type ErrorCode = 'unauthorized' | 'quota' | 'bad_request' | 'too_large' | 'unavailable' | 'not_found' | 'method'
+export type ErrorCode = 'unauthorized' | 'quota' | 'bad_request' | 'too_large' | 'unavailable' | 'not_found' | 'method' | 'unreadable'
 
 const baseHeaders = { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' }
 

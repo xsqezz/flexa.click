@@ -16,6 +16,8 @@ import { suggestedFoods } from '../lib/templates'
 import { today } from '../lib/dates'
 import { MealTemplates } from './MealTemplates'
 import type { MealTab } from './Workspace'
+import { LabelReader } from './LabelReader'
+import type { LabelReading } from '../lib/scan/label-client'
 import { kcalOnlyMeal } from '../lib/quick-kcal'
 
 const mealKinds: MealKind[] = ['breakfast', 'lunch', 'dinner', 'snack']
@@ -41,6 +43,8 @@ export function MealDrawer({ date, initialMeal, initialTab = 'search', onClose }
   const [portion, setPortion] = useState('100')
   const [unit, setUnit] = useState<'g' | 'ml' | ''>('')
   const [error, setError] = useState<string | null>(null)
+  const [prefill, setPrefill] = useState<LabelReading | null>(null)
+  const [prefillKey, setPrefillKey] = useState(0)
   const searchVersion = useRef(0)
   if (!data) throw new Error('Journal data is unavailable')
   const customFoods = data.customFoods
@@ -156,17 +160,22 @@ export function MealDrawer({ date, initialMeal, initialTab = 'search', onClose }
                   <Field label="Tłuszcze (g)"><input name="fat" type="number" inputMode="decimal" min="0" max="500" step="0.1" /></Field>
                 </div>
                 <Button type="submit" busy={pending}>Dodaj do dziennika</Button>
-              </form> : tab === 'custom' ? <form className="form-stack" onSubmit={(event) => { void saveCustom(event) }}>
+      </form> : tab === 'custom' ? <>
+        <LabelReader onRead={(reading) => { setPrefill(reading); setPrefillKey((key) => key + 1); setError(null) }} />
+        {prefill && <Notice tone={prefill.consistent ? 'info' : 'error'}>{prefill.consistent
+          ? 'Odczytano z etykiety. Sprawdź każdą liczbę ze zdjęciem — czytanie może się pomylić — i zapisz produkt.'
+          : 'Odczytane kalorie nie zgadzają się z białkiem, węglowodanami i tłuszczem — któraś liczba mogła zostać źle odczytana. Porównaj wszystko z etykietą przed zapisem.'}</Notice>}
+        <form className="form-stack" key={prefillKey} onSubmit={(event) => { void saveCustom(event) }}>
         <p className="source-credit">Wpisz dane z etykiety. Produkt pozostaje prywatny i jest dostępny na Twoim koncie. Puste makro oznacza „nieznane”, nie zero.</p>
-        <Field label="Nazwa produktu"><input name="name" required maxLength={200} /></Field>
-        <Field label="Marka (opcjonalnie)"><input name="brand" maxLength={100} /></Field>
-        <Field label="Wartości odżywcze na"><select name="unit" defaultValue="g"><option value="g">100 g</option><option value="ml">100 ml</option></select></Field>
+        <Field label="Nazwa produktu"><input name="name" required maxLength={200} defaultValue={prefill?.name} /></Field>
+        <Field label="Marka (opcjonalnie)"><input name="brand" maxLength={100} defaultValue={prefill?.brand} /></Field>
+        <Field label="Wartości odżywcze na"><select name="unit" defaultValue={prefill?.unit ?? 'g'}><option value="g">100 g</option><option value="ml">100 ml</option></select></Field>
         <div className="form-grid">{nutrientFields.map(({ name, label, max }) => <Field key={name} label={label}>
-          <input name={name} type="number" inputMode="decimal" min="0" max={max} step="0.1" required={name === 'kcal'} />
+          <input name={name} type="number" inputMode="decimal" min="0" max={max} step="0.1" required={name === 'kcal'} defaultValue={prefill?.[name] ?? undefined} />
         </Field>)}</div>
         <Field label="Kod kreskowy (opcjonalnie)" hint="EAN-8, UPC-A, EAN-13 lub GTIN-14 z poprawną cyfrą kontrolną."><input name="barcode" inputMode="numeric" pattern="[0-9]{8}|[0-9]{12}|[0-9]{13}|[0-9]{14}" maxLength={14} /></Field>
         <Button type="submit" busy={pending}>Zapisz produkt</Button>
-      </form> : <>
+      </form></> : <>
         {tab === 'search' && <Field label="Podstawowe produkty — 150 pozycji">
           <select value="" onChange={(event) => {
             const entry = requiredProducts.find((item) => item.id === Number(event.target.value))

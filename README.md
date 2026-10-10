@@ -49,6 +49,8 @@ zmian, a następny cykl wymaga potwierdzenia. W Celach widać spożycie dla dnia
 bieżącą i docelową masę oraz historię kalorii i cykli. Demo dla 16–17-latków
 oferuje tylko cele ręczne, bez kalkulatora i propozycji faz.
 
+**Odczyt etykiety:** w „Własny produkt” zdjęcie tabeli wartości odżywczych trafia do `POST /api/meal/label` (`shared/meal-scan/label.ts`, ten sam endpoint-plik co Skan, kind `vision` wspólny z limitem 12/dzień — bez migracji). Model tylko przepisuje liczby z kolumny „na 100”; parser jest ścisły (zakresy, suma makro ≤ 100 g, `consistent` gdy kcal odbiega od 4B+4W+9T) i wypełnia formularz, który użytkownik sprawdza i zapisuje (`LabelReader`, `app/src/lib/scan/label-client.ts`).
+
 **Błonnik:** `FiberLine` w podsumowaniu Celów pokazuje sumę błonnika z dnia względem orientacyjnych 25 g (`fiberReference` w `nutrition.ts`, bez osobnego celu w profilu i bez migracji); brakujące wartości dają „≥” i licznik wpisów z danymi. Cukru i soli baza nie przechowuje (pola nie istnieją w `foods`), więc nie są liczone.
 
 **Same kcal i powtórz dzień:** zakładka „Same kcal” w oknie dodawania posiłku zapisuje wpis z samymi kaloriami (`app/src/lib/quick-kcal.ts`: id `kcal-…`, wartości na 100 g × porcja 100/200 g, żeby suma równała się wpisanej; w dzienniku „wpis kcal”, nieznane makro zostaje puste). Na pustym dniu w Posiłkach `RepeatDay` kopiuje jeden z 14 ostatnich dni z wpisami (`meal.addMany`).

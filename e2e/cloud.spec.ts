@@ -495,6 +495,43 @@ test('Skan posiłku recognises a tray after consent, lets the user correct it an
   await expect(page.getByText('Nuggetsy z kurczaka (skan)')).toBeVisible()
 })
 
+test('Odczyt etykiety fills the custom product form after consent and warns when the numbers disagree', async ({ page }) => {
+  await fixture(page)
+  const requests: { authorization: string; images: string[] }[] = []
+  let reading = { name: 'Jogurt naturalny', brand: 'Bakoma', unit: 'g', kcal: 61, protein: 4.3, carbs: 5, fat: 3, fiber: null, consistent: true }
+  await page.route('**/api/kitchen/status', (route) => route.fulfill({ json: { available: true, limits: { vision: 12, image: 30 } } }))
+  await page.route('**/api/meal/label', async (route) => {
+    requests.push({ authorization: route.request().headers().authorization ?? '', images: (route.request().postDataJSON() as { images: string[] }).images })
+    await route.fulfill({ json: { label: reading } })
+  })
+  await login(page)
+  await expect(page.getByRole('heading', { name: 'Cele', level: 1, exact: true })).toBeVisible()
+  await page.goto(`${origin}/meals`)
+  await page.getByRole('button', { name: 'Dodaj do: Śniadanie' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: 'Własny produkt' }).click()
+  await dialog.locator('input[type=file]').nth(1).setInputFiles({ name: 'etykieta.jpg', mimeType: 'image/jpeg', buffer: await bigPhoto(page) })
+  await expect(dialog.getByAltText('Podgląd zdjęcia etykiety')).toBeVisible()
+  await dialog.getByRole('button', { name: 'Odczytaj wartości' }).click()
+  await expect(dialog.getByRole('alert')).toContainText('zgodę')
+  expect(requests).toHaveLength(0)
+  await dialog.getByRole('checkbox', { name: /wyłącznie po to, by odczytać liczby z etykiety/ }).check()
+  await dialog.getByRole('button', { name: 'Odczytaj wartości' }).click()
+  await expect(dialog.getByLabel('Nazwa produktu')).toHaveValue('Jogurt naturalny')
+  await expect(dialog.getByLabel('Energia (kcal)')).toHaveValue('61')
+  await expect(dialog.getByLabel('Białko (g)')).toHaveValue('4.3')
+  await expect(dialog.getByLabel('Błonnik (g)')).toHaveValue('')
+  await expect(dialog.getByText(/Sprawdź każdą liczbę ze zdjęciem/)).toBeVisible()
+  expect(requests).toHaveLength(1)
+  expect(requests[0].authorization).toMatch(/^Bearer /)
+  expect(requests[0].images).toHaveLength(1)
+  reading = { ...reading, kcal: 610, consistent: false }
+  await dialog.locator('input[type=file]').nth(1).setInputFiles({ name: 'etykieta.jpg', mimeType: 'image/jpeg', buffer: await bigPhoto(page) })
+  await dialog.getByRole('button', { name: 'Odczytaj wartości' }).click()
+  await expect(dialog.getByText(/nie zgadzają się z białkiem/)).toBeVisible()
+  await expect(dialog.getByLabel('Energia (kcal)')).toHaveValue('610')
+})
+
 test('Skan posiłku uses the official menu of a recognised chain and offers a one-tap correction', async ({ page }) => {
   const mocked = await fixture(page)
   await page.route('**/api/kitchen/status', (route) => route.fulfill({ json: { available: true, limits: { vision: 12, image: 30 } } }))

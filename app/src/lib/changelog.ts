@@ -4,6 +4,14 @@ export type ChangelogEntry = { date: string; title: string; points: string[] }
 export const changelog: ChangelogEntry[] = [
   {
     date: '2026-10-11',
+    title: 'Odczyt etykiety ze zdjęcia',
+    points: [
+      'Dodając własny produkt, sfotografuj tabelę wartości odżywczych — Flexa przepisze liczby „na 100 g / 100 ml” do formularza, a Ty je sprawdzisz i zapiszesz.',
+      'Gdy kalorie nie zgadzają się z makroskładnikami, dostaniesz ostrzeżenie. Wymaga konta i zgody, jak Skan posiłku.',
+    ],
+  },
+  {
+    date: '2026-10-11',
     title: 'Błonnik w Celach',
     points: [
       'Pod makroskładnikami widać błonnik z dnia na tle orientacyjnych 25 g dla dorosłych (to punkt odniesienia, nie Twój cel).',

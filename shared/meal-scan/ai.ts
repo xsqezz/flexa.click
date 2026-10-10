@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { bearer, consume, describePhoto, failure, inspectPhoto, json, maxPhotoBytes, readJson, type KitchenDeps } from '../kitchen/ai.ts'
 import { chainMenuNames, commonDishNames } from './anchors.ts'
 import type { PlateSize } from './catalog.ts'
+import { handleLabelRequest } from './label.ts'
 
 /** A whole-plate photo plus, optionally, a second angle that fills in what the first one hid. */
 export const maxPlateImages = 2
@@ -79,6 +80,7 @@ const plateBody = z.strictObject({
 
 export async function handlePlateRequest(request: Request, deps: KitchenDeps): Promise<Response> {
   const action = new URL(request.url).pathname.split('/').filter(Boolean).at(-1)
+  if (action === 'label') return handleLabelRequest(request, deps)
   if (action !== 'plate') return failure(404, 'not_found', 'Nie znaleziono.')
   if (request.method !== 'POST') return failure(405, 'method', 'Nieobsługiwana metoda.')
   const token = bearer(request)
