@@ -8,6 +8,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NativeMessageTest {
+    @Test
+    fun `parses a shared photo request with an optional id and rejects extras`() {
+        assertEquals(NativeMessage.TakeSharedImage("s-1"), NativeMessage.parse("{\"type\":\"shared-image.take\",\"id\":\"s-1\"}"))
+        assertEquals(NativeMessage.TakeSharedImage(null), NativeMessage.parse("{\"type\":\"shared-image.take\"}"))
+        assertNull(NativeMessage.parse("{\"type\":\"shared-image.take\",\"id\":\"s-1\",\"uri\":\"file:///x\"}"))
+        assertNull(NativeMessage.parse("{\"type\":\"shared-image.take\",\"id\":\"bad id!\"}"))
+    }
+
     private fun message(type: String, vararg fields: Pair<String, Any>): String =
         JSONObject().put("type", type).also { json -> fields.forEach { json.put(it.first, it.second) } }.toString()
 

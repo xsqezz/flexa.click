@@ -50,6 +50,8 @@
     <string name="reminder_training_session" tools:ignore="Typos">Dziś w planie trening: %1$s · ok. %2$d min</string>
     <string name="reminder_training_title">Dziś w planie trening: %1$s</string>
     <string name="reminder_training_generic">Dziś dzień treningowy w Twoim planie</string>
+    <string name="share_preparing">Przygotowuję zdjęcie…</string>
+    <string name="share_failed">Nie udało się odczytać tego zdjęcia.</string>
     <string name="shortcut_scan_short">Skan posiłku</string>
     <string name="shortcut_scan_long">Skan posiłku ze zdjęcia</string>
     <string name="shortcut_meals_short">Posiłki</string>

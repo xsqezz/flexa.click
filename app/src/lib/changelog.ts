@@ -3,6 +3,14 @@ export type ChangelogEntry = { date: string; title: string; points: string[] }
 /** Newest first. Keep entries factual: what a user can now do, not internal work. */
 export const changelog: ChangelogEntry[] = [
   {
+    date: '2026-10-10',
+    title: 'Android: udostępnianie zdjęć do Skanu',
+    points: [
+      'W aplikacji na Androida (1.3.0) wybierz zdjęcie w galerii, dotknij „Udostępnij” i Flexa, a Skan posiłku otworzy się z tym zdjęciem.',
+      'Zdjęcie jest zmniejszane i pozbawiane danych lokalizacji na telefonie, a Flexa go nie zapisuje.',
+    ],
+  },
+  {
     date: '2026-10-09',
     title: 'Trend wagi, plan tygodnia i lista zakupów',
     points: [

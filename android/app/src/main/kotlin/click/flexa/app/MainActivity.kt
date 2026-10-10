@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.util.Base64
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -31,6 +32,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.content.IntentCompat
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -48,6 +50,7 @@ import click.flexa.app.web.FlexaWebViewClient
 import click.flexa.app.web.Navigation
 import click.flexa.app.web.NativeBridge
 import click.flexa.app.web.NavigationPolicy
+import click.flexa.app.web.SharedImage
 import click.flexa.app.web.WebCameraAccess
 import click.flexa.app.web.WebHost
 import org.json.JSONObject
@@ -114,12 +117,45 @@ class MainActivity : ComponentActivity(), WebHost {
         webView = view
         root.addView(view, 0)
         val restored = savedInstanceState != null && view.restoreState(savedInstanceState) != null
-        if (restored) lastUrl = savedInstanceState.getString(STATE_LAST_URL) ?: homeUrl else view.loadUrl(startUrl(intent))
+        if (restored) lastUrl = savedInstanceState.getString(STATE_LAST_URL) ?: homeUrl
+        else if (!openSharedPhoto(intent)) view.loadUrl(startUrl(intent))
+    }
+
+    /** "Share" > Flexa with a photo: prepare it off the main thread, then open the scan screen, which collects it. */
+    private fun openSharedPhoto(intent: Intent?): Boolean {
+        if (intent?.action != Intent.ACTION_SEND || intent.type?.startsWith("image/") != true) return false
+        val uri = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java) ?: return false
+        Toast.makeText(this, R.string.share_preparing, Toast.LENGTH_SHORT).show()
+        Thread {
+            val bytes = SharedImage.prepare(contentResolver, uri)
+            main.post {
+                if (isDestroyed) return@post
+                if (bytes == null) {
+                    Toast.makeText(this, R.string.share_failed, Toast.LENGTH_LONG).show()
+                    if (webView?.url == null) webView?.loadUrl(homeUrl)
+                } else {
+                    SharedImage.store(bytes)
+                    offline = false
+                    webView?.loadUrl(homeUrl + "meals/scan")
+                }
+            }
+        }.start()
+        return true
+    }
+
+    private fun replySharedImage(id: String?, reply: (String) -> Unit) {
+        val bytes = SharedImage.take()
+        val json = JSONObject().put("type", "shared-image")
+        if (id != null) json.put("id", id)
+        if (bytes == null) json.put("none", true)
+        else json.put("mime", SharedImage.MIME).put("data", Base64.encodeToString(bytes, Base64.NO_WRAP))
+        reply(json.toString())
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (openSharedPhoto(intent)) return
         val url = startUrl(intent)
         offline = false
         webView?.loadUrl(url)
@@ -315,7 +351,7 @@ class MainActivity : ComponentActivity(), WebHost {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             WebViewCompat.addWebMessageListener(
                 view, NativeBridge.NAME, setOf(BuildConfig.APP_URL.trimEnd('/')),
-                NativeBridge(onSaveFile = fileSaver::save, onCheckUpdate = updates::checkInteractively, onReminders = reminders::handle),
+                NativeBridge(onSaveFile = fileSaver::save, onCheckUpdate = updates::checkInteractively, onReminders = reminders::handle, onSharedImage = ::replySharedImage),
             )
         }
         return view

@@ -197,3 +197,41 @@ export function openNotificationSettings(): boolean {
   native.postMessage(JSON.stringify({ type: 'reminders.open-settings' }))
   return true
 }
+
+// Zdjęcie udostępnione Flexa z innej aplikacji („Udostępnij” > Flexa), aplikacja 1.3.0+. Powłoka trzyma je w pamięci i oddaje raz.
+
+const sharedImageReply = z.union([
+  z.strictObject({ type: z.literal('shared-image'), id: z.string().optional(), none: z.literal(true) }),
+  z.strictObject({ type: z.literal('shared-image'), id: z.string().optional(), mime: z.literal('image/jpeg'), data: z.string().min(1).max(14_000_000) }),
+])
+
+export function sharedImagesSupported(): boolean {
+  return bridge() !== null && appAtLeast(1, 3)
+}
+
+function base64ToBytes(data: string): Uint8Array<ArrayBuffer> | null {
+  try {
+    const binary = atob(data)
+    const bytes = new Uint8Array(binary.length)
+    for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index)
+    return bytes
+  } catch { return null }
+}
+
+/** Odbiera (raz) zdjęcie udostępnione aplikacji albo `null`, gdy żadne nie czeka lub aplikacja jest za stara. */
+export async function takeSharedImage(timeoutMs = 5_000): Promise<File | null> {
+  const native = bridge()
+  if (!native || !sharedImagesSupported()) return null
+  listen(native)
+  sequence += 1
+  const id = `s-${Date.now().toString(36)}-${sequence}`
+  const reply = await new Promise<unknown>((resolve) => {
+    const timer = setTimeout(() => { pending.delete(id); resolve(null) }, timeoutMs)
+    pending.set(id, (raw) => { pending.delete(id); clearTimeout(timer); resolve(raw) })
+    native.postMessage(JSON.stringify({ type: 'shared-image.take', id }))
+  })
+  const parsed = sharedImageReply.safeParse(reply)
+  if (!parsed.success || !('data' in parsed.data)) return null
+  const bytes = base64ToBytes(parsed.data.data)
+  return bytes ? new File([bytes], 'udostepnione.jpg', { type: parsed.data.mime }) : null
+}

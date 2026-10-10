@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ANDROID_APK_URL, ANDROID_CERT_SHA256, androidAppVersion, canSaveNatively, checkAppUpdate, getReminders, openNotificationSettings,
-  mealRemindersSupported, remindersSupported, saveFileNatively, saveJsonNatively, setReminders, type ReminderSettings,
+  mealRemindersSupported, remindersSupported, sharedImagesSupported, takeSharedImage, saveFileNatively, saveJsonNatively, setReminders, type ReminderSettings,
 } from './native'
 
 function userAgent(value: string) {
@@ -266,5 +266,43 @@ describe('meal reminders (app 1.2.0+)', () => {
       await expect(setReminders({ ...settings, meals: { enabled: true, times } })).rejects.toThrow()
     }
     expect(sent).toHaveLength(0)
+  })
+})
+
+
+describe('photos shared with the Android app (1.3.0+)', () => {
+  const APP_1_3 = 'Mozilla/5.0 (Linux; Android 16) Chrome/133.0 Mobile Safari/537.36 FlexaAndroid/1.3.0'
+  const jpeg = btoa(String.fromCharCode(0xff, 0xd8, 0xff, 0xe0, 1, 2, 3))
+
+  it('are supported only from version 1.3.0', async () => {
+    mockApp(() => undefined)
+    expect(sharedImagesSupported()).toBe(false)
+    await expect(takeSharedImage()).resolves.toBeNull()
+    userAgent(APP_1_3)
+    expect(sharedImagesSupported()).toBe(true)
+  })
+
+  it('turns the reply into a JPEG file', async () => {
+    const sent = mockApp((message) => ({ type: 'shared-image', id: message.id, mime: 'image/jpeg', data: jpeg }))
+    userAgent(APP_1_3)
+    const file = await takeSharedImage()
+    expect(sent[0]).toMatchObject({ type: 'shared-image.take' })
+    expect(file?.type).toBe('image/jpeg')
+    expect(file?.size).toBe(7)
+  })
+
+  it('returns null when nothing is waiting, the reply is malformed or the app stays silent', async () => {
+    mockApp((message) => ({ type: 'shared-image', id: message.id, none: true }))
+    userAgent(APP_1_3)
+    await expect(takeSharedImage()).resolves.toBeNull()
+    mockApp((message) => ({ type: 'shared-image', id: message.id, mime: 'image/png', data: jpeg }))
+    userAgent(APP_1_3)
+    await expect(takeSharedImage()).resolves.toBeNull()
+    mockApp((message) => ({ type: 'shared-image', id: message.id, mime: 'image/jpeg', data: '***' }))
+    userAgent(APP_1_3)
+    await expect(takeSharedImage()).resolves.toBeNull()
+    mockApp(() => undefined)
+    userAgent(APP_1_3)
+    await expect(takeSharedImage(30)).resolves.toBeNull()
   })
 })

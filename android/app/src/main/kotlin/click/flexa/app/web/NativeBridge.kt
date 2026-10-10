@@ -16,6 +16,7 @@ class NativeBridge(
     private val onSaveFile: (name: String, text: String, mime: String) -> Unit,
     private val onCheckUpdate: () -> Unit,
     private val onReminders: (message: NativeMessage, reply: (String) -> Unit) -> Unit,
+    private val onSharedImage: (id: String?, reply: (String) -> Unit) -> Unit = { _, _ -> },
 ) : WebViewCompat.WebMessageListener {
 
     override fun onPostMessage(
@@ -35,6 +36,13 @@ class NativeBridge(
                     if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) replyProxy.postMessage(reply)
                 } catch (_: RuntimeException) {
                     // The page that asked is gone (navigated away or the WebView was destroyed).
+                }
+            }
+            is NativeMessage.TakeSharedImage -> onSharedImage(parsed.id) { reply ->
+                try {
+                    if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) replyProxy.postMessage(reply)
+                } catch (_: RuntimeException) {
+                    // The page that asked is gone.
                 }
             }
             null -> Unit

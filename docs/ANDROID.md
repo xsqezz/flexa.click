@@ -137,6 +137,15 @@ okna zainstaluje się wersja 1.0.1 (`adb shell dumpsys package click.flexa.app.d
   telefonu). Bez reklam, analityki i zewnętrznych bibliotek śledzących;
   kopie zapasowe Androida są wyłączone (`allowBackup=false`). Szczegóły: strona „Prywatność” w aplikacji.
 
+## Udostępnianie zdjęcia do Skanu (od wersji 1.3.0)
+
+- Flexa pojawia się w systemowym menu „Udostępnij” dla zdjęć (`ACTION_SEND`, `image/*`). Powłoka czyta zdjęcie, zmniejsza je
+  (dłuższy bok do 1600 px), zapisuje ponownie jako JPEG (to usuwa EXIF, także lokalizację), trzyma w pamięci (`SharedImage`) i
+  otwiera `/meals/scan`. Strona prosi o nie komunikatem `{ "type": "shared-image.take", "id" }`; odpowiedź to
+  `{ "type": "shared-image", "id", "mime": "image/jpeg", "data": "<base64>" }` albo `{ ..., "none": true }`. Zdjęcie oddawane jest raz
+  i nigdzie nie jest zapisywane. Dalej działa zwykła ścieżka Skanu: zgoda, analiza, poprawki i zapis dopiero po zatwierdzeniu.
+- Skan wymaga logowania; bez konta zdjęcie czeka w pamięci, aż otworzysz Skan po zalogowaniu (albo aplikacja zostanie zamknięta).
+
 ## Przypomnienia o posiłkach i skróty (od wersji 1.2.0)
 
 - Trzeci rodzaj przypomnień: `meals` (`{ "enabled": true, "times": ["08:30", "13:30", "19:00"] }`, od 1 do 6 godzin, ściśle rosnąco).

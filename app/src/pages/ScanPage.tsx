@@ -14,6 +14,7 @@ import { dateLabel, today } from '../lib/dates'
 import { plural } from '../lib/templates'
 import { integerFormat, numberFormat } from '../lib/nutrition'
 import { KitchenAiError, kitchenAiAvailable, preparePhoto, type PreparedPhoto } from '../lib/kitchen/ai-client'
+import { takeSharedImage } from '../lib/native'
 import { lineWithHabit, readHabits, rememberLines, saveHabits } from '../lib/scan/habits'
 import { analysePlate, lineForItem, rememberScanConsent, resolveFindings, scanConsentGiven } from '../lib/scan/client'
 import { DateControl, PageHeader, mealForHour, useWorkspace } from '../components/Workspace'
@@ -161,6 +162,14 @@ function PhotoPanel({ aiReady, onAnalysed }: { aiReady: boolean | null; onAnalys
   const previews = useRef<string[]>([])
   previews.current = photos.map((photo) => photo.preview)
   useEffect(() => () => { for (const url of previews.current) URL.revokeObjectURL(url) }, [])
+  // A photo shared from another Android app arrives here (once) and is prepared like a gallery pick.
+  useEffect(() => {
+    if (auth.mode !== 'cloud') return
+    let active = true
+    void takeSharedImage().then((file) => { if (active && file) void choose(file) })
+    return () => { active = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.mode])
 
   if (auth.mode !== 'cloud') return <Notice>Rozpoznawanie ze zdjęcia działa po zalogowaniu. W trybie demo złóż talerz ręcznie — wyszukaj składniki poniżej.</Notice>
   if (aiReady === false) return <Notice>Rozpoznawanie ze zdjęcia jest chwilowo niedostępne. Złóż talerz ręcznie — wyszukaj składniki poniżej.</Notice>

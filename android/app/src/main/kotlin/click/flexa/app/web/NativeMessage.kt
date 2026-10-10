@@ -13,6 +13,8 @@ sealed interface NativeMessage {
     /** A well-formed `reminders.set` whose settings failed validation; the page gets an error reply. */
     data class InvalidReminders(val id: String?) : NativeMessage
     data object OpenNotificationSettings : NativeMessage
+    /** The page asks for the photo another app shared with Flexa (once). */
+    data class TakeSharedImage(val id: String?) : NativeMessage
 
     companion object {
         const val MAX_MESSAGE_CHARS = 12_000_000
@@ -44,6 +46,10 @@ sealed interface NativeMessage {
                     val id = (requestId(json) ?: return null).ifEmpty { null }
                     val settings = ReminderSettings.parse(json.opt("training"), json.opt("water"), json.opt("meals"))
                     if (settings == null) InvalidReminders(id) else SetReminders(id, settings)
+                }
+                "shared-image.take" -> {
+                    if (!GET_KEYS.containsAll(ReminderSettings.keys(json))) return null
+                    TakeSharedImage((requestId(json) ?: return null).ifEmpty { null })
                 }
                 "reminders.open-settings" -> if (ReminderSettings.keys(json) == setOf("type")) OpenNotificationSettings else null
                 else -> null
