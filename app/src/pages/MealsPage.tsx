@@ -1,4 +1,4 @@
-import { CalendarRange, ScanLine } from 'lucide-react'
+import { CalendarRange, PenLine, ScanLine } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useJournal } from '../lib/Journal'
 import { dateLabel } from '../lib/dates'
@@ -15,6 +15,7 @@ export function MealsPage() {
     <PageHeader title="Posiłki" description="Dodawaj i przeglądaj jedzenie według pory dnia. Bilans i historię kalorii znajdziesz w Celach." />
     <div className="page-toolbar"><DateControl />
       <Link className="button button-secondary" to="/meals/scan"><ScanLine size={17} aria-hidden="true" />Skanuj posiłek ze zdjęcia</Link>
+      <Link className="button button-secondary" to="/meals/quick"><PenLine size={17} aria-hidden="true" />Szybki wpis</Link>
       <Link className="button button-secondary" to="/meals/plan"><CalendarRange size={17} aria-hidden="true" />Plan tygodnia</Link></div>
     <WeekStrip />
     <section className="panel meal-panel meals-page-list" aria-labelledby="meals-day-title">

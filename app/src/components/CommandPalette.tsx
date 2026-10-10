@@ -59,6 +59,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     const list: Item[] = [
       { id: 'add-meal', group: 'Dodaj', label: 'Dodaj posiłek', keywords: 'jedzenie produkt kalorie', icon: icon(Utensils), run: () => workspace.openMeal() },
       { id: 'scan', group: 'Dodaj', label: 'Skanuj kod kreskowy', keywords: 'ean aparat kamera', icon: icon(ScanBarcode), run: () => workspace.openMeal(undefined, 'barcode') },
+      { id: 'quick-entry', group: 'Dodaj', label: 'Szybki wpis tekstem lub głosem', keywords: 'napisz podyktuj zdanie jedzenie szybko jajka', icon: icon(Utensils), run: go('/meals/quick') },
       { id: 'scan-plate', group: 'Dodaj', label: 'Skan posiłku ze zdjęcia', keywords: 'talerz taca fast food zdjecie kalorie makro jedzenie ai', icon: icon(Camera), run: go('/meals/scan') },
       { id: 'water', group: 'Dodaj', label: 'Dodaj wodę 250 ml', keywords: 'picie nawodnienie szklanka', icon: icon(Droplet), run: () => {
         execute({ type: 'water.add', value: { date: workspace.date, amountMl: 250 } })

@@ -84,6 +84,7 @@ export default function App() {
               <Route path="/meals" element={<MealsPage />} />
               <Route path="/meals/plan" element={<Suspense fallback={<Skeleton />}><MealPlanPage /></Suspense>} />
               <Route path="/meals/scan" element={<Suspense fallback={<Skeleton />}><ScanPage /></Suspense>} />
+              <Route path="/meals/quick" element={<Suspense fallback={<Skeleton />}><ScanPage mode="quick" /></Suspense>} />
               <Route path="/journal" element={<Navigate to="/meals" replace />} />
               <Route path="/kitchen/shopping" element={<Suspense fallback={<Skeleton />}><ShoppingPage /></Suspense>} />
               <Route path="/kitchen" element={<Suspense fallback={<Skeleton />}><KitchenPage /></Suspense>} />

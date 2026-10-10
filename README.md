@@ -49,6 +49,8 @@ zmian, a następny cykl wymaga potwierdzenia. W Celach widać spożycie dla dnia
 bieżącą i docelową masę oraz historię kalorii i cykli. Demo dla 16–17-latków
 oferuje tylko cele ręczne, bez kalkulatora i propozycji faz.
 
+**Szybki wpis:** `/meals/quick` (Posiłki, „Dodaj”, Ctrl+K) rozkłada zdanie („dwa jajka, 200 g ryżu i szklanka mleka”) na pozycje lokalnie: `shared/meal-scan/phrase.ts` (ilości, jednostki, rozmiary, polskie odmiany) i `app/src/lib/scan/quick.ts` (dopasowanie do katalogu Skanu). Bez AI, bez limitu dziennego i bez wysyłania tekstu; niepewne i nieznane słowa są zgłaszane. Zapis jako produkt „szybki wpis”. Opcjonalne dyktowanie używa Web Speech API przeglądarki (poza WebView).
+
 **Skan posiłku:** w Posiłkach (oraz z przycisku „Dodaj” i wyszukiwarki) zrobisz zdjęcie tacy lub talerza — np. z fast foodu.
 Po zalogowaniu i wyrażeniu zgody model wizyjny Cloudflare Workers AI tylko **nazywa widoczne pozycje** (angielskie nazwy z menu, marka
 sieci, rozmiar, liczba sztuk) — kalorii ani wag nie podaje. Aplikacja dopasowuje te nazwy do własnej bazy (ponad 8 tys. pozycji, w tym

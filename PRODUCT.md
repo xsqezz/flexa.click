@@ -57,6 +57,9 @@ account; it is never presented as synchronized cloud data.
   estimate, and the feature works without AI in the local demo.
 - Open Food Facts is the primary packaged-food source; USDA FoodData Central
   is an optional fallback. Missing nutrient values are not invented.
+- "Szybki wpis" (under Posiłki and Dodaj) turns a typed or dictated Polish sentence into
+  the same editable plate list, using a local deterministic parser and the Skan library;
+  no AI, no quota, nothing sent. Unknown words are reported, never dropped silently.
 - "Skan posiłku" (under Posiłki, also from Dodaj and search) turns a photo of a tray or
   plate into an editable list of components. With an account and explicit consent, a
   vision model on Cloudflare Workers AI only names the visible items (English menu names,

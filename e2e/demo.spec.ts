@@ -1090,6 +1090,33 @@ test('own workouts: saved from a logged one, logged again with its sets, deleted
   await expect.poll(async () => (await journal(page)).workoutTemplates, { timeout: 15_000 }).toEqual([])
 })
 
+test('quick entry turns a sentence into a checked list and saves it to Posiłki', async ({ page }) => {
+  await openDemo(page)
+  await page.goto('/meals/quick')
+  await expect(page.getByRole('heading', { name: 'Szybki wpis', level: 1 })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Dodaj do talerza' })).toBeDisabled()
+  await page.getByLabel('Opisz posiłek').fill('dwa jajka sadzone, 200 g ryżu i szklanka mleka')
+  await page.getByRole('button', { name: 'Dodaj do talerza' }).click()
+  await expect(page.locator('.scan-list li').first()).toBeVisible()
+  await accessible(page)
+  const today = await browserToday(page)
+  const before = (await journal(page)).meals.filter((meal) => meal.date === today).length
+  await page.getByRole('button', { name: /Zapisz w Posiłkach/ }).click()
+  await expect.poll(async () => (await journal(page)).meals.filter((meal) => meal.date === today).length).toBeGreaterThan(before + 1)
+  const saved = (await journal(page)).meals.filter((meal) => meal.date === today).slice(before)
+  expect(saved.every((meal) => meal.food.name.endsWith('(szybki wpis)'))).toBe(true)
+})
+
+test('quick entry is reachable from Dodaj and reports unknown words', async ({ page }) => {
+  await openDemo(page)
+  await page.getByRole('button', { name: 'Dodaj', exact: true }).click()
+  await page.getByRole('button', { name: /Szybki wpis/ }).click()
+  await expect(page.getByRole('heading', { name: 'Szybki wpis', level: 1 })).toBeVisible()
+  await page.getByLabel('Opisz posiłek').fill('zzzxqv')
+  await page.getByRole('button', { name: 'Dodaj do talerza' }).click()
+  await expect(page.getByText(/zzzxqv/).first()).toBeVisible()
+})
+
 test('approved goal estimate, CSV export and backup restore without deleting anything', async ({ page }, testInfo) => {
   await openDemo(page)
   await navigate(page, '/goals')

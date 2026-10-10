@@ -126,14 +126,15 @@ function digest(text: string): string {
 }
 
 /** Diary product for one line: nutrients per 100 g (ml), so the portion in grams reproduces the estimated totals exactly. */
-export function lineFood(estimate: LineEstimate) {
+/** `label` is the word in brackets after the name in the diary: "skan" for a photo, "szybki wpis" for typed text. */
+export function lineFood(estimate: LineEstimate, label = 'skan') {
   const { item, grams, precision } = estimate
   const per = (value: number) => (grams > 0 ? round1(value * 100 / grams) : 0)
   const exact = precision === 'exact'
   return {
     food: {
       id: exact ? `scan-${item.id}-own-${digest(JSON.stringify(estimate.line.exact))}` : `scan-${item.id}`,
-      name: exact ? `${item.name} (z menu lub etykiety)` : `${item.name} (skan)`,
+      name: exact ? `${item.name} (z menu lub etykiety)` : `${item.name} (${label})`,
       brand: item.brand ?? 'Skan posiłku', barcode: null, unit: item.unit, source: 'custom' as const, estimated: !exact && precision !== 'official',
       nutrients: exact
         ? { kcal: per(estimate.kcal.typical), protein: per(estimate.protein.typical), carbs: per(estimate.carbs.typical), fat: per(estimate.fat.typical), fiber: null }

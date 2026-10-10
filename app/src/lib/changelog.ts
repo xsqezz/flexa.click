@@ -3,6 +3,14 @@ export type ChangelogEntry = { date: string; title: string; points: string[] }
 /** Newest first. Keep entries factual: what a user can now do, not internal work. */
 export const changelog: ChangelogEntry[] = [
   {
+    date: '2026-10-11',
+    title: 'Szybki wpis',
+    points: [
+      'Napisz lub podyktuj, co zjadłeś („dwa jajka sadzone, 200 g ryżu i szklanka mleka”) — Flexa zamieni to na listę z kaloriami do sprawdzenia i zapisania w Posiłkach.',
+      'Działa bez AI i bez wysyłania tekstu: zdanie jest rozkładane na Twoim urządzeniu, a słowa spoza bazy są wyraźnie zgłaszane.',
+    ],
+  },
+  {
     date: '2026-10-10',
     title: 'Android: udostępnianie zdjęć do Skanu',
     points: [

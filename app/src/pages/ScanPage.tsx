@@ -1,5 +1,5 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { Camera, Check, ImagePlus, Plus, Search, ShieldCheck, Sparkles, Trash2 } from 'lucide-react'
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Camera, Check, ImagePlus, Mic, Plus, Search, ShieldCheck, Sparkles, Trash2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { mealNames, type MealKind } from '../../../shared/domain'
 import { getPlateItem, plateSizeLabels, plateSizes, type PlateSize } from '../../../shared/meal-scan/catalog'
@@ -15,6 +15,7 @@ import { plural } from '../lib/templates'
 import { integerFormat, numberFormat } from '../lib/nutrition'
 import { KitchenAiError, kitchenAiAvailable, preparePhoto, type PreparedPhoto } from '../lib/kitchen/ai-client'
 import { takeSharedImage } from '../lib/native'
+import { resolveQuick } from '../lib/scan/quick'
 import { lineWithHabit, readHabits, rememberLines, saveHabits } from '../lib/scan/habits'
 import { analysePlate, lineForItem, rememberScanConsent, resolveFindings, scanConsentGiven } from '../lib/scan/client'
 import { DateControl, PageHeader, mealForHour, useWorkspace } from '../components/Workspace'
@@ -236,6 +237,67 @@ function PhotoPanel({ aiReady, onAnalysed }: { aiReady: boolean | null; onAnalys
   </section>
 }
 
+type SpeechResult = { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }
+type Recognition = {
+  lang: string; interimResults: boolean; continuous: boolean
+  start(): void; stop(): void
+  onresult: ((event: SpeechResult) => void) | null; onend: (() => void) | null; onerror: (() => void) | null
+}
+function speechApi(): (new () => Recognition) | null {
+  const scope = window as unknown as { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition }
+  return scope.SpeechRecognition ?? scope.webkitSpeechRecognition ?? null
+}
+
+/** Type or dictate what you ate; the sentence is split into items and looked up in the same catalogue as the photo scan. */
+function QuickPanel({ ready, onSubmit }: { ready: boolean; onSubmit: (text: string) => void }) {
+  const inputId = useId()
+  const [text, setText] = useState('')
+  const [listening, setListening] = useState(false)
+  const recognition = useRef<Recognition | null>(null)
+  const Speech = useMemo(speechApi, [])
+  useEffect(() => () => { recognition.current?.stop() }, [])
+
+  function toggleListening() {
+    if (listening) { recognition.current?.stop(); return }
+    if (!Speech) return
+    const next = new Speech()
+    next.lang = 'pl-PL'; next.interimResults = true; next.continuous = false
+    const base = text.trim()
+    next.onresult = (event) => {
+      const spoken = Array.from(event.results).map((result) => result[0]?.transcript ?? '').join(' ').trim()
+      setText([base, spoken].filter(Boolean).join(', ').slice(0, 400))
+    }
+    next.onend = () => setListening(false)
+    next.onerror = () => setListening(false)
+    recognition.current = next
+    setListening(true)
+    try { next.start() } catch { setListening(false) }
+  }
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!text.trim() || !ready) return
+    recognition.current?.stop()
+    onSubmit(text)
+    setText('')
+  }
+
+  return <section className="panel scan-photo quick-entry" aria-labelledby="quick-title">
+    <h2 id="quick-title">Co zjadłeś?</h2>
+    <p className="scan-lead">Napisz własnymi słowami, także z ilościami: „owsianka z bananem i dwie kawy z mlekiem”, „200 g ryżu, 2 kromki chleba”.</p>
+    <form onSubmit={submit}>
+      <label className="sr-only" htmlFor={inputId}>Opisz posiłek</label>
+      <textarea id={inputId} className="quick-entry-input" rows={3} maxLength={400} value={text} placeholder="np. dwa jajka sadzone, chleb z masłem i herbata"
+        onChange={(event) => setText(event.target.value)} />
+      <div className="button-row">
+        <Button type="submit" disabled={!text.trim() || !ready}><Plus size={17} aria-hidden="true" />Dodaj do talerza</Button>
+        {Speech && <Button type="button" variant="secondary" onClick={toggleListening} aria-pressed={listening}><Mic size={17} aria-hidden="true" />{listening ? 'Słucham… (stuknij, by zakończyć)' : 'Podyktuj'}</Button>}
+      </div>
+    </form>
+    <p className="scan-lead"><ShieldCheck size={15} aria-hidden="true" /> Tekst przetwarzamy na Twoim urządzeniu, bez wysyłania go do AI.{Speech ? ' Dyktowanie w przeglądarce może wysyłać nagranie do jej dostawcy (np. Google).' : ' Na telefonie możesz użyć mikrofonu na klawiaturze.'}</p>
+  </section>
+}
+
 function AddItem({ onAdd, disabled, suggestions }: { onAdd: (id: string) => void; disabled: boolean; suggestions: boolean }) {
   return <section className="scan-add" aria-labelledby="scan-add-title">
     <h3 id="scan-add-title">Dodaj składnik</h3>
@@ -243,7 +305,7 @@ function AddItem({ onAdd, disabled, suggestions }: { onAdd: (id: string) => void
   </section>
 }
 
-export function ScanPage() {
+export function ScanPage({ mode = 'photo' }: { mode?: 'photo' | 'quick' }) {
   const auth = useAuth()
   const { execute, pending } = useJournal()
   const { date } = useWorkspace()
@@ -291,6 +353,18 @@ export function ScanPage() {
     if (analysis.analysed < analysis.photos) setNotice({ tone: 'info', text: 'Jedno ze zdjęć nie zostało przeanalizowane. Sprawdź listę i uzupełnij ją ręcznie.' })
   }
 
+  function addQuick(text: string) {
+    const { resolved, unknown } = resolveQuick(text, (id) => lineWithHabit(readHabits(scope), id))
+    setError(null)
+    setEntries((current) => [...current, ...resolved.map((entry) => newEntry(entry.line, { heard: entry.heard, alternatives: entry.alternatives, confidence: entry.confidence }))].slice(0, maxEntries))
+    const unsure = resolved.filter((entry) => entry.confidence !== 'sure').length
+    const missing = unknown.length ? ` Nie znalazłem w bazie: ${unknown.join(', ')} — wyszukaj podobną pozycję poniżej albo wpisz własne wartości.` : ''
+    const doubt = unsure ? ` ${plural(unsure, ['pozycję', 'pozycje', 'pozycji'])} oznaczyłem do sprawdzenia.` : ''
+    setNotice(resolved.length
+      ? { tone: 'success', text: `Dodałem ${plural(resolved.length, ['pozycję', 'pozycje', 'pozycji'])}.${doubt} Sprawdź ilości — to one najbardziej zmieniają wynik.${missing}` }
+      : { tone: 'info', text: `Nie rozpoznałem tych słów jako jedzenia.${missing || ' Spróbuj prościej, np. „jajko”, „chleb”, „200 g ryżu”.'}` })
+  }
+
   function add(id: string) {
     if (entries.length >= maxEntries) { setError(`Na jednym talerzu zmieścimy najwyżej ${maxEntries} pozycji.`); return }
     setError(null)
@@ -307,9 +381,8 @@ export function ScanPage() {
     if (!entries.length || problems) return
     setError(null)
     try {
-      const value = plate.lines.map((estimate) => ({ date, meal, ...lineFood(estimate) }))
+      const value = plate.lines.map((estimate) => ({ date, meal, ...lineFood(estimate, mode === 'quick' ? 'szybki wpis' : 'skan') }))
       await execute({ type: 'meal.addMany', value })
-      saveHabits(scope, rememberLines(readHabits(scope), plate.lines.map((estimate) => estimate.line)))
       saveHabits(scope, rememberLines(readHabits(scope), plate.lines.map((estimate) => estimate.line)))
       feedback(`Zapisano ${plural(value.length, ['pozycję', 'pozycje', 'pozycji'])} w: ${mealNames[meal]}.`)
       navigate('/meals')
@@ -319,17 +392,21 @@ export function ScanPage() {
   const macros = [['Białko', plate.totals.protein], ['Węglowodany', plate.totals.carbs], ['Tłuszcze', plate.totals.fat]] as const
   return <>
     <div className="goals-back"><Link to="/meals" className="text-link">← Wróć do Posiłków</Link></div>
-    <PageHeader title="Skan posiłku" description="Zdjęcie tacy lub talerza zamienione w listę składników z kaloriami i makroskładnikami — do sprawdzenia i zapisania w Posiłkach." primary="none" />
+    <PageHeader title={mode === 'quick' ? 'Szybki wpis' : 'Skan posiłku'} description={mode === 'quick'
+      ? 'Napisz lub podyktuj, co zjadłeś. Zamienimy to na listę z kaloriami i makroskładnikami — do sprawdzenia i zapisania w Posiłkach.'
+      : 'Zdjęcie tacy lub talerza zamienione w listę składników z kaloriami i makroskładnikami — do sprawdzenia i zapisania w Posiłkach.'} primary="none" />
     <div className="page-toolbar"><DateControl /></div>
-    <Notice>To szacunek, nie pomiar. Ze zdjęcia nie da się odczytać wagi porcji ani oleju i sosów w środku, dlatego pokazujemy <strong>zakres</strong>. Najdokładniej policzysz posiłek, gdy poprawisz rozmiar lub liczbę sztuk, wpiszesz wagę albo kalorie z menu.</Notice>
+    {mode === 'quick'
+      ? <Notice>To szacunek, nie pomiar. Ilości z Twojego zdania (np. „200 g”, „dwa jajka”) liczą się dokładnie; bez ilości zakładamy porcję średnią albo Twoją zwykłą. Przed zapisem sprawdź listę.</Notice>
+      : <Notice>To szacunek, nie pomiar. Ze zdjęcia nie da się odczytać wagi porcji ani oleju i sosów w środku, dlatego pokazujemy <strong>zakres</strong>. Najdokładniej policzysz posiłek, gdy poprawisz rozmiar lub liczbę sztuk, wpiszesz wagę albo kalorie z menu.</Notice>}
     <div className="scan-layout">
       <div className="scan-main">
-        <PhotoPanel aiReady={aiReady} onAnalysed={onAnalysed} />
+        {mode === 'quick' ? <QuickPanel ready={library === 'ready'} onSubmit={addQuick} /> : <PhotoPanel aiReady={aiReady} onAnalysed={onAnalysed} />}
         {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
         <section className="panel scan-list" aria-labelledby="scan-list-title">
           <h2 id="scan-list-title">Twój talerz <small>({entries.length})</small></h2>
           {entries.length === 0
-            ? <p className="scan-lead">Na razie pusto. Zrób zdjęcie albo dodaj składniki poniżej.</p>
+            ? <p className="scan-lead">{mode === 'quick' ? 'Na razie pusto. Napisz, co zjadłeś, albo dodaj składniki poniżej.' : 'Na razie pusto. Zrób zdjęcie albo dodaj składniki poniżej.'}</p>
             : <ul className="scan-rows">{entries.map((entry) => <PlateRow key={entry.key} entry={entry}
               onChange={(line) => setEntries((current) => current.map((item) => item.key === entry.key ? { ...item, line } : item))}
               onReplace={(id) => replace(entry.key, id)}
