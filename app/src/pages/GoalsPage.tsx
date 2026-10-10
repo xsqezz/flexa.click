@@ -249,7 +249,7 @@ export function NewGoalCyclePage() {
   if (!data) throw new Error('Journal data is unavailable')
   return <>
     <div className="goals-back"><Link to="/goals" className="text-link">← Wróć do Celów</Link></div>
-    <PageHeader title="Nowy cykl" description="Nowe dzienne cele zaczną obowiązywać dopiero po Twoim zatwierdzeniu." primary="none" />
+    <PageHeader title="Nowy cykl" description="Nowe dzienne cele zaczną obowiązywać dopiero po Twoim zatwierdzeniu." />
     <CycleForm journal={data} onboarding={false} />
   </>
 }
@@ -287,7 +287,8 @@ function CycleHistory({ journal, day }: { journal: Journal; day: string }) {
   const current = effectiveCycle(journal)
   const archived = [...journal.goals.cycles].filter((cycle) => cycle.id !== current?.id)
     .sort((a, b) => b.startDate.localeCompare(a.startDate) || b.createdAt.localeCompare(a.createdAt))
-  return <>
+  return <details className="goals-more">
+    <summary>Historia energii i archiwum cykli</summary>
     <section className="panel goals-history" aria-labelledby="goals-history-title">
       <div className="section-heading"><h2 id="goals-history-title">Historia energii</h2>
         <div className="range-selector" aria-label="Okres historii kalorii">
@@ -324,7 +325,7 @@ function CycleHistory({ journal, day }: { journal: Journal; day: string }) {
         <small>Start: {numberFormat.format(cycle.startWeightKg)} kg · cel: {cycle.targetWeightKg === null ? 'nie podano' : `${numberFormat.format(cycle.targetWeightKg)} kg`}{cycle.status === 'active' ? ' · okres minął, cele pozostały bez zmian' : ''}</small>
       </li>)}</ol> : <p className="goals-help">Poprzednie cykle pojawią się tutaj po zatwierdzeniu następnego.</p>}
     </section>
-  </>
+  </details>
 }
 
 export function GoalsPage() {
@@ -342,7 +343,7 @@ export function GoalsPage() {
   return <>
     <PageHeader title="Cele" description="Twój kierunek na dziś i historia zatwierdzonych zmian. Bez automatycznych faz." />
     <FirstSteps />
-    <div className="page-toolbar"><DateControl /><Link className="button button-secondary" to="/goals/new">Rozpocznij nowy cykl <ArrowRight size={17} aria-hidden="true" /></Link></div>
+    <div className="page-toolbar"><DateControl /></div>
     {!data.goals.setupDone && <Notice>Wstępne wartości są tylko punktem wyjścia. <Link to="/goals/setup">Ustal i zatwierdź swoje cele</Link> albo wróć do nich później.</Notice>}
     {!current && <Notice>{last
       ? <>Cykl zakończył się {dateLabel(last.endDate)}. Dzienne cele nie zmieniły się same. Wybierz kolejny cykl, kiedy będziesz gotowy(-a).</>
@@ -364,7 +365,7 @@ export function GoalsPage() {
         <p>{current ? `${dateLabel(current.startDate)} – ${dateLabel(current.endDate)}` : last
           ? `Ostatni cykl: ${dateLabel(last.startDate)} – ${dateLabel(last.endDate)}`
           : 'Wybierz daty i wartości, aby zacząć.'}</p>
-        <Link className="text-link" to="/goals/new">{current ? 'Zmień kierunek i cele' : 'Wybierz kolejny cykl'} <ChevronRight size={16} aria-hidden="true" /></Link>
+        <Link className="text-link" to="/goals/new">Rozpocznij nowy cykl <ChevronRight size={16} aria-hidden="true" /></Link>
       </section>
       <section className="panel goals-weight" aria-labelledby="goals-weight-title">
         <h2 id="goals-weight-title"><Scale size={19} aria-hidden="true" />Masa ciała</h2>

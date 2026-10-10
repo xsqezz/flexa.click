@@ -23,15 +23,15 @@ type Step = 'ingredients' | 'preferences' | 'recipe'
 const stepLabels: Record<Step, string> = { ingredients: 'Produkty', preferences: 'Preferencje', recipe: 'Przepis' }
 const stepOrder: Step[] = ['ingredients', 'preferences', 'recipe']
 
-const groups: { id: string; title: string; categories: IngredientCategory[]; open: boolean }[] = [
-  { id: 'protein', title: 'Mięso, ryby i jajka', categories: ['meat', 'fish', 'egg'], open: true },
-  { id: 'veg', title: 'Warzywa', categories: ['veg'], open: true },
-  { id: 'dairy', title: 'Nabiał i sery', categories: ['dairy', 'cheese'], open: false },
-  { id: 'fruit', title: 'Owoce', categories: ['fruit'], open: false },
-  { id: 'carb', title: 'Zboża, makarony i pieczywo', categories: ['grain', 'bread'], open: false },
-  { id: 'legume', title: 'Strączkowe i tofu', categories: ['legume'], open: false },
-  { id: 'extras', title: 'Tłuszcze, orzechy, sosy i słodkie dodatki', categories: ['fat', 'nut', 'sauce', 'sweet', 'liquid'], open: false },
-  { id: 'spice', title: 'Przyprawy i zioła', categories: ['spice'], open: false },
+const groups: { id: string; title: string; categories: IngredientCategory[] }[] = [
+  { id: 'protein', title: 'Mięso, ryby i jajka', categories: ['meat', 'fish', 'egg'] },
+  { id: 'veg', title: 'Warzywa', categories: ['veg'] },
+  { id: 'dairy', title: 'Nabiał i sery', categories: ['dairy', 'cheese'] },
+  { id: 'fruit', title: 'Owoce', categories: ['fruit'] },
+  { id: 'carb', title: 'Zboża, makarony i pieczywo', categories: ['grain', 'bread'] },
+  { id: 'legume', title: 'Strączkowe i tofu', categories: ['legume'] },
+  { id: 'extras', title: 'Tłuszcze, orzechy, sosy i słodkie dodatki', categories: ['fat', 'nut', 'sauce', 'sweet', 'liquid'] },
+  { id: 'spice', title: 'Przyprawy i zioła', categories: ['spice'] },
 ]
 
 const pickable = ingredients.filter((item) => !stapleIds.has(item.id) && item.id !== 'water')
@@ -134,7 +134,7 @@ function Picker({ owned, onToggle }: { owned: readonly string[]; onToggle: (id: 
     </div> : groups.map((group) => {
       const items = pickable.filter((item) => group.categories.includes(item.category))
       const count = items.filter((item) => selected.has(item.id)).length
-      return <details key={group.id} className="kitchen-group-details" open={group.open}>
+      return <details key={group.id} className="kitchen-group-details">
         <summary>{group.title}{count > 0 && <span className="kitchen-count"> · {count}</span>}</summary>
         <div className="kitchen-chips" role="group" aria-label={group.title}>{items.map((item) => chip(item.id))}</div>
       </details>
@@ -208,7 +208,7 @@ export function KitchenPage() {
 
   const canContinue = step === 'ingredients' ? owned.length > 0 : step === 'preferences' ? preferences.equipment.length > 0 : false
   return <>
-    <PageHeader title="Smart Kuchnia" description="Powiedz, co masz w domu — ułożę przepis z makroskładnikami, dopasowany do czasu i sprzętu." primary="none" />
+    <PageHeader title="Smart Kuchnia" description="Powiedz, co masz w domu — dostaniesz przepis z makroskładnikami." />
     <Link className="text-link kitchen-shopping-link" to="/kitchen/shopping"><ShoppingBasket size={16} aria-hidden="true" />Lista zakupów</Link>
     <nav aria-label="Kroki Smart Kuchni" className="kitchen-steps-nav">
       <ol>{stepOrder.map((item, position) => <li key={item} aria-current={item === step ? 'step' : undefined} className={position < index ? 'done' : undefined}>
@@ -221,16 +221,15 @@ export function KitchenPage() {
       </h2>
       {step === 'ingredients' && <>
         <PhotoPanel aiReady={aiReady} onFound={addOwned} />
-        <section aria-labelledby="owned-title" className="kitchen-owned">
+        {owned.length > 0 && <section aria-labelledby="owned-title" className="kitchen-owned">
           <h3 id="owned-title" className="kitchen-heading">Twoje produkty <small>({owned.length})</small></h3>
-          {owned.length === 0 ? <p className="kitchen-note">Na razie pusto. Zrób zdjęcie albo wybierz produkty poniżej.</p>
-            : <div className="kitchen-chips" role="group" aria-label="Wybrane produkty">{owned.map((id) => {
+          <div className="kitchen-chips" role="group" aria-label="Wybrane produkty">{owned.map((id) => {
               const item = getIngredient(id)
               return <button key={id} type="button" className="kitchen-chip kitchen-chip-selected" onClick={() => setOwned((current) => current.filter((value) => value !== id))} aria-label={`Usuń: ${item.nom}`}>
                 <span aria-hidden="true">{item.emoji}</span>{cap(item.nom)}<X size={14} aria-hidden="true" /></button>
-            })}</div>}
-          {owned.length > 0 && <button type="button" className="text-link" onClick={() => { setOwned([]); clearKitchen() }}>Wyczyść listę</button>}
-        </section>
+            })}</div>
+          <button type="button" className="text-link" onClick={() => { setOwned([]); clearKitchen() }}>Wyczyść listę</button>
+        </section>}
         <Picker owned={owned} onToggle={(id) => setOwned((current) => toggle(current, id))} />
       </>}
       {step === 'preferences' && <PreferencesStep preferences={preferences} onChange={setPreferences} />}

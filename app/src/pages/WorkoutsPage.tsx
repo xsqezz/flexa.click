@@ -7,6 +7,7 @@ import { useJournal } from '../lib/Journal'
 import { dateLabel, shiftDate } from '../lib/dates'
 import { integerFormat, numberFormat, pace, workoutLoad } from '../lib/nutrition'
 import { exerciseName, formatSet } from '../lib/training/sets'
+import { plural } from '../lib/templates'
 import { DateControl, PageHeader, useWorkspace } from '../components/Workspace'
 import { EmptyState, errorMessage } from '../components/ui'
 
@@ -19,28 +20,24 @@ export function WorkoutsPage() {
   const workouts = data.workouts.filter((workout) => workout.date <= date && (range === 0 || workout.date >= shiftDate(date, -range + 1)))
     .sort((a, b) => b.date.localeCompare(a.date))
   return <>
-    <PageHeader title="Ruch" description="Zapisane spacery, biegi i treningi — każda aktywność ma tu swoje miejsce. Bez rankingów i presji." primary="workout" />
+    <PageHeader title="Ruch" description="Spacery, biegi i treningi. Bez rankingów." />
     <div className="page-toolbar"><DateControl /><div className="range-selector" aria-label="Okres aktywności">
       {[7, 30, 0].map((value) => <button key={value} aria-pressed={range === value} onClick={() => setRange(value)}>{value ? `${value} dni` : 'Wszystkie'}</button>)}
     </div></div>
-    <div className="overview-strip">
-      <div><small>Aktywności w okresie</small><strong>{workouts.length}</strong></div>
-      <div><small>Łączny czas</small><strong>{integerFormat.format(workouts.reduce((sum, workout) => sum + workout.minutes, 0))} min</strong></div>
-      <div><small>Zapisany dystans</small><strong>{numberFormat.format(workouts.reduce((sum, workout) => sum + (workout.distanceKm ?? 0), 0))} km</strong></div>
-    </div>
-    <section className="panel my-workouts" aria-labelledby="my-workouts-title">
+    <p className="stat-line" aria-label="Podsumowanie okresu">
+      <strong>{workouts.length}</strong> {plural(workouts.length, ['aktywność', 'aktywności', 'aktywności'])} · <strong>{integerFormat.format(workouts.reduce((sum, workout) => sum + workout.minutes, 0))}</strong> min · <strong>{numberFormat.format(workouts.reduce((sum, workout) => sum + (workout.distanceKm ?? 0), 0))}</strong> km
+    </p>
+    {data.workoutTemplates.length > 0 && <section className="panel my-workouts" aria-labelledby="my-workouts-title">
       <h2 id="my-workouts-title">Moje treningi</h2>
-      {data.workoutTemplates.length === 0
-        ? <p className="goals-help">Zapisz ulubiony trening przyciskiem „Zapisz jako własny” przy wpisie poniżej, a potem dodawaj go jednym dotknięciem.</p>
-        : <ul className="my-workouts-list">{data.workoutTemplates.map((template) => <li key={template.id}>
+      <ul className="my-workouts-list">{data.workoutTemplates.map((template) => <li key={template.id}>
           <span className="my-workouts-name"><strong>{template.name}</strong>
             <small>{workoutNames[template.kind]} · {numberFormat.format(template.minutes)} min{template.sets.length ? ` · serie: ${template.sets.length}` : ''}</small></span>
           <button type="button" className="button button-secondary" aria-label={`Zapisz dziś: ${template.name}`}
             onClick={() => openPlannedWorkout({ name: template.name, kind: template.kind, minutes: template.minutes, sets: template.sets.length ? template.sets : undefined, origin: 'template' })}>Zapisz dziś</button>
           <button type="button" className="icon-button" aria-label={`Usuń własny trening: ${template.name}`}
             onClick={() => removeWithUndo({ type: 'wtemplate.delete', id: template.id }, `Usunięto własny trening „${template.name}”.`)}><Trash2 size={17} /></button>
-        </li>)}</ul>}
-    </section>
+        </li>)}</ul>
+    </section>}
     <p className="workouts-links"><Link className="text-link" to="/workouts/exercises">Historia ćwiczeń: serie, ciężary i objętość<ChevronRight size={15} aria-hidden="true" /></Link></p>
     <div className="workouts-list">
       {workouts.length === 0 && <section className="panel"><EmptyState title="Pierwszy trening czeka na zapis" action={<button className="button button-primary" onClick={openWorkout}>Dodaj aktywność</button>}>Zapisz spacer, bieg, siłownię albo zaimportuj własny plik GPX lub TCX.</EmptyState></section>}
@@ -66,13 +63,13 @@ export function WorkoutsPage() {
             </details>}
             <div className="workout-item-actions">
               {workout.name.trim().length <= 60 && !data.workoutTemplates.some((template) => template.name.trim().toLocaleLowerCase('pl-PL') === workout.name.trim().toLocaleLowerCase('pl-PL')) &&
-                <button type="button" className="button button-ghost" aria-label={`Zapisz jako własny trening: ${workout.name}`}
+                <button type="button" className="text-link" aria-label={`Zapisz jako własny trening: ${workout.name}`}
                   onClick={() => {
                     void execute({ type: 'wtemplate.save', value: { name: workout.name, kind: workout.kind, minutes: workout.minutes, sets: workout.sets ?? [] } })
                       .then(() => feedback(`Zapisano „${workout.name}” w Moich treningach.`))
                       .catch((cause: unknown) => feedback(errorMessage(cause), { tone: 'error' }))
                   }}><BookmarkPlus size={16} aria-hidden="true" />Zapisz jako własny</button>}
-              <button type="button" className="button button-ghost" aria-label={`Powtórz dziś: ${workout.name}`}
+              <button type="button" className="button button-secondary" aria-label={`Powtórz dziś: ${workout.name}`}
                 onClick={() => openPlannedWorkout({ name: workout.name, kind: workout.kind, minutes: workout.minutes, distanceKm: workout.distanceKm, sets: workout.sets, origin: 'repeat' })}>
                 <Repeat size={16} aria-hidden="true" />Powtórz dziś</button>
             </div>

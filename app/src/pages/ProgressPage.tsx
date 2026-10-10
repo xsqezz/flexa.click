@@ -6,6 +6,7 @@ import { integerFormat, numberFormat, workoutLoad } from '../lib/nutrition'
 import { BarChart, LineChart } from '../components/Charts'
 import { DateControl, PageHeader, useWorkspace } from '../components/Workspace'
 import { movingAverage } from '../lib/trend'
+import { plural } from '../lib/templates'
 
 export function ProgressPage() {
   const { data, removeWithUndo } = useJournal()
@@ -31,17 +32,15 @@ export function ProgressPage() {
   ] as const
   const shownExtras = extras.filter((extra) => measurements.some((measurement) => measurement[extra.key] != null))
   return <>
-    <PageHeader title="Postępy bez pośpiechu" description="Spójrz na całość, nie na jeden dzień. Twoje dane, bez abonamentu." primary="measurement" />
+    <PageHeader title="Postępy bez pośpiechu" description="Spójrz na całość, nie na jeden dzień." />
     <div className="page-toolbar"><DateControl /><div className="range-selector" aria-label="Okres analizy">
       {[7, 30, 90].map((value) => <button key={value} aria-pressed={range === value} onClick={() => setRange(value)}>{value} dni</button>)}
     </div></div>
-    <div className="overview-strip">
-      <div><small>Pomiary w okresie</small><strong>{measurements.length}</strong></div>
-      <div><small>Ostatni pomiar w okresie</small><strong>{measurements.length ? `${numberFormat.format(measurements.at(-1)?.weightKg ?? 0)} kg` : '—'}</strong></div>
-      <div><small>Aktywność w okresie</small><strong>{integerFormat.format(workouts.reduce((sum, workout) => sum + workout.minutes, 0))} min</strong></div>
-    </div>
+    <p className="stat-line" aria-label="Podsumowanie okresu">
+      <strong>{measurements.length}</strong> {plural(measurements.length, ['pomiar', 'pomiary', 'pomiarów'])} · ostatni <strong>{measurements.length ? `${numberFormat.format(measurements.at(-1)?.weightKg ?? 0)} kg` : '—'}</strong> · aktywność <strong>{integerFormat.format(workouts.reduce((sum, workout) => sum + workout.minutes, 0))}</strong> min
+    </p>
     <div className="settings-grid">
-      <section className="panel chart-section"><h2>Historia pomiarów</h2><p>Naturalne wahania są częścią historii. Wykres nie jest diagnozą ani prognozą. Linia przerywana to średnia pomiarów z ostatnich 7 dni — wygładza codzienne wahania.</p>
+      <section className="panel chart-section"><h2>Historia pomiarów</h2><p>Linia przerywana to średnia z 7 dni. Wahania są naturalne; wykres nie jest diagnozą.</p>
         <LineChart points={measurements.map((measurement) => ({ date: measurement.date, value: measurement.weightKg }))} label="Masa ciała" average={weightTrend} />
         {measurements.length > 0 && <div className="table-scroll"><table><caption className="sr-only">Zarządzanie pomiarami</caption><thead><tr><th scope="col">Data</th><th scope="col">Masa</th>
           {shownExtras.map((extra) => <th scope="col" key={extra.key}>{extra.label}</th>)}<th scope="col">Akcja</th></tr></thead>
@@ -52,7 +51,7 @@ export function ProgressPage() {
           </td></tr>)}</tbody>
         </table></div>}
       </section>
-      <section className="panel chart-section"><h2>Obciążenie odczuwalne</h2><p>Minuty × Twój wysiłek RPE. To prosty, subiektywny wskaźnik — nie medyczna miara zmęczenia. Dzień bez pełnego RPE pozostaje bez oszacowania.</p>
+      <section className="panel chart-section"><h2>Obciążenie odczuwalne</h2><p>Minuty × Twój wysiłek RPE — subiektywny wskaźnik, nie miara medyczna.</p>
         <BarChart points={load} label="Obciążenie odczuwalne" unit="min × RPE" />
       </section>
     </div>

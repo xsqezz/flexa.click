@@ -50,7 +50,7 @@ export function ShoppingPage() {
   </li>
 
   return <>
-    <PageHeader title="Lista zakupów" description="Brakujące składniki z przepisów i własne pozycje. Lista zostaje na tym urządzeniu i działa bez internetu." primary="none" />
+    <PageHeader title="Lista zakupów" description="Brakujące składniki z przepisów i własne pozycje. Lista zostaje na tym urządzeniu i działa bez internetu." />
     <Link className="text-link" to="/kitchen"><ArrowLeft size={16} aria-hidden="true" />Wróć do Smart Kuchni</Link>
     <section className="panel shopping-panel" aria-labelledby="shopping-title">
       <h2 id="shopping-title">Do kupienia <small>({open.length})</small></h2>

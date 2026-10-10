@@ -215,17 +215,12 @@ export function SectionIcon() {
   return section ? <span className="page-icon" data-accent={section.accent} aria-hidden="true"><section.Icon size={24} /></span> : null
 }
 
-export function PageHeader({ title, description, primary = 'meal' }:
-  { title: string; description: string; primary?: 'meal' | 'workout' | 'measurement' | 'none' }) {
-  const workspace = useWorkspace()
+export function PageHeader({ title, description }: { title: string; description: string }) {
   return <header className="page-header">
     <div className="page-heading">
       <SectionIcon />
       <div><h1>{title}</h1><p>{description}</p></div>
     </div>
-    {primary !== 'none' && <Button onClick={primary === 'meal' ? () => workspace.openMeal() : primary === 'workout' ? workspace.openWorkout : workspace.openMeasurement}>
-      <Plus size={18} aria-hidden="true" />{primary === 'meal' ? 'Dodaj posiłek' : primary === 'workout' ? 'Dodaj trening' : 'Dodaj pomiar'}
-    </Button>}
   </header>
 }
 

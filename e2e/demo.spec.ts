@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises'
+import { openAdd } from './add'
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { journalSchema } from '../shared/domain'
@@ -51,9 +52,7 @@ test('demo, food search, portions, persistent meals and deletion', async ({ page
   page.on('pageerror', (error) => pageErrors.push(error.message))
   await openDemo(page)
   const before = (await journal(page)).meals.length
-  const addButton = page.getByRole('button', { name: 'Dodaj posiłek', exact: true })
-  await addButton.focus()
-  await addButton.click()
+  await openAdd(page, 'Posiłek')
   const dialog = page.getByRole('dialog')
   await dialog.getByRole('textbox', { name: 'Nazwa produktu', exact: true }).fill('Jogurt')
   await dialog.getByRole('button', { name: 'Szukaj', exact: true }).click()
@@ -63,7 +62,6 @@ test('demo, food search, portions, persistent meals and deletion', async ({ page
   await dialog.getByLabel('Posiłek', { exact: true }).selectOption('dinner')
   await dialog.getByRole('button', { name: 'Dodaj do dziennika' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
-  await expect(addButton).toBeFocused()
   expect((await journal(page)).meals).toHaveLength(before + 1)
   await navigate(page, '/meals')
   await expect(page.getByText('Jogurt naturalny', { exact: true }).last()).toBeVisible()
@@ -87,7 +85,7 @@ test('demo, food search, portions, persistent meals and deletion', async ({ page
 
 test('custom fluid product, unknown macro and validated barcode', async ({ page }) => {
   await openDemo(page)
-  await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
+  await openAdd(page, 'Posiłek')
   const dialog = page.getByRole('dialog')
   await dialog.getByRole('button', { name: 'Własny produkt' }).click()
   await dialog.getByLabel('Nazwa produktu', { exact: true }).fill('Napój testowy')
@@ -120,15 +118,16 @@ test('water, goals, measurements, complete JSON export and demo reset', async ({
   await expect.poll(async () => (await journal(page)).water.length).toBe(amount + 1)
   await page.getByRole('button', { name: 'Cofnij ostatni wpis wody' }).click()
   await expect.poll(async () => (await journal(page)).water.length).toBe(amount)
-  await page.locator('.page-toolbar').getByRole('link', { name: 'Rozpocznij nowy cykl' }).click()
+  await page.locator('.goals-current').getByRole('link', { name: 'Rozpocznij nowy cykl' }).click()
   await page.getByLabel('Koniec', { exact: true }).fill('2099-12-31')
   await page.getByLabel('Energia (kcal / dzień)', { exact: true }).fill('2400')
   await page.getByRole('checkbox', { name: /Sprawdziłem/ }).check()
   await page.getByRole('button', { name: 'Zatwierdź cele i rozpocznij cykl' }).click()
   await expect.poll(async () => (await journal(page)).profile.calorieGoal).toBe(2400)
+  await page.getByText('Historia energii i archiwum cykli').click()
   await expect(page.getByRole('heading', { name: 'Archiwum cykli' })).toBeVisible()
   await navigate(page, '/progress')
-  await page.getByRole('button', { name: 'Dodaj pomiar', exact: true }).click()
+  await openAdd(page, 'Pomiar')
   await page.getByRole('dialog').getByLabel('Masa ciała (kg)', { exact: true }).fill('75.5')
   await page.getByRole('dialog').getByRole('button', { name: 'Zapisz pomiar' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
@@ -181,7 +180,7 @@ test('cycle approval keeps the earlier calorie history, target weight and expire
   await openDemo(page)
   const currentDay = await browserToday(page)
   await navigate(page, '/goals')
-  await page.locator('.page-toolbar').getByRole('link', { name: 'Rozpocznij nowy cykl' }).click()
+  await page.locator('.goals-current').getByRole('link', { name: 'Rozpocznij nowy cykl' }).click()
   await page.getByRole('radio', { name: /^Budowa mięśni/ }).check()
   await page.getByLabel('Koniec', { exact: true }).fill('2099-12-31')
   await page.getByLabel('Masa docelowa (kg)').fill('77')
@@ -385,7 +384,7 @@ test('quick add, search and day navigation work from any screen', async ({ page 
 test('workout and GPX import, duplicate prevention and deleted import recovery', async ({ page }) => {
   await openDemo(page)
   await navigate(page, '/workouts')
-  await page.getByRole('button', { name: 'Dodaj trening', exact: true }).click()
+  await openAdd(page, 'Trening')
   let dialog = page.getByRole('dialog')
   await dialog.getByLabel('Nazwa treningu', { exact: true }).fill('Spacer testowy')
   await dialog.getByLabel('Rodzaj', { exact: true }).selectOption('walk')
@@ -400,7 +399,7 @@ test('workout and GPX import, duplicate prevention and deleted import recovery',
     <trkpt lat="52.01" lon="21"><time>${date}T10:10:00Z</time></trkpt>
   </trkseg></trk></gpx>`)
   async function importFile() {
-    await page.getByRole('button', { name: 'Dodaj trening', exact: true }).click()
+    await openAdd(page, 'Trening')
     const drawer = page.getByRole('dialog')
     await drawer.getByRole('button', { name: 'Import GPX / TCX', exact: true }).click()
     await drawer.getByLabel('Plik aktywności', { exact: true }).setInputFiles({ name: 'test.gpx', mimeType: 'application/gpx+xml', buffer })
@@ -427,7 +426,7 @@ test('manual barcode remains usable after camera permission denial', async ({ pa
     })
   })
   await openDemo(page)
-  await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
+  await openAdd(page, 'Posiłek')
   const dialog = page.getByRole('dialog')
   await dialog.getByRole('button', { name: 'Kod kreskowy', exact: true }).click()
   await dialog.getByRole('button', { name: 'Skanuj aparatem' }).click()
@@ -460,7 +459,7 @@ test('native barcode result stops and releases the camera stream', async ({ page
     } })
   })
   await openDemo(page)
-  await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
+  await openAdd(page, 'Posiłek')
   const dialog = page.getByRole('dialog')
   await dialog.getByRole('button', { name: 'Kod kreskowy', exact: true }).click()
   await dialog.getByRole('button', { name: 'Skanuj aparatem' }).click()
@@ -494,7 +493,7 @@ test('guided workout shows one step at a time, rests with a stopwatch, resumes a
   await navigate(page, '/plan')
   await expect(page.getByRole('heading', { name: 'Twój plan treningowy', exact: true })).toBeVisible()
   await expect(page.locator('.plan-day')).toHaveCount(3)
-  await page.getByRole('link', { name: /^piątek.*rozpocznij/ }).click()
+  await page.locator('.plan-day').filter({ hasText: /piątek/ }).getByRole('link', { name: /Rozpocznij trening|Wznów/ }).click()
   const done = page.getByRole('button', { name: 'Skończone', exact: true })
   await expect(done).toBeVisible()
   await expect(page.locator('main h1')).toHaveCount(1)
@@ -595,7 +594,7 @@ test('all main pages, dialog, privacy and landing are accessible without overflo
     expect(widths.every((value) => Math.abs(value - width) < 1)).toBe(true)
   }
   await navigate(page, '/meals')
-  await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
+  await openAdd(page, 'Posiłek')
   await accessible(page)
   await page.keyboard.press('Escape')
   for (const route of ['/goals', '/meals', '/kitchen', '/plan', '/workouts', '/progress', '/settings']) {
@@ -772,7 +771,7 @@ const browserToday = (page: Page) => page.evaluate(() => {
 test('guided workout records optional reps and load, keeps them on resume and logs them with the session', async ({ page }) => {
   await openDemo(page)
   await navigate(page, '/plan')
-  await page.getByRole('link', { name: /^poniedziałek.*rozpocznij/ }).click()
+  await page.locator('.plan-day').filter({ hasText: /poniedziałek/ }).getByRole('link', { name: /Rozpocznij trening|Wznów/ }).click()
   await page.getByRole('button', { name: 'Lista kroków treningu' }).click()
   await page.getByRole('dialog').getByRole('button', { name: /^A · / }).first().click()
   const reps = page.getByRole('spinbutton', { name: 'Powtórzenia', exact: true })
@@ -817,7 +816,7 @@ test('a logged workout repeats today, strength sets can be added by hand and exe
   expect(workouts.at(-1)).toMatchObject({ kind: 'strength', name: 'Trening całego ciała', date: await browserToday(page) })
   expect(workouts.at(-1)?.sets?.[0].reps).toBe(11)
 
-  await page.getByRole('button', { name: 'Dodaj trening', exact: true }).click()
+  await openAdd(page, 'Trening')
   dialog = page.getByRole('dialog')
   await dialog.getByLabel('Nazwa treningu', { exact: true }).fill('Siłownia wieczorem')
   await dialog.getByLabel('Rodzaj', { exact: true }).selectOption('strength')
@@ -857,7 +856,7 @@ test('progress shows a 7-day weight trend and optional body measurements without
   await page.getByText('Dane wykresu — masa ciała').click()
   await expect(page.getByRole('columnheader', { name: 'Średnia z 7 dni (kg)' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Talia', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Dodaj pomiar', exact: true }).click()
+  await openAdd(page, 'Pomiar')
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByLabel('Obwód talii (cm)', { exact: true })).toHaveValue('83')
   await dialog.getByLabel('Obwód talii (cm)', { exact: true }).fill('81.5')
@@ -918,7 +917,8 @@ test('meals copy from yesterday, reuse the last portion and become one-tap templ
 test('Skan posiłku: a plate built by hand shows a range, accepts menu values and saves to Posiłki', async ({ page }) => {
   await openDemo(page)
   await navigate(page, '/meals')
-  await page.getByRole('link', { name: 'Skanuj posiłek ze zdjęcia' }).click()
+  await page.getByRole('button', { name: 'Dodaj', exact: true }).first().click()
+  await page.getByRole('button', { name: /^Skan posiłku/ }).click()
   await expect(page.getByRole('heading', { name: 'Skan posiłku', level: 1 })).toBeVisible()
   await expect(page.getByText(/Rozpoznawanie ze zdjęcia działa po zalogowaniu/)).toBeVisible()
   await expect(page.getByText('To szacunek, nie pomiar.', { exact: false })).toBeVisible()
@@ -1066,7 +1066,7 @@ test('exercise history shows personal records without rankings', async ({ page }
 test('own workouts: saved from a logged one, logged again with its sets, deleted with undo', async ({ page }) => {
   await openDemo(page)
   await navigate(page, '/workouts')
-  await expect(page.locator('.my-workouts')).toContainText('Zapisz ulubiony trening')
+  await expect(page.locator('.my-workouts')).toHaveCount(0)
   const source = page.locator('.workout-item').filter({ has: page.locator('summary') }).first()
   const name = (await source.locator('h2').innerText()).trim()
   await source.getByRole('button', { name: `Zapisz jako własny trening: ${name}` }).click()
@@ -1167,7 +1167,7 @@ test('fibre is shown against a reference and flags missing data instead of count
 test('approved goal estimate, CSV export and backup restore without deleting anything', async ({ page }, testInfo) => {
   await openDemo(page)
   await navigate(page, '/goals')
-  await page.locator('.page-toolbar').getByRole('link', { name: 'Rozpocznij nowy cykl' }).click()
+  await page.locator('.goals-current').getByRole('link', { name: 'Rozpocznij nowy cykl' }).click()
   await page.getByLabel('Koniec', { exact: true }).fill('2099-12-31')
   await page.getByRole('button', { name: 'Oblicz propozycję' }).click()
   await expect(page.getByText('32 lat z ankiety treningowej')).toBeVisible()

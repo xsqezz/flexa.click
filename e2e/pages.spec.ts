@@ -1,3 +1,4 @@
+import { openAdd } from './add'
 import { test, expect } from '@playwright/test'
 import { mockEmptyCatalog } from './catalog-fixture'
 
@@ -69,7 +70,7 @@ test('public Pages barcode lookup uses actual product records and persists the c
     })
   })
   await page.goto(`${origin}/app/#/demo`)
-  await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
+  await openAdd(page, 'Posiłek')
   const dialog = page.getByRole('dialog')
   await dialog.getByRole('button', { name: 'Kod kreskowy', exact: true }).click()
   await dialog.getByLabel('Kod EAN lub UPC', { exact: true }).fill('4025500132477')
@@ -96,7 +97,7 @@ test('public catalog failure is not mislabeled as a missing barcode', async ({ p
     status: 503, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '{}',
   }))
   await page.goto(`${origin}/app/#/demo`)
-  await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
+  await openAdd(page, 'Posiłek')
   const dialog = page.getByRole('dialog')
   await dialog.getByRole('button', { name: 'Kod kreskowy', exact: true }).click()
   await dialog.getByLabel('Kod EAN lub UPC', { exact: true }).fill('4025500132477')
@@ -109,7 +110,7 @@ test('all 150 required product positions are available from the built-in license
   let external = 0
   await page.route('https://world.openfoodfacts.org/**', (route) => { external++; return route.abort() })
   await page.goto(`${origin}/app/#/demo`)
-  await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
+  await openAdd(page, 'Posiłek')
   const dialog = page.getByRole('dialog')
   const picker = dialog.getByRole('combobox', { name: 'Podstawowe produkty — 150 pozycji', exact: true })
   expect(await picker.locator('option').count()).toBe(151)

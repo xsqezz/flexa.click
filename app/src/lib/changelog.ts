@@ -4,6 +4,14 @@ export type ChangelogEntry = { date: string; title: string; points: string[] }
 export const changelog: ChangelogEntry[] = [
   {
     date: '2026-10-11',
+    title: 'Prostszy układ zakładek',
+    points: [
+      'Wszystkie zakładki zostały, ale mają mniej przycisków: dodawanie jest w jednym miejscu — przycisku „Dodaj” — a nie w każdej zakładce osobno.',
+      'Mniej powtórzeń i kafli: podsumowania okresu są w jednej linii, a rzadziej potrzebne rzeczy (historia energii i cykli, objaśnienia planu, grupy produktów w Kuchni) są zwinięte.',
+    ],
+  },
+  {
+    date: '2026-10-11',
     title: 'Odczyt etykiety ze zdjęcia',
     points: [
       'Dodając własny produkt, sfotografuj tabelę wartości odżywczych — Flexa przepisze liczby „na 100 g / 100 ml” do formularza, a Ty je sprawdzisz i zapiszesz.',

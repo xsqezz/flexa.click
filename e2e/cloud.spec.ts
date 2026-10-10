@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { openAdd } from './add'
 import { test, expect, type Page } from '@playwright/test'
 import { mockEmptyCatalog } from './catalog-fixture'
 
@@ -187,7 +188,7 @@ test('real SDK login, cloud write/reload, required unit and function error', asy
   await expect(page.getByRole('link', { name: /^Konto i ustawienia: Cloud test/ })).toBeVisible()
   await expect(page.getByText(/Przykładowe dane/)).toHaveCount(0)
   await page.locator('nav:visible a[href="/meals"]').first().click()
-  await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
+  await openAdd(page, 'Posiłek')
   let dialog = page.getByRole('dialog')
   await dialog.getByLabel('Nazwa produktu', { exact: true }).fill('Produkt chmurowy')
   await dialog.getByRole('button', { name: 'Szukaj', exact: true }).click()
@@ -201,7 +202,7 @@ test('real SDK login, cloud write/reload, required unit and function error', asy
   expect(mocked.rows.meal_entries[0]).toMatchObject({ user_id: userId, portion: 50 })
   await page.reload()
   await expect(page.getByText('Produkt chmurowy', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Dodaj posiłek', exact: true }).click()
+  await openAdd(page, 'Posiłek')
   dialog = page.getByRole('dialog')
   await dialog.getByLabel('Nazwa produktu', { exact: true }).fill('limit')
   await dialog.getByRole('button', { name: 'Szukaj', exact: true }).click()
@@ -593,7 +594,7 @@ test('cloud workouts keep their sets and measurements keep optional body values,
   await page.goto(`${origin}/workouts`)
   await page.getByRole('button', { name: 'Wszystkie', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Stary trening' })).toBeVisible()
-  await page.getByRole('button', { name: 'Dodaj trening', exact: true }).click()
+  await openAdd(page, 'Trening')
   let dialog = page.getByRole('dialog')
   await dialog.getByLabel('Nazwa treningu', { exact: true }).fill('Siła w chmurze')
   await dialog.getByLabel('Rodzaj', { exact: true }).selectOption('strength')
@@ -609,7 +610,7 @@ test('cloud workouts keep their sets and measurements keep optional body values,
   await page.getByText('Serie: 1', { exact: true }).click()
   await expect(page.getByText('10 × 16 kg')).toBeVisible()
   await page.goto(`${origin}/progress`)
-  await page.getByRole('button', { name: 'Dodaj pomiar', exact: true }).click()
+  await openAdd(page, 'Pomiar')
   dialog = page.getByRole('dialog')
   await expect(dialog.getByLabel('Masa ciała (kg)', { exact: true })).toHaveValue('80')
   await dialog.getByText('Więcej pomiarów').click()

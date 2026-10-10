@@ -62,7 +62,7 @@ export function MealPlanPage() {
   }
 
   return <>
-    <PageHeader title="Plan tygodnia" description="Rozplanuj posiłki z zapisanych zestawów i zapisz cały dzień w dzienniku jednym dotknięciem. Plan zostaje na tym urządzeniu." primary="none" />
+    <PageHeader title="Plan tygodnia" description="Rozplanuj posiłki z zapisanych zestawów i zapisz cały dzień w dzienniku jednym dotknięciem. Plan zostaje na tym urządzeniu." />
     <Link className="text-link" to="/meals"><ArrowLeft size={16} aria-hidden="true" />Wróć do posiłków</Link>
     {problem && <Notice>{problem}</Notice>}
     <div className="page-toolbar plan-week-nav">

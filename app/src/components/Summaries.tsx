@@ -1,6 +1,5 @@
 import { Droplets, Minus, Plus, TrendingUp } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import type { Journal, Meal } from '../../../shared/domain'
 import { daysEndingAt, dateLabel, today, weekStart, shiftDate } from '../lib/dates'
 import { goalForDay } from '../lib/goals'
@@ -62,7 +61,7 @@ export function NutritionSummary({ meals, profile, date }: { meals: Meal[]; prof
       })}
     </div>
     {meals.length > 0 && <FiberLine meals={meals} />}
-    <div className="summary-footnote">Cel zatwierdzasz Ty. Energia treningów nie zwiększa go automatycznie. <Link to="/goals/new">Rozpocznij nowy cykl</Link></div>
+    <div className="summary-footnote">Cel zatwierdzasz Ty. Energia treningów nie zwiększa go automatycznie.</div>
   </section>
 }
 

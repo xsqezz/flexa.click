@@ -394,7 +394,7 @@ export function ScanPage({ mode = 'photo' }: { mode?: 'photo' | 'quick' }) {
     <div className="goals-back"><Link to="/meals" className="text-link">← Wróć do Posiłków</Link></div>
     <PageHeader title={mode === 'quick' ? 'Szybki wpis' : 'Skan posiłku'} description={mode === 'quick'
       ? 'Napisz lub podyktuj, co zjadłeś. Zamienimy to na listę z kaloriami i makroskładnikami — do sprawdzenia i zapisania w Posiłkach.'
-      : 'Zdjęcie tacy lub talerza zamienione w listę składników z kaloriami i makroskładnikami — do sprawdzenia i zapisania w Posiłkach.'} primary="none" />
+      : 'Zdjęcie tacy lub talerza zamienione w listę składników z kaloriami i makroskładnikami — do sprawdzenia i zapisania w Posiłkach.'} />
     <div className="page-toolbar"><DateControl /></div>
     {mode === 'quick'
       ? <Notice>To szacunek, nie pomiar. Ilości z Twojego zdania (np. „200 g”, „dwa jajka”) liczą się dokładnie; bez ilości zakładamy porcję średnią albo Twoją zwykłą. Przed zapisem sprawdź listę.</Notice>

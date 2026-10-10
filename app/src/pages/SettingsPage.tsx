@@ -78,10 +78,10 @@ export function SettingsPage() {
     } finally { setDeletionBusy(false) }
   }
   return <>
-    <PageHeader title="Konto i ustawienia" description="Twój profil, prywatność i przenoszenie danych. Cele żywieniowe znajdziesz w osobnej zakładce." primary="none" />
+    <PageHeader title="Konto i ustawienia" description="Profil, kopie danych i konto." />
     {error && <Notice tone="error">{error}</Notice>}
     <div className="settings-grid">
-      <section className="panel"><h2>Profil i aktywność</h2><p>Imię i tygodniowy cel ruchu ustawisz tutaj. Masę docelową, kalorie i makroskładniki znajdziesz w <Link to="/goals">Celach</Link>.</p>
+      <section className="panel"><h2>Profil i aktywność</h2><p>Kalorie i makroskładniki ustawisz w <Link to="/goals">Celach</Link>.</p>
         <form className="form-stack" key={JSON.stringify(profile)} onSubmit={(event) => { void save(event) }}>
           <Field label="Imię lub pseudonim"><input name="name" required maxLength={60} defaultValue={profile.displayName} /></Field>
           <Field label="Aktywność (min / tydzień)" hint="Wpisz 0, jeśli nie chcesz ustawiać celu."><input name="minutes" type="number" min="0" max="10000" step="1" required defaultValue={profile.weeklyMinutesGoal} /></Field>
@@ -97,7 +97,7 @@ export function SettingsPage() {
             <Button variant="secondary" onClick={() => fileInput.current?.click()}><Upload size={17} aria-hidden="true" />Przywróć z kopii</Button>
             <input ref={fileInput} className="sr-only" type="file" accept=".json,application/json" tabIndex={-1} aria-hidden="true"
               onChange={(event) => { void readBackup(event) }} /></div>
-          <p className="source-credit">Eksport zawiera wpisy, produkty, zestawy, pomiary, historię cykli i plan z odpowiedziami. Trzymaj plik w bezpiecznym miejscu. Przywracanie domyślnie tylko dodaje brakujące wpisy; zastąpienie profilu lub planu i przywrócenie zakończonych cykli wymagają osobnego wyboru.</p>
+          <p className="source-credit">Kopia JSON zawiera cały dziennik, produkty, zestawy, cykle i plan. Przywracanie domyślnie tylko dodaje brakujące wpisy.</p>
           {dataError && <Notice tone="error">{dataError}</Notice>}
           <div className="data-csv">
             <h3><FileSpreadsheet size={17} aria-hidden="true" />Eksport do arkusza (CSV)</h3>
@@ -117,10 +117,7 @@ export function SettingsPage() {
           </div>
         </section>
         <AndroidAppPanel />
-        <section className="panel"><h2>Integracje bez niespodzianek</h2><p>Import GPX/TCX jest niezależny od zewnętrznych kont. API Stravy wymaga osobnej akceptacji jej zasad — nie jest włączone.</p>
-          <p style={{ marginTop: 12 }}>Apple Health i Health Connect wymagają aplikacji natywnej. Nie udajemy, że strona internetowa synchronizuje te dane.</p>
-          <div className="button-row"><Link className="text-link" to="/sources">Źródła, licencje i ograniczenia</Link></div>
-        </section>
+        <p className="source-credit">Import GPX/TCX działa lokalnie, bez zewnętrznych kont. <Link className="text-link" to="/sources">Źródła, licencje i ograniczenia</Link></p>
       </div>
     </div>
     {resetting && <Confirm title="Wyzerować demo?" confirmLabel="Wyzeruj demo" cancelLabel="Zachowaj dane" error={deletionError}
