@@ -15,6 +15,7 @@ import { plural } from '../lib/templates'
 import { integerFormat, numberFormat } from '../lib/nutrition'
 import { KitchenAiError, kitchenAiAvailable, preparePhoto, type PreparedPhoto } from '../lib/kitchen/ai-client'
 import { takeSharedImage } from '../lib/native'
+import { joinSpoken, useDictation } from '../lib/speech'
 import { resolveQuick } from '../lib/scan/quick'
 import { lineWithHabit, readHabits, rememberLines, saveHabits } from '../lib/scan/habits'
 import { analysePlate, lineForItem, rememberScanConsent, resolveFindings, scanConsentGiven } from '../lib/scan/client'
@@ -237,51 +238,22 @@ function PhotoPanel({ aiReady, onAnalysed }: { aiReady: boolean | null; onAnalys
   </section>
 }
 
-type SpeechResult = { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }
-type Recognition = {
-  lang: string; interimResults: boolean; continuous: boolean
-  start(): void; stop(): void
-  onresult: ((event: SpeechResult) => void) | null; onend: (() => void) | null; onerror: (() => void) | null
-}
-function speechApi(): (new () => Recognition) | null {
-  const scope = window as unknown as { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition }
-  return scope.SpeechRecognition ?? scope.webkitSpeechRecognition ?? null
-}
-
 /** Type or dictate what you ate; the sentence is split into items and looked up in the same catalogue as the photo scan. */
 function QuickPanel({ ready, onSubmit }: { ready: boolean; onSubmit: (text: string) => void }) {
   const inputId = useId()
   const [text, setText] = useState('')
-  const [listening, setListening] = useState(false)
-  const recognition = useRef<Recognition | null>(null)
-  const Speech = useMemo(speechApi, [])
-  useEffect(() => () => { recognition.current?.stop() }, [])
-
-  function toggleListening() {
-    if (listening) { recognition.current?.stop(); return }
-    if (!Speech) return
-    const next = new Speech()
-    next.lang = 'pl-PL'; next.interimResults = true; next.continuous = false
-    const base = text.trim()
-    next.onresult = (event) => {
-      const spoken = Array.from(event.results).map((result) => result[0]?.transcript ?? '').join(' ').trim()
-      setText([base, spoken].filter(Boolean).join(', ').slice(0, 400))
-    }
-    next.onend = () => setListening(false)
-    next.onerror = () => setListening(false)
-    recognition.current = next
-    setListening(true)
-    try { next.start() } catch { setListening(false) }
-  }
+  const textRef = useRef(text)
+  useEffect(() => { textRef.current = text })
+  const dictation = useDictation((spoken, base) => setText(joinSpoken(base, spoken, 400)), () => textRef.current)
+  const Speech = dictation.supported
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!text.trim() || !ready) return
-    recognition.current?.stop()
+    dictation.stop()
     onSubmit(text)
     setText('')
   }
-
   return <section className="panel scan-photo quick-entry" aria-labelledby="quick-title">
     <h2 id="quick-title">Co zjadłeś?</h2>
     <p className="scan-lead">Napisz własnymi słowami, także z ilościami: „owsianka z bananem i dwie kawy z mlekiem”, „200 g ryżu, 2 kromki chleba”.</p>
@@ -291,10 +263,10 @@ function QuickPanel({ ready, onSubmit }: { ready: boolean; onSubmit: (text: stri
         onChange={(event) => setText(event.target.value)} />
       <div className="button-row">
         <Button type="submit" disabled={!text.trim() || !ready}><Plus size={17} aria-hidden="true" />Dodaj do talerza</Button>
-        {Speech && <Button type="button" variant="secondary" onClick={toggleListening} aria-pressed={listening}><Mic size={17} aria-hidden="true" />{listening ? 'Słucham… (stuknij, by zakończyć)' : 'Podyktuj'}</Button>}
+        {Speech && <Button type="button" variant="secondary" onClick={dictation.toggle} aria-pressed={dictation.listening}><Mic size={17} aria-hidden="true" />{dictation.listening ? 'Słucham… (stuknij, by zakończyć)' : 'Podyktuj'}</Button>}
       </div>
     </form>
-    <p className="scan-lead"><ShieldCheck size={15} aria-hidden="true" /> Tekst przetwarzamy na Twoim urządzeniu, bez wysyłania go do AI.{Speech ? ' Dyktowanie w przeglądarce może wysyłać nagranie do jej dostawcy (np. Google).' : ' Na telefonie możesz użyć mikrofonu na klawiaturze.'}</p>
+    <p className="scan-lead"><ShieldCheck size={15} aria-hidden="true" /> Tekst przetwarzamy na Twoim urządzeniu, bez wysyłania go do AI.{Speech ? ' Dyktowanie korzysta z rozpoznawania mowy przeglądarki lub telefonu i może wysyłać nagranie do jej dostawcy (np. Google).' : ' Na telefonie możesz użyć mikrofonu na klawiaturze.'}</p>
   </section>
 }
 

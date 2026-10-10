@@ -12,6 +12,8 @@ import { sessionTitle, weekdayIndex } from '../lib/training/format'
 import { useFeedback } from './Feedback'
 import { useWorkspace } from './Workspace'
 import { errorMessage } from './ui'
+import { DictationButton } from './DictationButton'
+import { useDictation } from '../lib/speech'
 
 type Item = { id: string; group: string; label: string; detail?: string; keywords?: string; icon: ReactNode; run: () => void }
 
@@ -39,6 +41,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   const workspace = useWorkspace()
   const { data, execute } = useJournal()
   const feedback = useFeedback()
+  const dictation = useDictation((spoken) => { setQuery(spoken.slice(0, 80)); setActive(0) })
 
   useEffect(() => {
     const dialog = ref.current
@@ -145,6 +148,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
         aria-activedescendant={results.length ? `${listId}-${current}` : undefined} aria-label="Szukaj stron, akcji i wpisów"
         placeholder="Szukaj: posiłek, woda, plan, nazwa produktu…" value={query} autoComplete="off"
         onChange={(event) => { setQuery(event.target.value); setActive(0) }} onKeyDown={onKeyDown} />
+      <DictationButton supported={dictation.supported} listening={dictation.listening} onToggle={dictation.toggle} />
       <button className="icon-button" type="button" aria-label="Zamknij wyszukiwanie" onClick={onClose}><X size={18} /></button>
     </div>
     <ul id={listId} role="listbox" aria-label="Wyniki" className="palette-results">

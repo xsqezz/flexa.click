@@ -1306,3 +1306,8 @@ h2 { font-weight: 680; }
 .plan-more > summary { cursor: pointer; font-weight: 600; font-size: 1.05rem; }
 .plan-more > summary:focus-visible, .goals-more > summary:focus-visible { outline: 3px solid #336fac; outline-offset: 2px; }
 .plan-more[open] > summary, .goals-more[open] > summary { margin-bottom: 16px; }
+/* Dyktowanie */
+.dictation.listening { background: #d93f3f; color: #fff; animation: dictation-pulse 1.4s ease-in-out infinite; }
+@keyframes dictation-pulse { 50% { box-shadow: 0 0 0 7px #d93f3f33; } }
+@media (prefers-reduced-motion: reduce) { .dictation.listening { animation: none; } }
+.search-form .dictation { align-self: center; flex: none; }

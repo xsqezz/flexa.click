@@ -14,6 +14,10 @@ class NativeMessageTest {
         assertEquals(NativeMessage.TakeSharedImage(null), NativeMessage.parse("{\"type\":\"shared-image.take\"}"))
         assertNull(NativeMessage.parse("{\"type\":\"shared-image.take\",\"id\":\"s-1\",\"uri\":\"file:///x\"}"))
         assertNull(NativeMessage.parse("{\"type\":\"shared-image.take\",\"id\":\"bad id!\"}"))
+        assertEquals(NativeMessage.ListenSpeech("v-1"), NativeMessage.parse("{\"type\":\"speech.listen\",\"id\":\"v-1\"}"))
+        assertEquals(NativeMessage.ListenSpeech(null), NativeMessage.parse("{\"type\":\"speech.listen\"}"))
+        assertNull(NativeMessage.parse("{\"type\":\"speech.listen\",\"id\":\"v-1\",\"lang\":\"en\"}"))
+        assertNull(NativeMessage.parse("{\"type\":\"speech.listen\",\"id\":\"bad id!\"}"))
     }
 
     private fun message(type: String, vararg fields: Pair<String, Any>): String =
